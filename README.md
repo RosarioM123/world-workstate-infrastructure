@@ -38,3 +38,27 @@ regardless of model or tool.
 
 - No secrets in this repo: no API keys, passwords, tokens, or `.env` files.
 - `world` is the single repository for the WORLD project. No new repos for it.
+
+## Day 1 demo: deterministic state kernel
+
+A standalone, runnable prototype alongside the docs above — it does not
+replace the thesis or the experiment program.
+
+- `engine.py` — append-only, hash-chained SQLite state ledger. Agents submit
+  *intents*; a hard-coded constraint engine returns COMMITTED or REJECTED.
+- `ingest.py` — pulls live Rotterdam weather (Open-Meteo, no API key) and
+  pipes it through the ledger. `python ingest.py --demo` also unleashes a
+  rogue agent whose illegal intents are all blocked.
+- `app.py` — FastAPI backend + dark-mode dashboard.
+
+Run it with zero local setup via GitHub Codespaces: **Code → Codespaces →
+Create codespace on main**, wait ~2 minutes, then open forwarded port
+**8000** (globe icon) in the Ports panel.
+
+Or locally:
+
+```bash
+pip install -r requirements.txt
+uvicorn app:app --reload
+# open http://127.0.0.1:8000
+```
