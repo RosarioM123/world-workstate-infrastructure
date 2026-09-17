@@ -1,4 +1,4 @@
-# world
+# WORLD
 
 **WORLD — persistent work-state infrastructure for AI and human work.**
 
@@ -12,9 +12,11 @@ artifacts, provenance, actions, state changes, outstanding questions, and
 handoff state — readable and writable by any authorized participant,
 regardless of model or tool.
 
-> **Status: docs-first.** We are deliberately not building the application
-> yet. The thesis must survive `docs/thesis-challenge.md` and the handoff
-> experiment before any architecture is designed.
+> **Status: docs-first, prototype running.** The thesis is still being
+> challenged in `docs/thesis-challenge.md` and tested by the handoff
+> experiments, and a runnable Day 1 prototype of the deterministic state
+> kernel exists alongside that work (see below). No application architecture
+> beyond the prototype until the experiments justify it.
 
 ## Start here
 
@@ -28,16 +30,18 @@ regardless of model or tool.
 ## Repository layout
 
 ```
-/app      — prototype application (scaffolded only after the thesis survives)
+/engine.py   — deterministic state kernel (hash-chained SQLite ledger)
+/ingest.py   — live data ingestion piped through the kernel
+/app.py      — FastAPI backend + dark-mode dashboard
 /research  — competitive/technical research
 /docs      — product hypothesis, architecture, experiments, development log
-/tests     — evaluation and automated tests (built alongside /app)
+/tests     — regression tests for the demo kernel
 ```
 
 ## Rules
 
 - No secrets in this repo: no API keys, passwords, tokens, or `.env` files.
-- `world` is the single repository for the WORLD project. No new repos for it.
+- This repo is the single home of the WORLD project. No new repos for it.
 
 ## Day 1 demo: deterministic state kernel
 
