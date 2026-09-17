@@ -39,6 +39,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from engine import (  # noqa: E402
     IntentTransaction,
+    SEED_CAPACITY,
+    SEED_ENTITY_ID,
     connect_db,
     execute_deterministic_transition,
     get_entity,
@@ -47,14 +49,16 @@ from engine import (  # noqa: E402
 
 # Rotterdam, NL, the seeded hub node in engine.py
 HUB_LAT, HUB_LON = 51.95, 4.14
-HUB_ENTITY_ID = "node_rotterdam_hub"
+HUB_ENTITY_ID = SEED_ENTITY_ID
 SOURCE = "open-meteo"
 
-# Baseline capacity the derate rules are computed against. Derates are a
-# fixed fraction of this baseline (not of current capacity), so repeated
-# ingestion ticks accumulate linearly and auditably instead of compounding
-# geometrically toward zero.
-BASELINE_CAPACITY = 1000.0
+# Baseline capacity the derate rules are computed against. This is the
+# engine's seed capacity, imported rather than re-typed, so the two
+# modules cannot silently disagree. Derates are a fixed fraction of this
+# baseline (not of current capacity), so repeated ingestion ticks
+# accumulate linearly and auditably instead of compounding geometrically
+# toward zero.
+BASELINE_CAPACITY = SEED_CAPACITY
 
 # Deterministic derate rules: (min wind km/h, capacity derate fraction,
 # cash delta, action label). Pure function of the observation, no LLM,
