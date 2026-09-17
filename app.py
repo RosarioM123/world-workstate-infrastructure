@@ -41,6 +41,7 @@ async def lifespan(app: FastAPI):
     init_db()
     init_observations()
     app.state.landing_html = _load_landing_page()
+    app.state.dashboard_html = _load_dashboard_page()
     yield
 
 
@@ -87,6 +88,23 @@ def _load_landing_page() -> str:
     return html
 
 
+def _load_dashboard_page() -> str:
+    """Load the /demo dashboard from static/dashboard.html.
+
+    The markup lives in a static file so app.py stays Python; it is read
+    once at startup like the landing page.
+    """
+    page_path = Path(__file__).resolve().parent / "static" / "dashboard.html"
+    try:
+        return page_path.read_text(encoding="utf-8")
+    except OSError:
+        return (
+            "<!DOCTYPE html><html><body style='font-family:monospace'>"
+            "WORLD dashboard unavailable — try <a href='/api/state'>/api/state</a>"
+            "</body></html>"
+        )
+
+
 app = FastAPI(title="WORLD Deterministic State Kernel", lifespan=lifespan)
 
 
@@ -94,6 +112,12 @@ app = FastAPI(title="WORLD Deterministic State Kernel", lifespan=lifespan)
 def landing():
     """Marketing landing page. The live dashboard moved to /demo."""
     return app.state.landing_html
+
+
+@app.get("/health")
+def health():
+    """Liveness probe for the hosting platform. Touches no database."""
+    return {"status": "ok"}
 
 
 @app.get("/api/state")
@@ -161,178 +185,4 @@ def trigger_rogue_attack():
 @app.get("/demo", response_class=HTMLResponse)
 def dashboard():
     """High-contrast, YC-ready control center UI."""
-    return """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>WORLD | Deterministic State Kernel</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-    </head>
-    <body class="bg-zinc-950 text-zinc-100 font-mono min-h-screen p-8">
-        <div class="max-w-6xl mx-auto space-y-8">
-            <div class="flex justify-between items-center border-b border-zinc-800 pb-4">
-                <div>
-                    <h1 class="text-2xl font-bold tracking-tight text-white">WORLD // State Kernel</h1>
-                    <p class="text-xs text-zinc-400">Deterministic state infrastructure + live real-world ingestion</p>
-                </div>
-                <div class="space-x-4">
-                    <button onclick="triggerIngest()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded font-semibold transition">
-                        ⚡ Inject Real-World Feed
-                    </button>
-                    <button onclick="fetchState()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm px-4 py-2 rounded transition">
-                        🔄 Refresh State
-                    </button>
-                </div>
-            </div>
-
-            <div id="banner" class="hidden text-xs px-4 py-3 rounded border"></div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-6 space-y-4">
-                    <h2 class="text-sm font-semibold uppercase tracking-wider text-zinc-400">Core Node State</h2>
-                    <div id="entity-container" class="space-y-3">
-                        <p class="text-xs text-zinc-500 animate-pulse">Loading node state...</p>
-                    </div>
-                </div>
-
-                <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-6 space-y-4">
-                    <h2 class="text-sm font-semibold uppercase tracking-wider text-zinc-400">Test Hallucination Guardrail</h2>
-                    <p class="text-xs text-zinc-400">Fire intents at the math engine. Illegal ones are blocked and logged as <span class="text-red-400 font-bold">REJECTED</span>.</p>
-                    <div class="flex gap-4 pt-2">
-                        <button onclick="testIntent(-5000, 0)" class="flex-1 bg-red-950/50 border border-red-800 hover:bg-red-900 text-red-200 text-xs py-2 px-3 rounded transition">
-                            Illegal Drain (-5k Cap)
-                        </button>
-                        <button onclick="testIntent(-50, 1000)" class="flex-1 bg-blue-950/50 border border-blue-800 hover:bg-blue-900 text-blue-200 text-xs py-2 px-3 rounded transition">
-                            Valid Reallocation
-                        </button>
-                    </div>
-                    <button onclick="rogueAttack()" class="w-full bg-red-900/60 border border-red-700 hover:bg-red-800 text-red-100 text-xs py-2 px-3 rounded font-bold transition">
-                        🤖 Unleash Rogue Agent (3 illegal attacks)
-                    </button>
-                </div>
-            </div>
-
-            <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-6 space-y-4">
-                <h2 class="text-sm font-semibold uppercase tracking-wider text-zinc-400">Tamper-evident ledger (append-only, hash-chained)</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs">
-                        <thead class="border-b border-zinc-800 text-zinc-500">
-                            <tr>
-                                <th class="pb-2">ID</th>
-                                <th class="pb-2">Timestamp (T0)</th>
-                                <th class="pb-2">Entity</th>
-                                <th class="pb-2">Action</th>
-                                <th class="pb-2">Status</th>
-                                <th class="pb-2">Hash</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ledger-table" class="divide-y divide-zinc-800/50">
-                            <tr><td colspan="6" class="py-3 text-zinc-500 animate-pulse">Connecting to ledger...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <script>
-            // Every value rendered below comes from the database, and the
-            // `action` field is free-text attacker input via POST /api/intent.
-            // Escape it before injecting into innerHTML (stored XSS otherwise).
-            function escapeHtml(s) {
-                return String(s).replace(/[&<>"']/g, function (c) {
-                    return {"&": "&amp;", "<": "&lt;", ">": "&gt;",
-                            '"': "&quot;", "'": "&#39;"}[c];
-                });
-            }
-
-            function showBanner(text, ok) {
-                const b = document.getElementById('banner');
-                b.classList.remove('hidden');
-                b.className = 'text-xs px-4 py-3 rounded border ' + (ok
-                    ? 'bg-emerald-950/60 border-emerald-800 text-emerald-300'
-                    : 'bg-red-950/60 border-red-800 text-red-300');
-                b.textContent = text;
-            }
-
-            async function fetchState() {
-                const res = await fetch('/api/state');
-                const data = await res.json();
-
-                document.getElementById('entity-container').innerHTML = data.entities.map(e => `
-                    <div class="bg-zinc-950 p-4 rounded border border-zinc-800 flex justify-between items-center">
-                        <div>
-                            <span class="text-emerald-400 font-bold">${escapeHtml(e.entity_id)}</span>
-                            <div class="text-xs text-zinc-400 mt-1">Status: <span class="text-white">${escapeHtml(e.status)}</span></div>
-                            <div class="text-[10px] text-zinc-500 mt-1">updated ${escapeHtml(e.last_updated)}</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-sm">Capacity: <span class="text-zinc-200">${Number(e.capacity).toLocaleString()}</span></div>
-                            <div class="text-xs text-zinc-400">Liquidity: $${Number(e.available_liquidity).toLocaleString()}</div>
-                        </div>
-                    </div>
-                `).join('');
-
-                document.getElementById('ledger-table').innerHTML = data.recent_ledger.map(tx => `
-                    <tr class="hover:bg-zinc-800/20">
-                        <td class="py-2 font-mono text-zinc-500">#${tx.transaction_id}</td>
-                        <td class="py-2 text-zinc-400">${escapeHtml(tx.timestamp)}</td>
-                        <td class="py-2 text-zinc-300">${escapeHtml(tx.entity_id)}</td>
-                        <td class="py-2 text-zinc-300">${escapeHtml(tx.action)}</td>
-                        <td class="py-2">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${tx.status === 'COMMITTED' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'}">
-                                ${escapeHtml(tx.status)}
-                            </span>
-                        </td>
-                        <td class="py-2 font-mono text-zinc-600">${escapeHtml(tx.record_hash).slice(0, 8)}</td>
-                    </tr>
-                `).join('');
-            }
-
-            async function triggerIngest() {
-                const res = await fetch('/api/trigger-ingest', { method: 'POST' });
-                const data = await res.json();
-                showBanner(
-                    `Feed: ${data.source}${data.synthetic ? ' (synthetic fallback)' : ' (LIVE)'}, wind ${data.wind_kmh} km/h → ${data.intent}: ${data.engine_verdict}`,
-                    data.engine_verdict === 'COMMITTED'
-                );
-                fetchState();
-            }
-
-            async function testIntent(deltaCap, deltaCash) {
-                const res = await fetch('/api/intent', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        entity_id: "node_rotterdam_hub",
-                        action: "MANUAL_TEST_INTENT",
-                        delta_capacity: deltaCap,
-                        delta_cash: deltaCash
-                    })
-                });
-                const data = await res.json();
-                showBanner(
-                    `MANUAL_TEST_INTENT (Δcap=${deltaCap}, Δcash=${deltaCash}): ${data.status}, ${data.details.reason}`,
-                    data.status === 'COMMITTED'
-                );
-                fetchState();
-            }
-
-            async function rogueAttack() {
-                const res = await fetch('/api/rogue-attack', { method: 'POST' });
-                const data = await res.json();
-                const blocked = data.attacks.filter(a => a.verdict.status === 'REJECTED').length;
-                showBanner(
-                    `Rogue agent fired ${data.attacks.length} illegal intents, ${blocked} blocked by hard code. ` +
-                    data.attacks.map(a => `${a.intent.action}:${a.verdict.status}`).join(' · '),
-                    blocked === data.attacks.length
-                );
-                fetchState();
-            }
-
-            fetchState();
-            setInterval(fetchState, 5000);
-        </script>
-    </body>
-    </html>
-    """
+    return app.state.dashboard_html
