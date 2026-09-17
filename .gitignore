@@ -27,3 +27,17 @@ Thumbs.db
 # Test / coverage
 coverage/
 .nyc_output/
+.pytest_cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# SQLite demo databases — generated at runtime, never committed
+*.db
+*.db-wal
+*.db-shm
