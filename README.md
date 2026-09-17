@@ -4,7 +4,7 @@
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/RosarioM123/world-ai-infrastructure)
 
-> **Live demo:** `https://world-ai-infrastructure.onrender.com` — the full
+> **Live demo:** `https://world.onrender.com` — the full
 > site. The interactive dashboard (live ledger, intent submission,
 > rogue-attack simulation) lives at `/demo`. Free tier: the service sleeps
 > after 15 minutes idle, so the first load takes ~30s to wake up.
