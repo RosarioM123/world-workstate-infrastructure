@@ -1,5 +1,5 @@
 """
-WORLD Day 1 — Real-world data ingestion (ingest.py)
+WORLD Day 1, Real-world data ingestion (ingest.py)
 
 Pulls LIVE, free, no-key public data and pipes it through the deterministic
 state ledger in engine.py.
@@ -13,7 +13,7 @@ decide COMMITTED vs REJECTED.
 
 Feeds (no API keys, no premium data, no dependencies beyond stdlib):
     - Open-Meteo (https://open-meteo.com): current weather at the hub.
-      Rotterdam is a real port city — high winds derate port capacity via a
+      Rotterdam is a real port city, high winds derate port capacity via a
       fixed, auditable rule. Weather is honest real-world exogenous shock.
 
 Usage:
@@ -28,29 +28,36 @@ a clearly-labeled synthetic observation so the show always goes on.
 
 import argparse
 import json
-import sqlite3
 import sys
+import urllib.error
 import urllib.request
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from engine import (  # noqa: E402
-    DB_PATH,
     IntentTransaction,
+    connect_db,
     execute_deterministic_transition,
     get_entity,
     init_db,
 )
 
-# Rotterdam, NL — the seeded hub node in engine.py
+# Rotterdam, NL, the seeded hub node in engine.py
 HUB_LAT, HUB_LON = 51.95, 4.14
 HUB_ENTITY_ID = "node_rotterdam_hub"
 SOURCE = "open-meteo"
 
+# Baseline capacity the derate rules are computed against. Derates are a
+# fixed fraction of this baseline (not of current capacity), so repeated
+# ingestion ticks accumulate linearly and auditably instead of compounding
+# geometrically toward zero.
+BASELINE_CAPACITY = 1000.0
+
 # Deterministic derate rules: (min wind km/h, capacity derate fraction,
-# cash delta, action label). Pure function of the observation — no LLM,
+# cash delta, action label). Pure function of the observation, no LLM,
 # no vibes, same input always yields the same intent.
 WIND_RULES = [
     (75, 0.30, -5000.0, "STORM_DERATE"),
@@ -64,19 +71,18 @@ def _utcnow() -> str:
 
 def init_observations() -> None:
     """Append-only raw observation store. Raw data is never mutated."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS raw_observations (
-            observation_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            received_at TEXT NOT NULL,
-            source TEXT NOT NULL,
-            entity_id TEXT NOT NULL,
-            payload TEXT NOT NULL,
-            synthetic INTEGER NOT NULL DEFAULT 0
-        )
-    """)
-    conn.commit()
-    conn.close()
+    with closing(connect_db()) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS raw_observations (
+                observation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                received_at TEXT NOT NULL,
+                source TEXT NOT NULL,
+                entity_id TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                synthetic INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        conn.commit()
 
 
 def fetch_rotterdam_weather() -> tuple[dict, bool]:
@@ -95,7 +101,11 @@ def fetch_rotterdam_weather() -> tuple[dict, bool]:
         with urllib.request.urlopen(req, timeout=15) as resp:
             raw = json.loads(resp.read().decode("utf-8"))
         return raw, False
-    except Exception as exc:  # demo must survive dead conference wifi
+    except (urllib.error.URLError, TimeoutError, OSError,
+            json.JSONDecodeError) as exc:
+        # Only network and parse failures trigger the offline fallback.
+        # Anything else (a programming error) must raise loudly, never hide
+        # behind synthetic data mid-demo.
         fallback = {
             "current": {
                 "temperature_2m": 12.0,
@@ -125,37 +135,36 @@ def normalize_observation(raw: dict, synthetic: bool) -> dict:
 
 def store_raw_observation(obs: dict) -> int:
     """Append the raw observation. Never updated, never deleted."""
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.execute(
-        """
-        INSERT INTO raw_observations
-            (received_at, source, entity_id, payload, synthetic)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (obs["received_at"], obs["source"], obs["entity_id"],
-         json.dumps(obs, sort_keys=True), int(obs["synthetic"])),
-    )
-    obs_id = cur.lastrowid
-    conn.commit()
-    conn.close()
-    return obs_id
+    with closing(connect_db()) as conn:
+        cur = conn.execute(
+            """
+            INSERT INTO raw_observations
+                (received_at, source, entity_id, payload, synthetic)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (obs["received_at"], obs["source"], obs["entity_id"],
+             json.dumps(obs, sort_keys=True), int(obs["synthetic"])),
+        )
+        obs_id = cur.lastrowid
+        conn.commit()
+        return obs_id
 
 
 def weather_to_intent(obs: dict) -> IntentTransaction:
     """
     Deterministic rule: observation → agent intent.
-    Same weather in → same intent out. The engine still has final say.
+    Same weather in → same intent out, regardless of current capacity,
+    because derates are computed against BASELINE_CAPACITY. The engine
+    still has final say.
     """
     wind = obs.get("wind_speed_kmh") or 0.0
-    entity = get_entity(HUB_ENTITY_ID)
-    capacity = entity["capacity"] if entity else 1000.0
 
     for min_wind, derate, cash_delta, action in WIND_RULES:
         if wind >= min_wind:
             return IntentTransaction(
                 entity_id=HUB_ENTITY_ID,
                 action=action,
-                requested_delta_capacity=-round(derate * capacity, 2),
+                requested_delta_capacity=-round(derate * BASELINE_CAPACITY, 2),
                 requested_delta_cash=cash_delta,
             )
     # Calm weather: port earns, capacity untouched.
@@ -194,7 +203,7 @@ def ingest_live(dry_run: bool = False) -> dict:
 def rogue_agent_attack() -> list[dict]:
     """
     The showstopper: a rogue agent proposes illegal state changes.
-    Every one is REJECTED by hard code — and logged for the audit trail.
+    Every one is REJECTED by hard code, and logged for the audit trail.
     """
     attacks = [
         IntentTransaction(HUB_ENTITY_ID, "ROGUE_DRAIN",
@@ -209,13 +218,10 @@ def rogue_agent_attack() -> list[dict]:
     ]
     outcomes = []
     for intent in attacks:
-        try:
-            verdict = execute_deterministic_transition(intent)
-            outcomes.append({"intent": intent.__dict__, "verdict": verdict})
-        except ValueError as exc:
-            outcomes.append({"intent": intent.__dict__,
-                             "verdict": {"status": "REJECTED",
-                                         "details": {"reason": str(exc)}}})
+        # The engine never raises for policy violations: every illegal
+        # intent comes back REJECTED and is appended to the ledger.
+        verdict = execute_deterministic_transition(intent)
+        outcomes.append({"intent": intent.__dict__, "verdict": verdict})
     return outcomes
 
 
@@ -250,7 +256,7 @@ def main() -> None:
             action = outcome["intent"]["action"]
             verdict = outcome["verdict"]
             reason = verdict["details"].get("reason", "")
-            print(f"{action}: {verdict['status']} — {reason}")
+            print(f"{action}: {verdict['status']}, {reason}")
 
 
 if __name__ == "__main__":
