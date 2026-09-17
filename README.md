@@ -4,9 +4,10 @@
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/RosarioM123/world-ai-infrastructure)
 
-> **Live demo:** `https://world-ai-infrastructure.onrender.com` (free tier:
-> the service sleeps after 15 minutes idle, so the first load takes ~30s
-> to wake up).
+> **Live demo:** `https://world-ai-infrastructure.onrender.com` — the full
+> site. The interactive dashboard (live ledger, intent submission,
+> rogue-attack simulation) lives at `/demo`. Free tier: the service sleeps
+> after 15 minutes idle, so the first load takes ~30s to wake up.
 
 Core hypothesis: AI can generate work, but current AI systems do not reliably
 maintain a shared, verifiable state of work as that work moves between
