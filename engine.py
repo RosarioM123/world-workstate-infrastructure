@@ -33,6 +33,13 @@ from pathlib import Path
 
 DB_PATH = str(Path(__file__).with_name("world_state.db"))
 
+# Seed state for the default hub node. ingest.py computes its weather
+# derates against SEED_CAPACITY, so the two modules share this constant
+# instead of each hard-coding 1000.0 and silently disagreeing one day.
+SEED_ENTITY_ID = "node_rotterdam_hub"
+SEED_CAPACITY = 1000.0
+SEED_LIQUIDITY = 50000.0
+
 
 def _db_path() -> str:
     """Resolve the database file. WORLD_DB_PATH overrides the default so
@@ -108,7 +115,8 @@ def init_db() -> None:
                     (entity_id, capacity, available_liquidity, status, last_updated)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                ("node_rotterdam_hub", 1000.0, 50000.0, "ACTIVE", _utcnow()),
+                (SEED_ENTITY_ID, SEED_CAPACITY, SEED_LIQUIDITY,
+                 "ACTIVE", _utcnow()),
             )
 
         conn.commit()
@@ -143,6 +151,29 @@ def _validate_intent(intent: IntentTransaction) -> None:
             raise ValueError(f"Invalid intent: {name} must be finite.")
 
 
+def check_constraints(current_capacity: float, current_cash: float,
+                      status: str, delta_capacity: float,
+                      delta_cash: float) -> str | None:
+    """The policy itself, as a pure function.
+
+    Takes the entity's current state plus the requested deltas and returns
+    a rejection reason, or None if the intent is allowed. No database, no
+    I/O, no clock: the same inputs always produce the same verdict, which
+    makes the policy unit-testable in isolation and auditable by reading
+    one function. Check order is fixed and deterministic: node lock first,
+    then the physical limit, then the financial limit.
+    """
+    if status == "LOCKED":
+        return "Node is locked due to active macro shock wave."
+    if current_capacity + delta_capacity < 0:
+        return ("Constraint Violation: Capacity cannot drop below zero "
+                "(Physical limit).")
+    if current_cash + delta_cash < 0:
+        return ("Constraint Violation: Insufficient liquidity "
+                "(Financial limit).")
+    return None
+
+
 def execute_deterministic_transition(intent: IntentTransaction) -> dict:
     """
     The Math Constraint Engine.
@@ -175,6 +206,8 @@ def execute_deterministic_transition(intent: IntentTransaction) -> dict:
         timestamp = _utcnow()
 
         # --- DETERMINISTIC CONSTRAINT CHECKS (hard code, not vibes) ---
+        # The policy lives in check_constraints(); this block only handles
+        # the unknown-entity case, which needs a DB lookup to detect.
         rejection_reason: str | None = None
 
         if row is None:
@@ -187,19 +220,12 @@ def execute_deterministic_transition(intent: IntentTransaction) -> dict:
             target_capacity, target_cash = None, None
         else:
             current_capacity, current_cash, status = row
+            rejection_reason = check_constraints(
+                current_capacity, current_cash, status,
+                intent.requested_delta_capacity, intent.requested_delta_cash,
+            )
             target_capacity = current_capacity + intent.requested_delta_capacity
             target_cash = current_cash + intent.requested_delta_cash
-
-            if status == "LOCKED":
-                rejection_reason = "Node is locked due to active macro shock wave."
-            elif target_capacity < 0:
-                rejection_reason = (
-                    "Constraint Violation: Capacity cannot drop below zero (Physical limit)."
-                )
-            elif target_cash < 0:
-                rejection_reason = (
-                    "Constraint Violation: Insufficient liquidity (Financial limit)."
-                )
 
         tx_status = "REJECTED" if rejection_reason else "COMMITTED"
         final_payload = {
