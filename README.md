@@ -5,13 +5,6 @@
 [![CI](https://github.com/RosarioM123/world-ai-infrastructure/actions/workflows/ci.yml/badge.svg)](https://github.com/RosarioM123/world-ai-infrastructure/actions/workflows/ci.yml)
 ![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/RosarioM123/world-ai-infrastructure)
-
-> **Live demo:** `https://world.onrender.com` — the landing page. The
-> interactive dashboard (live ledger, intent submission, rogue-attack
-> simulation) is at `/demo`. The free tier sleeps after 15 minutes idle,
-> so the first load takes ~30s to wake up.
-
 AI can generate work. What it cannot do reliably is maintain a shared,
 verifiable record of that work as it moves between models, agents, humans,
 tools, and time. WORLD is that record: a deterministic state kernel where
@@ -19,10 +12,11 @@ agents submit *intents*, a constraint engine returns `COMMITTED` or
 `REJECTED`, and every attempt — legal or rogue — is appended to a SHA-256
 hash-chained ledger.
 
-**Status: working prototype.** Deterministic engine, live data ingestion,
-FastAPI dashboard, 11 passing tests. No auth or rate limiting yet, and the
-ledger is tamper-evident rather than immutable. Sample data in the demo is
-labeled as sample.
+**Status: working prototype, not yet deployed.** Deterministic engine,
+live data ingestion, FastAPI backend, React landing page, 29 passing
+tests. No auth or rate limiting yet, and the ledger is tamper-evident
+rather than immutable. Sample data in the demo is labeled as sample.
+Hosting is deferred — `render.yaml` and `/health` keep it deploy-ready.
 
 ## How it works
 
@@ -50,7 +44,7 @@ Try the rogue-attack simulation — illegal drain, withdrawal, and spoof
 intents are all blocked and logged:
 
 ```bash
-curl -X POST https://world.onrender.com/api/rogue-attack
+curl -X POST 127.0.0.1:8000/api/rogue-attack
 # every verdict: REJECTED
 ```
 
@@ -65,18 +59,33 @@ codespace on `main`, wait ~2 minutes, then open forwarded port **8000**
 ```bash
 pip install -r requirements.txt
 uvicorn app:app --reload
-# http://127.0.0.1:8000         landing page
+# http://127.0.0.1:8000         landing page (React build in static/site/)
 # http://127.0.0.1:8000/demo    interactive dashboard
+# http://127.0.0.1:8000/api/state  materialized state + recent ledger
 ```
 
 **API quickstart:**
 
 ```bash
-curl https://world.onrender.com/api/state
+curl 127.0.0.1:8000/api/state
 
-curl -X POST https://world.onrender.com/api/intent \
+curl -X POST 127.0.0.1:8000/api/intent \
   -H "Content-Type: application/json" \
   -d '{"entity_id":"node_rotterdam_hub","action":"ALLOCATE","requested_delta_capacity":-50.0,"requested_delta_cash":0.0}'
+```
+
+## Verify the chain
+
+```bash
+python - <<'EOF'
+import engine
+engine.init_db()
+print(engine.verify_chain())  # (True, None) — or (False, bad_id)
+EOF
+
+# Independent check (no shared code with engine.py — needs .NET 8 SDK):
+python tools/export_ledger.py ledger.json
+dotnet run --project tools/ChainVerify -- ledger.json
 ```
 
 ## Tests
@@ -85,22 +94,44 @@ curl -X POST https://world.onrender.com/api/intent \
 python -m pytest tests/ -q
 ```
 
-11 regression tests cover the hardening guarantees: invalid deltas
-rejected, unknown entities logged as rejected, concurrent writes
-serialized, weather derates computed from a fixed baseline. CI runs the
-suite on Python 3.12 and 3.13 for every push and pull request to `main`.
+29 tests cover the hardening guarantees: invalid deltas rejected, unknown
+entities logged as rejected, concurrent writes serialized, weather derates
+computed from a fixed baseline, full hash-chain verification with
+tamper pinpointing, and seed-constant consistency between engine and
+ingest. CI runs the suite on Python 3.12 and 3.13 plus the frontend
+production build for every push and pull request to `main`.
 
 ## Repository layout
 
 ```
-/engine.py   — deterministic state kernel (hash-chained SQLite ledger)
+/engine.py   — deterministic state kernel (hash-chained SQLite ledger,
+               verify_chain(), constraint policy)
 /ingest.py   — live data ingestion piped through the kernel
-/app.py      — FastAPI backend + dashboard
-/static      — redesigned landing page (served at /)
+/app.py      — FastAPI backend (serves the React build + /demo dashboard)
+/frontend    — landing page source: React 18 + Sass (Vite)
+               → builds into /static/site (committed, served by app.py)
+/static      — built landing page (static/site/) + /demo dashboard
 /tests       — regression tests for the kernel
+/tools       — export_ledger.py + ChainVerify (independent C# chain verifier)
 /research    — competitive/technical research
 /docs        — product hypothesis, architecture, experiments, development log
 ```
+
+Rebuilding the landing page after editing `frontend/`:
+
+```bash
+cd frontend && npm install && npm run build
+# output lands in static/site/ — commit it with the source change
+```
+
+## Honest limits
+
+- **Tamper-evident, not immutable.** The ledger is hash-chained, so edits
+  are detectable — but anyone holding the database file can rewrite it.
+- **No auth or rate limiting yet.** The API trusts its callers.
+- **The weather mapping is a demo hypothesis.** Wind speed derating port
+  capacity is a fixed, auditable rule for demonstration, not a validated
+  operations model.
 
 ## The thesis behind it
 
