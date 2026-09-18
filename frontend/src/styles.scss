@@ -1,0 +1,317 @@
+// WORLD landing page styles. Source of truth: this file.
+// Compiled by Vite (sass) into the production bundle; no hand-edited CSS.
+
+$bg: #0a0a0b;
+$bg-soft: #121214;
+$bg-card: #161618;
+$border: #232326;
+$text: #f4f4f5;
+$muted: #a1a1aa;
+$faint: #71717a;
+$accent: #4f8cff;
+$green: #34d399;
+$red: #f87171;
+$amber: #fbbf24;
+$mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+$sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: $bg;
+  color: $text;
+  font-family: $sans;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+pre,
+.mono {
+  font-family: $mono;
+}
+
+a {
+  color: $accent;
+}
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px 96px;
+}
+
+// ---------- header ----------
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  border-bottom: 1px solid $border;
+
+  .brand {
+    font-family: $mono;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.18em;
+  }
+
+  nav a {
+    margin-left: 20px;
+    color: $muted;
+    text-decoration: none;
+    font-size: 14px;
+
+    &:hover {
+      color: $text;
+    }
+  }
+}
+
+// ---------- hero ----------
+
+.hero {
+  padding: 96px 0 64px;
+  text-align: center;
+
+  h1 {
+    font-size: clamp(34px, 6vw, 60px);
+    line-height: 1.1;
+    margin: 0 0 20px;
+    letter-spacing: -0.02em;
+  }
+
+  .lede {
+    color: $muted;
+    font-size: 18px;
+    max-width: 640px;
+    margin: 0 auto 32px;
+  }
+
+  .cta-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+.btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid $border;
+  color: $text;
+  background: $bg-card;
+
+  &:hover {
+    border-color: $faint;
+  }
+
+  &.primary {
+    background: $accent;
+    border-color: $accent;
+    color: #fff;
+
+    &:hover {
+      filter: brightness(1.1);
+    }
+  }
+}
+
+.prototype-note {
+  margin-top: 28px;
+  display: inline-block;
+  font-family: $mono;
+  font-size: 12.5px;
+  color: $amber;
+  border: 1px solid rgba($amber, 0.35);
+  background: rgba($amber, 0.07);
+  border-radius: 6px;
+  padding: 8px 14px;
+}
+
+// ---------- sections ----------
+
+section.block {
+  padding: 56px 0;
+  border-top: 1px solid $border;
+
+  h2 {
+    font-size: 26px;
+    margin: 0 0 12px;
+  }
+
+  > p.section-sub {
+    color: $muted;
+    max-width: 680px;
+    margin: 0 0 28px;
+  }
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: $bg-card;
+  border: 1px solid $border;
+  border-radius: 10px;
+  padding: 20px;
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-family: $mono;
+  }
+
+  p {
+    margin: 0;
+    color: $muted;
+    font-size: 14px;
+  }
+}
+
+// ---------- live panels ----------
+
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: $mono;
+  font-size: 14px;
+  margin-bottom: 16px;
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: $faint;
+
+    &.ok {
+      background: $green;
+      box-shadow: 0 0 8px rgba($green, 0.7);
+    }
+
+    &.bad {
+      background: $red;
+    }
+  }
+
+  .hint {
+    color: $faint;
+    font-size: 12.5px;
+  }
+}
+
+table.state-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: $mono;
+  font-size: 13px;
+
+  th,
+  td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid $border;
+  }
+
+  th {
+    color: $faint;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+
+  td.status-COMMITTED {
+    color: $green;
+  }
+
+  td.status-REJECTED {
+    color: $red;
+  }
+}
+
+.hash {
+  color: $faint;
+}
+
+// ---------- code ----------
+
+pre.code {
+  background: $bg-soft;
+  border: 1px solid $border;
+  border-radius: 10px;
+  padding: 20px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #d4d4d8;
+
+  .c {
+    color: $faint;
+  }
+
+  .k {
+    color: $accent;
+  }
+}
+
+// ---------- honesty list ----------
+
+ul.limits {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 12px;
+
+  li {
+    background: $bg-card;
+    border: 1px solid $border;
+    border-left: 3px solid $amber;
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 14.5px;
+    color: $muted;
+
+    strong {
+      color: $text;
+    }
+  }
+}
+
+// ---------- footer ----------
+
+.site-footer {
+  border-top: 1px solid $border;
+  padding-top: 32px;
+  color: $faint;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-family: $mono;
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding: 64px 0 40px;
+  }
+
+  .site-header nav a {
+    margin-left: 12px;
+  }
+}

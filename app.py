@@ -25,6 +25,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from engine import (
@@ -34,6 +35,9 @@ from engine import (
     init_db,
 )
 from ingest import ingest_live, init_observations, rogue_agent_attack
+
+
+SITE_DIR = Path(__file__).resolve().parent / "static" / "site"
 
 
 @asynccontextmanager
@@ -46,46 +50,22 @@ async def lifespan(app: FastAPI):
 
 
 def _load_landing_page() -> str:
-    """Load the marketing landing page, injecting the live-demo button.
+    """Load the landing page built from frontend/ (React + Sass).
 
-    The landing page is a static design whose CTAs point at /demo; the
-    injected script adds a floating demo button and hides the decorative
-    auth buttons (no real auth exists in this prototype).
+    The page is a static Vite build committed under static/site/, so the
+    app serves it with zero Node.js at runtime. To rebuild after editing
+    frontend/:  cd frontend && npm install && npm run build
     """
-    page_path = Path(__file__).resolve().parent / "static" / "landing.html"
+    index = SITE_DIR / "index.html"
     try:
-        html = page_path.read_text(encoding="utf-8")
+        return index.read_text(encoding="utf-8")
     except OSError:
         return (
             "<!DOCTYPE html><html><body style='font-family:monospace'>"
-            "WORLD — <a href='/demo'>open the live demo</a></body></html>"
+            "WORLD — landing page not built yet. Run "
+            "<code>cd frontend && npm install && npm run build</code>, "
+            "or open the <a href='/demo'>live demo</a>.</body></html>"
         )
-    inject = """
-<script>
-(function(){
-  var b=document.createElement('a');
-  b.href='/demo';
-  b.textContent='Launch live demo \\u2192';
-  b.style.cssText='position:fixed;bottom:24px;right:24px;z-index:9999;'
-    +'background:#0A0A0B;color:#fff;padding:12px 20px;border-radius:8px;'
-    +'font-family:ui-monospace,monospace;font-size:13px;text-decoration:none;'
-    +'box-shadow:0 4px 24px rgba(0,0,0,.35);border:1px solid #232326';
-  document.body.appendChild(b);
-  function hideAuth(){
-    document.querySelectorAll('button').forEach(function(x){
-      var t=x.textContent.trim();
-      if(t==='Log in'||t==='Sign out'){x.style.display='none';}
-    });
-  }
-  hideAuth(); setTimeout(hideAuth,1500); setTimeout(hideAuth,4000);
-})();
-</script>
-"""
-    if "</body>" in html:
-        html = html.replace("</body>", inject + "</body>", 1)
-    else:
-        html += inject
-    return html
 
 
 def _load_dashboard_page() -> str:
@@ -107,10 +87,15 @@ def _load_dashboard_page() -> str:
 
 app = FastAPI(title="WORLD Deterministic State Kernel", lifespan=lifespan)
 
+# Hashed JS/CSS for the React landing page (static/site/assets/*).
+if SITE_DIR.is_dir():
+    app.mount("/assets", StaticFiles(directory=SITE_DIR / "assets"),
+              name="site-assets")
+
 
 @app.get("/", response_class=HTMLResponse)
 def landing():
-    """Marketing landing page. The live dashboard moved to /demo."""
+    """Landing page (React build in static/site/). The live dashboard is at /demo."""
     return app.state.landing_html
 
 
