@@ -2,6 +2,13 @@
 
 Newest entries first.
 
+## 2026-09-18 — Experiment #002 Day 2: Agent A Intel outputs verified & captured
+
+- Day 2 autonomous run verified Agent A's Phase 1 Intel (INTC) research against protocol §3 complexity minimums — all passed, no re-run: 14 decisions (D1–D14; D1, D7 superseded with history preserved), 13 assumptions with confidence (A1′–A13), 3 genuine revisions (R1–R3), 4 guardrails (G1–G4), 6 open questions (Q1–Q6), 2 failed approaches (FA1 official-18A-yield disclosure, FA2 primary 10-Q debt narrative), D13's rationale explicitly depending on D5, 32 provenance-tagged evidence entries (E1–E32).
+- Journal (3,616 words), report (2,376 words), WORLD state (3,173 words) archived into `docs/experiment-002/` as `agent-a-journal.md`, `agent-a-report.md`, `agent-a-world-state.md`; capture log written as `day-02.md` with verification table, decision/assumption/revision inventories, and the Day 5 answer-key seed facts.
+- Notable integrity detail: the journal pre-registered Agent A's three naive priors *before* research began (13:30 entry); all three were reversed by R1–R3 with named trigger evidence.
+- Next: Day 3 (Sep 19) builds the three handoffs — (A) WORLD state, (B) independent summary (writer gets journal + report only, never the WORLD state file), (C) raw journal — blind-labeled X/Y/Z with the private mapping in `experiment-state.md` only.
+
 ## 2026-09-17 — Experiment #001 complete: WORLD state wins narrowly
 
 - Ran the cross-agent work-state handoff experiment manually per
