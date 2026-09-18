@@ -307,6 +307,42 @@ def get_ledger(entity_id: str | None = None, limit: int = 50) -> list[dict]:
         return [dict(r) for r in rows]
 
 
+def verify_chain() -> tuple[bool, int | None]:
+    """Verify the full ledger hash chain in transaction-ID order.
+
+    Recomputes every record's hash from its stored fields and checks that
+    each record's previous_hash matches the preceding record's hash
+    (None for the genesis record). Returns (True, None) when the whole
+    chain verifies, otherwise (False, bad_transaction_id) pinpointing the
+    first broken record: a tampered payload/timestamp/action/status shows
+    up as a record_hash mismatch, a spliced or reordered row as a
+    previous_hash mismatch.
+
+    An empty ledger verifies trivially: (True, None).
+    """
+    with closing(connect_db()) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT transaction_id, timestamp, entity_id, action, payload,"
+            " previous_hash, record_hash, status"
+            " FROM state_ledger ORDER BY transaction_id ASC"
+        ).fetchall()
+
+    expected_previous: str | None = None
+    for row in rows:
+        tx_id = row["transaction_id"]
+        if row["previous_hash"] != expected_previous:
+            return False, tx_id
+        recomputed = _hash_record(
+            row["timestamp"], row["entity_id"], row["action"],
+            row["payload"], row["previous_hash"], row["status"],
+        )
+        if recomputed != row["record_hash"]:
+            return False, tx_id
+        expected_previous = row["record_hash"]
+    return True, None
+
+
 if __name__ == "__main__":
     init_db()
     print("State engine initialized. Testing guardrail constraints...")
