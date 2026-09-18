@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "world-ai-infrastructure"
+version = "0.1.0"
+description = "Deterministic, constraint-checked state ledger for AI agents: every intent validated against physical/financial rules, every attempt hash-chained into a tamper-evident audit trail."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+dependencies = [
+    "fastapi==0.141.1",
+    "uvicorn==0.53.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest==9.1.1",
+]
+
+# Flat layout (engine.py, ingest.py, app.py at repo root). No src/ move yet.
+[tool.setuptools]
+py-modules = ["engine", "ingest", "app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
