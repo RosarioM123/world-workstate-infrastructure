@@ -1,9 +1,9 @@
 # WORLD
 
-**Deterministic work-state infrastructure for AI agents and humans.**
+**Deterministic append-only state ledger with hash-chain verification for AI agent work-state.**
 
-[![CI](https://github.com/RosarioM123/world-ai-infrastructure/actions/workflows/ci.yml/badge.svg)](https://github.com/RosarioM123/world-ai-infrastructure/actions/workflows/ci.yml)
-![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)
+[![CI](https://github.com/RosarioM123/world-workstate-infrastructure/actions/workflows/ci.yml/badge.svg)](https://github.com/RosarioM123/world-workstate-infrastructure/actions/workflows/ci.yml)
+![Python 3.12 | 3.13](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)
 
 AI can generate work. What it cannot do reliably is maintain a shared,
 verifiable record of that work as it moves between models, agents, humans,
@@ -12,11 +12,44 @@ agents submit *intents*, a constraint engine returns `COMMITTED` or
 `REJECTED`, and every attempt — legal or rogue — is appended to a SHA-256
 hash-chained ledger.
 
-**Status: working prototype, not yet deployed.** Deterministic engine,
-live data ingestion, FastAPI backend, React landing page, 29 passing
+**Status: working prototype, not deployed.** Deterministic engine,
+live data ingestion, FastAPI backend, React landing page, 33 passing
 tests. No auth or rate limiting yet, and the ledger is tamper-evident
-rather than immutable. Sample data in the demo is labeled as sample.
-Hosting is deferred — `render.yaml` and `/health` keep it deploy-ready.
+(via `verify_chain()`) rather than immutable. Sample data in the demo is
+labeled as sample. Hosting is deferred — `render.yaml` and `/health`
+keep it deploy-ready.
+
+## Demo
+
+<!-- TODO: drop a ~30s screen recording here (docs/demo.gif): the /demo
+     dashboard, one ALLOCATE intent committing, then the rogue-attack
+     simulation getting REJECTED. Record with any screen capture tool,
+     keep it under 5 MB, and replace this comment with:
+     ![WORLD demo](docs/demo.gif) -->
+
+## Quickstart
+
+30 seconds, zero setup beyond Python:
+
+```bash
+pip install -r requirements.txt
+
+# verify the ledger's hash chain (no server needed)
+python - <<'EOF'
+import engine
+engine.init_db()
+print(engine.verify_chain())  # (True, None) — or (False, bad_id)
+EOF
+
+# run the API + dashboard
+uvicorn app:app
+# http://127.0.0.1:8000/demo    interactive dashboard
+# http://127.0.0.1:8000/api/state  materialized state + recent ledger
+```
+
+**GitHub Codespaces** (zero local setup): Code → Codespaces → Create
+codespace on `main`, wait ~2 minutes, then open forwarded port **8000**
+(globe icon) in the Ports panel.
 
 ## How it works
 
@@ -46,22 +79,6 @@ intents are all blocked and logged:
 ```bash
 curl -X POST 127.0.0.1:8000/api/rogue-attack
 # every verdict: REJECTED
-```
-
-## Run it
-
-**GitHub Codespaces** (zero local setup): Code → Codespaces → Create
-codespace on `main`, wait ~2 minutes, then open forwarded port **8000**
-(globe icon) in the Ports panel.
-
-**Locally:**
-
-```bash
-pip install -r requirements.txt
-uvicorn app:app --reload
-# http://127.0.0.1:8000         landing page (React build in static/site/)
-# http://127.0.0.1:8000/demo    interactive dashboard
-# http://127.0.0.1:8000/api/state  materialized state + recent ledger
 ```
 
 **API quickstart:**
@@ -94,7 +111,7 @@ dotnet run --project tools/ChainVerify -- ledger.json
 python -m pytest tests/ -q
 ```
 
-29 tests cover the hardening guarantees: invalid deltas rejected, unknown
+33 tests cover the hardening guarantees: invalid deltas rejected, unknown
 entities logged as rejected, concurrent writes serialized, weather derates
 computed from a fixed baseline, full hash-chain verification with
 tamper pinpointing, and seed-constant consistency between engine and
