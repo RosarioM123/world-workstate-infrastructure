@@ -32,11 +32,11 @@ keep it deploy-ready.
 30 seconds, zero setup beyond Python:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt && pip install -e .
 
 # verify the ledger's hash chain (no server needed)
 python - <<'EOF'
-import engine
+from world_engine.core import engine
 engine.init_db()
 print(engine.verify_chain())  # (True, None) — or (False, bad_id)
 EOF
@@ -121,10 +121,16 @@ production build for every push and pull request to `main`.
 ## Repository layout
 
 ```
-/engine.py   — deterministic state kernel (hash-chained SQLite ledger,
-               verify_chain(), constraint policy)
-/ingest.py   — live data ingestion piped through the kernel
-/app.py      — FastAPI backend (serves the React build + /demo dashboard)
+/src/world_engine      — the packaged kernel (pip install -e .)
+  /core/engine.py      — deterministic state kernel (hash-chained SQLite
+                         ledger, verify_chain(), constraint policy)
+  /ingestion/client.py — live data ingestion piped through the kernel
+                         (CLI: world-ingest)
+/api/main.py           — FastAPI backend (serves the React build + /demo
+                         dashboard); uvicorn world_engine.api.main:app
+/engine.py, /ingest.py,
+/app.py                — thin shims: `uvicorn app:app`, `python ingest.py`,
+                         `python -m engine` all still work unchanged
 /frontend    — landing page source: React 18 + Sass (Vite)
                → builds into /static/site (committed, served by app.py)
 /static      — built landing page (static/site/) + /demo dashboard
