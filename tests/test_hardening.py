@@ -1,7 +1,10 @@
-"""Regression tests for the WORLD Day 1 hardening pass.
+"""Regression tests for the WORLD hardening pass.
 
 Covers: non-finite intent rejection, unknown-entity audit logging,
-rogue-attack behavior, baseline-relative derates, and ledger hash linkage.
+rogue-attack behavior, and ledger hash linkage.
+
+(The weather-derate rule tests moved with the demo to
+``examples/synthetic-logistics-demo/tests/test_weather_ingest.py``.)
 
 Run:  pytest
 Isolation: every test points the engine at a throwaway SQLite file via
@@ -16,15 +19,14 @@ from world_engine.core import engine
 from world_engine.core.engine import (
     IntentTransaction,
     execute_deterministic_transition,
+    rogue_agent_attack,
 )
-from world_engine.ingestion import client as ingest
 
 
 @pytest.fixture(autouse=True)
 def isolated_db(tmp_path, monkeypatch):
     monkeypatch.setenv("WORLD_DB_PATH", str(tmp_path / "test.db"))
     engine.init_db()
-    ingest.init_observations()
     yield
 
 
@@ -65,7 +67,7 @@ def test_unknown_entity_rejected_and_logged():
 
 
 def test_rogue_attack_all_rejected_no_exception():
-    outcomes = ingest.rogue_agent_attack()
+    outcomes = rogue_agent_attack()
     assert len(outcomes) == 3
     assert all(o["verdict"]["status"] == "REJECTED" for o in outcomes)
     # The spoof attempt is on the ledger, not swallowed by an exception.
@@ -90,26 +92,6 @@ def test_overspend_rejected_and_state_unchanged():
     assert result["status"] == "REJECTED"
     entity = engine.get_entity("node_rotterdam_hub")
     assert entity["capacity"] == 1000.0
-
-
-def test_weather_derate_uses_baseline_not_current_capacity():
-    # Drain capacity first; the derate must still be computed from the
-    # 1000.0 baseline so repeated ticks do not compound geometrically.
-    execute_deterministic_transition(
-        IntentTransaction("node_rotterdam_hub", "DRAIN", -500.0, 0.0)
-    )
-    intent = ingest.weather_to_intent({"wind_speed_kmh": 60.0})
-    assert intent.action == "WIND_DERATE"
-    assert intent.requested_delta_capacity == -round(0.15 * 1000.0, 2)
-    assert intent.requested_delta_capacity == -150.0
-
-
-def test_weather_derate_deterministic():
-    obs = {"wind_speed_kmh": 80.0}
-    first = ingest.weather_to_intent(obs)
-    second = ingest.weather_to_intent(obs)
-    assert first.action == second.action == "STORM_DERATE"
-    assert first.requested_delta_capacity == second.requested_delta_capacity == -300.0
 
 
 def test_ledger_hash_chain_links():

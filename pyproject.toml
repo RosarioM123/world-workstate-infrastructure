@@ -23,13 +23,14 @@ test = [
 ]
 
 # src layout: the kernel lives in src/world_engine/ (core/engine.py,
-# ingestion/client.py, api/main.py). Thin shims at the repo root keep
-# the old flat entry points (engine.py, ingest.py, app.py) working.
+# ingestion/transcript.py, api/main.py). Thin shims at the repo root keep
+# the old flat entry points (engine.py, import_transcript.py, app.py) working.
+# The synthetic Rotterdam weather/port demo moved to
+# examples/synthetic-logistics-demo/ and is not part of the package.
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [project.scripts]
-world-ingest = "world_engine.ingestion.client:main"
 world-import = "world_engine.ingestion.transcript:main"
 world-server = "world_engine.api.main:serve"
 

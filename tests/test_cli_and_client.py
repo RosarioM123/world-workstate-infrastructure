@@ -1,18 +1,17 @@
-"""Tests for the CLI entry points, the ingestion client, and the
-remaining engine/API branches.
+"""Tests for the CLI entry points and the remaining engine/API branches.
 
 These cover the user-facing surfaces that the kernel tests do not:
-``world-ingest`` / ``world-import`` main() functions, the Open-Meteo
-fetch success and offline-fallback paths, engine validation edge cases,
+the ``world-import`` main() function, engine validation edge cases,
 the transaction rollback path, API page fallbacks, and the unhandled
 exception envelope.
+
+(The synthetic weather/port demo moved to
+``examples/synthetic-logistics-demo/`` with its own tests.)
 """
 
 import io
-import json
 import logging
 import sys
-import urllib.error
 
 import pytest
 from fastapi import FastAPI
@@ -21,7 +20,6 @@ from fastapi.testclient import TestClient
 from world_engine.api import main as api_main
 from world_engine.api.middleware import install as install_middleware
 from world_engine.core import engine
-from world_engine.ingestion import client as ingest_client
 from world_engine.ingestion import transcript as transcript_mod
 
 
@@ -68,80 +66,6 @@ def test_mid_transaction_exception_rolls_back_cleanly(tmp_path, monkeypatch):
     assert len(engine.get_ledger(limit=100)) == before
     assert engine.get_entity(engine.SEED_ENTITY_ID)["capacity"] == 1000.0
     assert engine.verify_chain() == (True, None)
-
-
-# --- ingestion client ------------------------------------------------------
-
-
-class _FakeHTTPResponse:
-    def __init__(self, payload: bytes):
-        self._payload = payload
-
-    def read(self) -> bytes:
-        return self._payload
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc):
-        return False
-
-
-def _fake_fetch(monkeypatch, payload: dict):
-    def _ok(request, timeout=15):
-        return _FakeHTTPResponse(json.dumps(payload).encode("utf-8"))
-
-    monkeypatch.setattr(ingest_client.urllib.request, "urlopen", _ok)
-
-
-def _sample_payload(wind: float = 80.0) -> dict:
-    return {
-        "current": {
-            "temperature_2m": 9.5,
-            "wind_speed_10m": wind,
-            "weather_code": 2,
-            "time": "2026-09-21T12:00",
-        }
-    }
-
-
-def test_fetch_weather_success(monkeypatch):
-    _fake_fetch(monkeypatch, _sample_payload())
-    raw, synthetic = ingest_client.fetch_rotterdam_weather()
-    assert synthetic is False
-    assert raw["current"]["wind_speed_10m"] == 80.0
-
-
-def test_fetch_weather_offline_fallback_is_labeled(monkeypatch):
-    def _down(request, timeout=15):
-        raise urllib.error.URLError("no network in test")
-
-    monkeypatch.setattr(ingest_client.urllib.request, "urlopen", _down)
-    raw, synthetic = ingest_client.fetch_rotterdam_weather()
-    assert synthetic is True
-    assert raw["current"]["wind_speed_10m"] == 62.0
-    assert "_fallback_reason" in raw
-
-
-def test_ingest_main_dry_run(clients_db, monkeypatch, caplog):
-    _fake_fetch(monkeypatch, _sample_payload(wind=10.0))
-    monkeypatch.setattr(sys, "argv", ["world-ingest", "--dry-run"])
-    with caplog.at_level(logging.INFO):
-        ingest_client.main()
-    assert "REVENUE_TICK" in caplog.text  # calm weather earns
-    assert "DRY_RUN" in caplog.text
-    # Dry run writes nothing to the ledger.
-    assert engine.get_ledger(limit=10) == []
-
-
-def test_ingest_main_demo_runs_rogue_attack(clients_db, monkeypatch, caplog):
-    _fake_fetch(monkeypatch, _sample_payload(wind=62.0))
-    monkeypatch.setattr(sys, "argv", ["world-ingest", "--demo"])
-    with caplog.at_level(logging.INFO):
-        ingest_client.main()
-    assert "WIND_DERATE" in caplog.text
-    assert "ROGUE AGENT ATTACK" in caplog.text
-    assert "ROGUE_DRAIN: REJECTED" in caplog.text
 
 
 # --- transcript importer CLI -----------------------------------------------

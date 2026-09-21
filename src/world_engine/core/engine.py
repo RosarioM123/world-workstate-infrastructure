@@ -387,6 +387,41 @@ def verify_chain() -> tuple[bool, int | None]:
     return True, None
 
 
+def rogue_agent_attack() -> list[dict]:
+    """Adversarial self-test of the constraint engine.
+
+    A rogue agent proposes illegal state changes (an impossible drain, an
+    impossible withdrawal, and a spoofed entity). Every one must come back
+    REJECTED by hard code, and every attempt is appended to the ledger for
+    the audit trail. The engine never raises for policy violations.
+    """
+    attacks = [
+        IntentTransaction(
+            SEED_ENTITY_ID,
+            "ROGUE_DRAIN",
+            requested_delta_capacity=-999999.0,
+            requested_delta_cash=0.0,
+        ),
+        IntentTransaction(
+            SEED_ENTITY_ID,
+            "ROGUE_WITHDRAWAL",
+            requested_delta_capacity=0.0,
+            requested_delta_cash=-99999999.0,
+        ),
+        IntentTransaction(
+            "node_does_not_exist",
+            "ROGUE_SPOOF",
+            requested_delta_capacity=10.0,
+            requested_delta_cash=10.0,
+        ),
+    ]
+    outcomes = []
+    for intent in attacks:
+        verdict = execute_deterministic_transition(intent)
+        outcomes.append({"intent": intent.__dict__, "verdict": verdict})
+    return outcomes
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(message)s")
     init_db()

@@ -11,5 +11,6 @@ from world_engine.core.engine import (  # noqa: F401
     get_entity,
     get_ledger,
     init_db,
+    rogue_agent_attack,
     verify_chain,
 )

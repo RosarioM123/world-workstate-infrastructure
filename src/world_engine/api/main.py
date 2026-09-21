@@ -1,11 +1,9 @@
 """
-WORLD Day 1, YC demo backend (world_engine.api.main)
+WORLD deterministic state kernel API (world_engine.api.main)
 
-Ties the deterministic engine and the live data ingestor together behind a
-FastAPI service with a built-in dark-mode dashboard.
+Serves the FastAPI service with a built-in dark-mode dashboard.
 
     engine.py  → deterministic, append-only, hash-chained state ledger
-    ingest.py  → live real-world feed (Open-Meteo, no API keys)
 
 Run:
     pip install -e ".[test]"
@@ -22,9 +20,9 @@ error envelope defined in world_engine/api/middleware.py.
 
 Demo flow:
     1. Dashboard shows live node capacity / liquidity.
-    2. "Inject Real-World Feed" pulls live Rotterdam weather and pipes it
-       through the constraint engine.
-    3. "Rogue Agent Attack" fires illegal intents, every one REJECTED in red.
+    2. "Rogue Agent Attack" fires illegal intents, every one REJECTED in red.
+    3. The synthetic logistics demo (examples/synthetic-logistics-demo/)
+       exercises the same engine from the CLI with a weather-driven domain.
 """
 
 from collections.abc import AsyncIterator
@@ -38,7 +36,6 @@ from fastapi.staticfiles import StaticFiles
 from world_engine.api.middleware import install as install_middleware
 from world_engine.api.v1 import router as v1_router
 from world_engine.core.engine import init_db
-from world_engine.ingestion.client import init_observations
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SITE_DIR = REPO_ROOT / "static" / "site"
@@ -47,7 +44,6 @@ SITE_DIR = REPO_ROOT / "static" / "site"
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_db()
-    init_observations()
     app.state.landing_html = _load_landing_page()
     app.state.dashboard_html = _load_dashboard_page()
     yield

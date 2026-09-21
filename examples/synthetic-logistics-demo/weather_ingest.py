@@ -1,29 +1,27 @@
-"""
-WORLD Day 1, Real-world data ingestion (world_engine.ingestion.client)
+"""Synthetic logistics demo: Rotterdam weather -> port capacity intents.
 
-Pulls LIVE, free, no-key public data and pipes it through the deterministic
-state ledger in engine.py.
+This is a SYNTHETIC domain used to stress-test the WORLD constraint
+engine (concurrency, invalid deltas, tamper detection). It is not the
+product demo and not a validated operations model.
+
+What it does: pulls live, free, no-key public weather data (Open-Meteo),
+maps wind speed to port-capacity derates through a fixed, auditable rule,
+and pipes the resulting intents through the deterministic state ledger
+in ``world_engine.core.engine``. The mapping from observation -> intent
+is a pure deterministic function; the engine's hard constraints decide
+COMMITTED vs REJECTED.
 
 Pipeline:
-    FETCH (live public API) → NORMALIZE → INTENT → engine.execute_deterministic_transition
+    FETCH (live public API) -> NORMALIZE -> INTENT -> engine.execute_deterministic_transition
 
-The mapping from observation → intent is a pure deterministic function.
-The agent never touches state directly; the engine's hard constraints
-decide COMMITTED vs REJECTED.
+Usage (from the repo root):
+    python examples/synthetic-logistics-demo/weather_ingest.py            # live fetch -> commit one intent
+    python examples/synthetic-logistics-demo/weather_ingest.py --dry-run  # live fetch -> show the intent, write nothing
+    python examples/synthetic-logistics-demo/weather_ingest.py --demo     # live fetch -> commit intent -> rogue agent
+                                                                          #   tries to break the rules and gets blocked
 
-Feeds (no API keys, no premium data, no dependencies beyond stdlib):
-    - Open-Meteo (https://open-meteo.com): current weather at the hub.
-      Rotterdam is a real port city, high winds derate port capacity via a
-      fixed, auditable rule. Weather is honest real-world exogenous shock.
-
-Usage:
-    python ingest.py            # live fetch → commit one weather-driven intent
-    python ingest.py --dry-run  # live fetch → show the intent, write nothing
-    python ingest.py --demo     # live fetch → commit intent → rogue agent
-                                #   tries to break the rules and gets blocked
-
-If the network is unavailable (e.g. mid-demo on stage), ingest falls back to
-a clearly-labeled synthetic observation so the show always goes on.
+If the network is unavailable, ingest falls back to a clearly-labeled
+synthetic observation so the demo always runs.
 """
 
 import argparse
@@ -45,6 +43,7 @@ from world_engine.core.engine import (
     execute_deterministic_transition,
     get_entity,
     init_db,
+    rogue_agent_attack,
 )
 
 # Rotterdam, NL, the seeded hub node in engine.py
@@ -210,43 +209,11 @@ def ingest_live(dry_run: bool = False) -> dict:
     }
 
 
-def rogue_agent_attack() -> list[dict]:
-    """
-    The showstopper: a rogue agent proposes illegal state changes.
-    Every one is REJECTED by hard code, and logged for the audit trail.
-    """
-    attacks = [
-        IntentTransaction(
-            HUB_ENTITY_ID,
-            "ROGUE_DRAIN",
-            requested_delta_capacity=-999999.0,
-            requested_delta_cash=0.0,
-        ),
-        IntentTransaction(
-            HUB_ENTITY_ID,
-            "ROGUE_WITHDRAWAL",
-            requested_delta_capacity=0.0,
-            requested_delta_cash=-99999999.0,
-        ),
-        IntentTransaction(
-            "node_does_not_exist",
-            "ROGUE_SPOOF",
-            requested_delta_capacity=10.0,
-            requested_delta_cash=10.0,
-        ),
-    ]
-    outcomes = []
-    for intent in attacks:
-        # The engine never raises for policy violations: every illegal
-        # intent comes back REJECTED and is appended to the ledger.
-        verdict = execute_deterministic_transition(intent)
-        outcomes.append({"intent": intent.__dict__, "verdict": verdict})
-    return outcomes
-
-
 def main() -> None:
     logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(message)s")
-    parser = argparse.ArgumentParser(description="WORLD Day 1: real-world ingest")
+    parser = argparse.ArgumentParser(
+        description="Synthetic logistics demo: weather -> port capacity intents"
+    )
     parser.add_argument(
         "--dry-run",
         action="store_true",

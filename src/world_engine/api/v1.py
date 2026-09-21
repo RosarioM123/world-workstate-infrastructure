@@ -15,8 +15,8 @@ from world_engine.core.engine import (
     IntentTransaction,
     connect_db,
     execute_deterministic_transition,
+    rogue_agent_attack,
 )
-from world_engine.ingestion.client import ingest_live, rogue_agent_attack
 
 logger = logging.getLogger(__name__)
 
@@ -68,20 +68,6 @@ def post_intent(req: IntentRequest) -> dict:
             status_code=400,
             detail={"code": "invalid_intent", "message": str(exc)},
         )
-
-
-@router.post("/trigger-ingest")
-def trigger_ingest() -> dict:
-    """Pull the live real-world feed and pipe it through the ledger."""
-    tick = ingest_live()
-    return {
-        "status": "Ingestion cycle complete",
-        "source": tick["observation"]["source"],
-        "synthetic": tick["observation"]["synthetic"],
-        "wind_kmh": tick["observation"]["wind_speed_kmh"],
-        "intent": tick["intent"]["action"],
-        "engine_verdict": tick["engine_result"]["status"],
-    }
 
 
 @router.post("/rogue-attack")

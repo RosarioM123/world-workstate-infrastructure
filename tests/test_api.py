@@ -11,7 +11,6 @@ from fastapi.testclient import TestClient
 
 from world_engine.api.main import app
 from world_engine.core import engine
-from world_engine.ingestion import client as ingest_client
 
 
 @pytest.fixture()
@@ -92,31 +91,6 @@ def test_v1_rogue_attack_all_rejected(api_client):
     attacks = r.json()["attacks"]
     assert len(attacks) == 3
     assert all(a["verdict"]["status"] == "REJECTED" for a in attacks)
-
-
-def test_v1_trigger_ingest_uses_synthetic_when_offline(api_client, monkeypatch):
-    # Never hit the real network in tests: force the offline fallback.
-    monkeypatch.setattr(
-        ingest_client,
-        "fetch_rotterdam_weather",
-        lambda: (
-            {
-                "current": {
-                    "temperature_2m": 12.0,
-                    "wind_speed_10m": 62.0,
-                    "weather_code": 3,
-                    "time": "t",
-                }
-            },
-            True,
-        ),
-    )
-    r = api_client.post("/api/v1/trigger-ingest")
-    assert r.status_code == 200
-    body = r.json()
-    assert body["synthetic"] is True
-    assert body["intent"] == "WIND_DERATE"
-    assert body["engine_verdict"] == "COMMITTED"
 
 
 def test_deprecated_unversioned_alias_still_works(api_client):
