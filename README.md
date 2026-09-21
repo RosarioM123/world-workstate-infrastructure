@@ -51,6 +51,19 @@ uvicorn app:app
 codespace on `main`, wait ~2 minutes, then open forwarded port **8000**
 (globe icon) in the Ports panel.
 
+## Transcript importer
+
+Feed a chat transcript in, get WORLD state out. The importer extracts
+decisions, assumptions, open questions, constraints, and notes with a
+deterministic parser (no network, no LLM, stdlib only) and commits one
+intent per item to the ledger. Re-imports are idempotent.
+
+```bash
+python import_transcript.py notes.md --dry-run   # preview, writes nothing
+python import_transcript.py notes.md             # commit to the ledger
+cat notes.md | python import_transcript.py        # read from stdin
+```
+
 ## How it works
 
 ```mermaid
