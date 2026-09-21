@@ -3,9 +3,9 @@
 First external-vendor run of the cross-agent transfer test.
 
 **Date:** 2026-09-21
-**Vendor:** Anthropic (user reported "Claude"; exact model ID unconfirmed)
+**Vendor:** Anthropic; model: Claude Sonnet 5 (user-reported as "sonnet 5 med"; exact variant string ambiguous)
 **Bundle:** `frozen-bundle.md` (frozen 2026-09-21, sha `5aa6fc5933`) + `continuation-brief.md`, pasted verbatim per `protocol.md`
-**Runner:** user, in the vendor's chat app (fresh-chat status unconfirmed)
+**Runner:** user, in the vendor's chat app; fresh chat confirmed, no prior context (user-reported 2026-09-21)
 **Scorer:** separate subagent session applying the rubric mechanically against the sealed key; vendor identity withheld from the scorer at scoring time; answer key never shown to runner or user
 **Output:** `transfer-run-01-output.md` (verbatim, saved same day)
 
@@ -32,7 +32,7 @@ First external-vendor run of the cross-agent transfer test.
 
 ## Verdict
 
-Provisional: **portable** — a different vendor's model scored 4.36, above the 3.92 same-vendor baseline, with zero contradictions and one honestly-flagged unsupported inference. Final confirmation pending: (1) the run used a fresh chat with no prior context, (2) the exact model ID. Single-run caveat: the 2x2 journal/summary conditions on the same vendor would be needed to separate bundle portability from vendor strength.
+Confirmed: **portable** — a different vendor's model scored 4.36, above the 3.92 same-vendor baseline, with zero contradictions and one honestly-flagged unsupported inference. Both provenance confirmations received 2026-09-21 (fresh chat, no prior context; Claude Sonnet 5). Single-run caveat: the 2x2 journal/summary conditions on the same vendor would be needed to separate bundle portability from vendor strength.
 
 ## Notes
 
