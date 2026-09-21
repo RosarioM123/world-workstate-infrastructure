@@ -124,7 +124,7 @@ dotnet run --project tools/ChainVerify -- ledger.json
 python -m pytest tests/ -q
 ```
 
-33 tests cover the hardening guarantees: invalid deltas rejected, unknown
+45 tests cover the hardening guarantees: invalid deltas rejected, unknown
 entities logged as rejected, concurrent writes serialized, weather derates
 computed from a fixed baseline, full hash-chain verification with
 tamper pinpointing, and seed-constant consistency between engine and
