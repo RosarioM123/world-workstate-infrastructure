@@ -1,8 +1,8 @@
-# WORLD — Work-State Bundle (write-side trial)
+# WORLD: Work-State Bundle (write-side trial)
 
 **Project:** WORLD startup validation (repo `RosarioM123/world-workstate-infrastructure`)
 **Bundle maintained by:** the assistant, per `docs/startup/write-side-trial/protocol.md`
-**Last regenerated:** 2026-09-21 (trial Day 1, seed)
+**Last regenerated:** 2026-09-21 (trial Day 1; session 02 update)
 
 ## Context
 
@@ -21,7 +21,7 @@ WORLD's thesis: structured work state beats transcripts and summaries for agent 
 1. **Agents can maintain the state bundle reliably** (medium confidence). Untested. This trial exists to test it.
 2. **A strong auto-summary does not match the bundle on governance retention** (medium confidence). Experiment #002 Day 5: bundle 3.92 vs summary 3.33, n=1 domain. Summary parity would collapse the thesis to a prompt convention.
 3. **Developers will let an agent write state files every session** (low confidence). Maya is a persona; no interviews yet.
-4. **Cross-vendor portability is the defense against native agent memory** (low confidence). No cross-agent transfer test run yet.
+4. **Cross-vendor portability is the defense against native agent memory** (low confidence). Transfer kit + shakedown-01 committed 2026-09-21 (`docs/benchmarks/cross-agent-transfer/`); no external-vendor run yet.
 5. **Browser upload unreliability is environmental, not transient** (medium confidence). Two consecutive failures; helper route verified twice.
 
 ## Open questions
