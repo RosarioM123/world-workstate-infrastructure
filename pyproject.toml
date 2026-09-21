@@ -17,6 +17,9 @@ dependencies = [
 [project.optional-dependencies]
 test = [
     "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "hypothesis==6.168.0",
+    "httpx==0.28.1",
 ]
 
 # src layout: the kernel lives in src/world_engine/ (core/engine.py,
@@ -32,6 +35,19 @@ world-server = "world_engine.api.main:serve"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["world_engine"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "def serve",
+]
 
 [tool.ruff]
 target-version = "py311"
