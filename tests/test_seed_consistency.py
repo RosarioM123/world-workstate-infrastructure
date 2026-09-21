@@ -9,9 +9,13 @@ silently disagree.
 
 import pytest
 
-import engine
-import ingest
-from engine import SEED_CAPACITY, SEED_ENTITY_ID, SEED_LIQUIDITY
+from world_engine.core import engine
+from world_engine.ingestion import client as ingest
+from world_engine.core.engine import (
+    SEED_CAPACITY,
+    SEED_ENTITY_ID,
+    SEED_LIQUIDITY,
+)
 
 
 @pytest.fixture(autouse=True)
