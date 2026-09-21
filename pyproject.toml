@@ -19,9 +19,14 @@ test = [
     "pytest==9.1.1",
 ]
 
-# Flat layout (engine.py, ingest.py, app.py at repo root). No src/ move yet.
-[tool.setuptools]
-py-modules = ["engine", "ingest", "app"]
+# src layout: the kernel lives in src/world_engine/ (core/engine.py,
+# ingestion/client.py, api/main.py). Thin shims at the repo root keep
+# the old flat entry points (engine.py, ingest.py, app.py) working.
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+world-ingest = "world_engine.ingestion.client:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
