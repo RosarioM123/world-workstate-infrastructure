@@ -28,17 +28,19 @@ a clearly-labeled synthetic observation so the show always goes on.
 
 import argparse
 import json
+import logging
 import sys
 import urllib.error
 import urllib.request
 from contextlib import closing
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
+
+logger = logging.getLogger(__name__)
 
 from world_engine.core.engine import (
-    IntentTransaction,
     SEED_CAPACITY,
     SEED_ENTITY_ID,
+    IntentTransaction,
     connect_db,
     execute_deterministic_transition,
     get_entity,
@@ -68,7 +70,7 @@ WIND_RULES = [
 
 
 def _utcnow() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def init_observations() -> None:
@@ -103,8 +105,7 @@ def fetch_rotterdam_weather() -> tuple[dict, bool]:
         with urllib.request.urlopen(req, timeout=15) as resp:
             raw = json.loads(resp.read().decode("utf-8"))
         return raw, False
-    except (urllib.error.URLError, TimeoutError, OSError,
-            json.JSONDecodeError) as exc:
+    except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
         # Only network and parse failures trigger the offline fallback.
         # Anything else (a programming error) must raise loudly, never hide
         # behind synthetic data mid-demo.
@@ -144,11 +145,18 @@ def store_raw_observation(obs: dict) -> int:
                 (received_at, source, entity_id, payload, synthetic)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (obs["received_at"], obs["source"], obs["entity_id"],
-             json.dumps(obs, sort_keys=True), int(obs["synthetic"])),
+            (
+                obs["received_at"],
+                obs["source"],
+                obs["entity_id"],
+                json.dumps(obs, sort_keys=True),
+                int(obs["synthetic"]),
+            ),
         )
         obs_id = cur.lastrowid
         conn.commit()
+        if obs_id is None:
+            raise RuntimeError("store_raw_observation: insert produced no row id")
         return obs_id
 
 
@@ -208,15 +216,24 @@ def rogue_agent_attack() -> list[dict]:
     Every one is REJECTED by hard code, and logged for the audit trail.
     """
     attacks = [
-        IntentTransaction(HUB_ENTITY_ID, "ROGUE_DRAIN",
-                          requested_delta_capacity=-999999.0,
-                          requested_delta_cash=0.0),
-        IntentTransaction(HUB_ENTITY_ID, "ROGUE_WITHDRAWAL",
-                          requested_delta_capacity=0.0,
-                          requested_delta_cash=-99999999.0),
-        IntentTransaction("node_does_not_exist", "ROGUE_SPOOF",
-                          requested_delta_capacity=10.0,
-                          requested_delta_cash=10.0),
+        IntentTransaction(
+            HUB_ENTITY_ID,
+            "ROGUE_DRAIN",
+            requested_delta_capacity=-999999.0,
+            requested_delta_cash=0.0,
+        ),
+        IntentTransaction(
+            HUB_ENTITY_ID,
+            "ROGUE_WITHDRAWAL",
+            requested_delta_capacity=0.0,
+            requested_delta_cash=-99999999.0,
+        ),
+        IntentTransaction(
+            "node_does_not_exist",
+            "ROGUE_SPOOF",
+            requested_delta_capacity=10.0,
+            requested_delta_cash=10.0,
+        ),
     ]
     outcomes = []
     for intent in attacks:
@@ -228,37 +245,57 @@ def rogue_agent_attack() -> list[dict]:
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(message)s")
     parser = argparse.ArgumentParser(description="WORLD Day 1: real-world ingest")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="show the intent without writing to the ledger")
-    parser.add_argument("--demo", action="store_true",
-                        help="ingest live data, then unleash the rogue agent")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="show the intent without writing to the ledger",
+    )
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help="ingest live data, then unleash the rogue agent",
+    )
     args = parser.parse_args()
 
     tick = ingest_live(dry_run=args.dry_run)
     obs = tick["observation"]
     tag = "SYNTHETIC (offline fallback)" if obs["synthetic"] else "LIVE"
 
-    print(f"[{tag}] {obs['source']} → {obs['location']['name']}: "
-          f"wind {obs['wind_speed_kmh']} km/h, "
-          f"{obs['temperature_c']}°C @ {obs['received_at']}")
-    print(f"Intent: {tick['intent']['action']} "
-          f"(Δcapacity={tick['intent']['requested_delta_capacity']}, "
-          f"Δcash={tick['intent']['requested_delta_cash']})")
-    print(f"Engine verdict: {tick['engine_result']['status']}")
+    logger.info(
+        "[%s] %s \u2192 %s: wind %s km/h, %s\u00b0C @ %s",
+        tag,
+        obs["source"],
+        obs["location"]["name"],
+        obs["wind_speed_kmh"],
+        obs["temperature_c"],
+        obs["received_at"],
+    )
+    logger.info(
+        "Intent: %s (\u0394capacity=%s, \u0394cash=%s)",
+        tick["intent"]["action"],
+        tick["intent"]["requested_delta_capacity"],
+        tick["intent"]["requested_delta_cash"],
+    )
+    logger.info("Engine verdict: %s", tick["engine_result"]["status"])
 
     if not args.dry_run:
         e = tick["entity"]
-        print(f"Ledger state: capacity={e['capacity']}, "
-              f"liquidity={e['available_liquidity']}, status={e['status']}")
+        logger.info(
+            "Ledger state: capacity=%s, liquidity=%s, status=%s",
+            e["capacity"],
+            e["available_liquidity"],
+            e["status"],
+        )
 
     if args.demo and not args.dry_run:
-        print("\n--- ROGUE AGENT ATTACK (all blocked by hard code) ---")
+        logger.info("\n--- ROGUE AGENT ATTACK (all blocked by hard code) ---")
         for outcome in rogue_agent_attack():
             action = outcome["intent"]["action"]
             verdict = outcome["verdict"]
             reason = verdict["details"].get("reason", "")
-            print(f"{action}: {verdict['status']}, {reason}")
+            logger.info("%s: %s, %s", action, verdict["status"], reason)
 
 
 if __name__ == "__main__":
