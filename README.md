@@ -3,7 +3,7 @@
 **Deterministic append-only state ledger with hash-chain verification for AI agent work-state.**
 
 [![CI](https://github.com/RosarioM123/world-workstate-infrastructure/actions/workflows/ci.yml/badge.svg)](https://github.com/RosarioM123/world-workstate-infrastructure/actions/workflows/ci.yml)
-![Python 3.12 | 3.13](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)
+![Python 3.11 | 3.12 | 3.13](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)
 
 AI can generate work. What it cannot do reliably is maintain a shared,
 verifiable record of that work as it moves between models, agents, humans,
@@ -32,7 +32,7 @@ keep it deploy-ready.
 30 seconds, zero setup beyond Python:
 
 ```bash
-pip install -r requirements.txt && pip install -e .
+pip install -e ".[test]"
 
 # verify the ledger's hash chain (no server needed)
 python - <<'EOF'
