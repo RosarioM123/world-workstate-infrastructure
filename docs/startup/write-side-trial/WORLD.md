@@ -2,11 +2,11 @@
 
 **Project:** WORLD startup validation (repo `RosarioM123/world-workstate-infrastructure`)
 **Bundle maintained by:** the assistant, per `docs/startup/write-side-trial/protocol.md`
-**Last regenerated:** 2026-09-21 (trial Day 1; session 02 update)
+**Last regenerated:** 2026-09-21 (trial Day 1; session 03 update)
 
 ## Context
 
-WORLD's thesis: structured work state beats transcripts and summaries for agent session handoffs. The program is validating that thesis across a 10-day startup-validation schedule (through 2026-09-27) plus the 7-day experiment #002 (through 2026-09-23). The MVP decision (2026-09-21) is that the product is a file convention (`WORLD.md` + `world-state.json`), not a platform, and the repo's existing backend is an experiment harness.
+WORLD's thesis: structured work state beats transcripts and summaries for agent session handoffs. The program is validating that thesis across a 10-day startup-validation schedule (through 2026-09-27) plus the 7-day experiment #002 (through 2026-09-23). The MVP decision (2026-09-21) is that the product is a file convention (`WORLD.md` + `world-state.json`), not a platform, and the repo's existing backend is an experiment harness. Experiment #002 Phase 2 continuation (Intel thesis update, decisions D15-D21) arrived via chat on 2026-09-21; it is recorded in trial session 03, not in the protected experiment paths.
 
 ## Decisions
 
