@@ -22,8 +22,8 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from world_engine.core import engine  # noqa: E402
-from world_engine.ingestion import transcript as ti  # noqa: E402
+from world_engine.core import engine
+from world_engine.ingestion import transcript as ti
 
 
 @pytest.fixture()
