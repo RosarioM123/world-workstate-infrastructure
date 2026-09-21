@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "world-ai-infrastructure"
+name = "world-engine"
 version = "0.1.0"
 description = "Deterministic, constraint-checked state ledger for AI agents: every intent validated against physical/financial rules, every attempt hash-chained into a tamper-evident audit trail."
 readme = "README.md"
@@ -27,6 +27,16 @@ where = ["src"]
 
 [project.scripts]
 world-ingest = "world_engine.ingestion.client:main"
+world-import = "world_engine.ingestion.transcript:main"
+world-server = "world_engine.api.main:serve"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_ignores = true
