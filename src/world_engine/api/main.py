@@ -20,6 +20,7 @@ Demo flow:
 """
 
 import sqlite3
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -40,18 +41,24 @@ from world_engine.ingestion.client import (
     rogue_agent_attack,
 )
 
-
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SITE_DIR = REPO_ROOT / "static" / "site"
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_db()
     init_observations()
     app.state.landing_html = _load_landing_page()
     app.state.dashboard_html = _load_dashboard_page()
     yield
+
+
+def serve() -> None:
+    """Run the API server. Entry point for the ``world-server`` console script."""
+    import uvicorn
+
+    uvicorn.run("world_engine.api.main:app", host="127.0.0.1", port=8000)
 
 
 def _load_landing_page() -> str:
@@ -94,24 +101,23 @@ app = FastAPI(title="WORLD Deterministic State Kernel", lifespan=lifespan)
 
 # Hashed JS/CSS for the React landing page (static/site/assets/*).
 if SITE_DIR.is_dir():
-    app.mount("/assets", StaticFiles(directory=SITE_DIR / "assets"),
-              name="site-assets")
+    app.mount("/assets", StaticFiles(directory=SITE_DIR / "assets"), name="site-assets")
 
 
 @app.get("/", response_class=HTMLResponse)
-def landing():
+def landing() -> str:
     """Landing page (React build in static/site/). The live dashboard is at /demo."""
     return app.state.landing_html
 
 
 @app.get("/health")
-def health():
+def health() -> dict[str, str]:
     """Liveness probe for the hosting platform. Touches no database."""
     return {"status": "ok"}
 
 
 @app.get("/api/state")
-def get_world_state():
+def get_world_state() -> dict[str, list[dict]]:
     """Current materialized state + recent tamper-evident ledger entries."""
     conn = connect_db()
     try:
@@ -139,7 +145,7 @@ class IntentRequest(BaseModel):
 
 
 @app.post("/api/intent")
-def post_intent(req: IntentRequest):
+def post_intent(req: IntentRequest) -> dict:
     """Any agent (or human) submits an intent; the math engine decides."""
     try:
         intent = IntentTransaction(
@@ -155,7 +161,7 @@ def post_intent(req: IntentRequest):
 
 
 @app.post("/api/trigger-ingest")
-def trigger_ingest():
+def trigger_ingest() -> dict:
     """Pull the live real-world feed and pipe it through the ledger."""
     tick = ingest_live()
     return {
@@ -169,12 +175,12 @@ def trigger_ingest():
 
 
 @app.post("/api/rogue-attack")
-def trigger_rogue_attack():
+def trigger_rogue_attack() -> dict[str, list[dict]]:
     """Unleash the rogue agent. Every illegal intent must come back REJECTED."""
     return {"attacks": rogue_agent_attack()}
 
 
 @app.get("/demo", response_class=HTMLResponse)
-def dashboard():
+def dashboard() -> str:
     """High-contrast, YC-ready control center UI."""
     return app.state.dashboard_html
