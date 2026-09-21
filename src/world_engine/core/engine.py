@@ -149,6 +149,8 @@ def _validate_intent(intent: IntentTransaction) -> None:
         raise ValueError("Invalid intent: entity_id must be a non-empty string.")
     if not isinstance(intent.action, str) or not intent.action:
         raise ValueError("Invalid intent: action must be a non-empty string.")
+    if not isinstance(intent.note, str):
+        raise ValueError("Invalid intent: note must be a string.")
     for name in ("requested_delta_capacity", "requested_delta_cash"):
         value = getattr(intent, name, None)
         if isinstance(value, bool) or not isinstance(value, (int, float)):
