@@ -33,11 +33,15 @@ Usage:
 import argparse
 import hashlib
 import json
+import logging
 import re
 import sys
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from world_engine.core.engine import (
     IntentTransaction,
@@ -48,9 +52,9 @@ from world_engine.core.engine import (
 
 __all__ = [
     "ENTITY_ID",
-    "parse_transcript",
     "import_transcript",
     "main",
+    "parse_transcript",
 ]
 
 # Dedicated knowledge entity. Kept separate from the seeded hub node so
@@ -86,18 +90,61 @@ _LABEL_KIND = {
 # Keyword rules, checked in this fixed priority order. Deterministic: the
 # first matching kind wins, so the same line always classifies the same way.
 _KEYWORD_RULES = [
-    ("DECISION", ["decision", "decided", "we will", "will do", "agreed",
-                  "going with", "chose", "chosen", "selected", "finalized",
-                  "settled on"]),
-    ("CONSTRAINT", ["must", "never", "always", "constraint", "required",
-                    "do not", "don't", "cannot", "can't", "guardrail",
-                    "not allowed", "forbidden"]),
-    ("ASSUMPTION", ["assum", "presum", "given that", "taking it as",
-                    "suppos", "hypothesis"]),
-    ("QUESTION", ["?", "open question", "todo", "tbd", "follow up",
-                  "follow-up", "need to find", "need to check",
-                  "need to confirm", "need to decide", "unclear",
-                  "unknown", "unresolved"]),
+    (
+        "DECISION",
+        [
+            "decision",
+            "decided",
+            "we will",
+            "will do",
+            "agreed",
+            "going with",
+            "chose",
+            "chosen",
+            "selected",
+            "finalized",
+            "settled on",
+        ],
+    ),
+    (
+        "CONSTRAINT",
+        [
+            "must",
+            "never",
+            "always",
+            "constraint",
+            "required",
+            "do not",
+            "don't",
+            "cannot",
+            "can't",
+            "guardrail",
+            "not allowed",
+            "forbidden",
+        ],
+    ),
+    (
+        "ASSUMPTION",
+        ["assum", "presum", "given that", "taking it as", "suppos", "hypothesis"],
+    ),
+    (
+        "QUESTION",
+        [
+            "?",
+            "open question",
+            "todo",
+            "tbd",
+            "follow up",
+            "follow-up",
+            "need to find",
+            "need to check",
+            "need to confirm",
+            "need to decide",
+            "unclear",
+            "unknown",
+            "unresolved",
+        ],
+    ),
 ]
 
 # "Name: ..." or "**Name:** ..." at the start of a turn.
@@ -109,14 +156,15 @@ _TURN_SPLIT_RE = re.compile(r"^(?:\*\*)?[A-Za-z][\w .'\-]{0,40}(?:\*\*)?\s*:")
 
 
 def _utcnow() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
-def _split_blocks(text: str) -> list:
+def _split_blocks(text: str) -> list[str]:
     """Split a transcript into blocks. A blank line always ends a block;
     a new ``Speaker:`` turn also ends one, since chat exports rarely use
     blank lines between turns."""
-    blocks, current = [], []
+    blocks: list[str] = []
+    current: list[str] = []
     for raw_line in text.splitlines():
         line = raw_line.strip()
         if not line:
@@ -133,7 +181,7 @@ def _split_blocks(text: str) -> list:
     return blocks
 
 
-def _extract_speaker(block: str) -> tuple:
+def _extract_speaker(block: str) -> tuple[str, str]:
     """Return (speaker, remainder). A label word is not a speaker."""
     m = _SPEAKER_RE.match(block)
     if m:
@@ -144,7 +192,7 @@ def _extract_speaker(block: str) -> tuple:
     return "unknown", block
 
 
-def _classify(text: str) -> tuple:
+def _classify(text: str) -> tuple[str, str]:
     """Return (kind, content) for one block of text."""
     m = _LABEL_RE.match(text)
     if m:
@@ -160,7 +208,7 @@ def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def parse_transcript(text: str) -> list:
+def parse_transcript(text: str) -> list[dict[str, str]]:
     """Extract durable items from a transcript.
 
     Returns a list of {"kind", "speaker", "text"} dicts in transcript
@@ -179,19 +227,18 @@ def parse_transcript(text: str) -> list:
     return items
 
 
-def _item_hash(item: dict) -> str:
+def _item_hash(item: dict[str, str]) -> str:
     """Content hash for idempotency. Case-insensitive so trivial
     re-capitalization does not double-import an item."""
-    basis = "\n".join([item["kind"], item["speaker"].lower(),
-                       item["text"].lower()])
+    basis = "\n".join([item["kind"], item["speaker"].lower(), item["text"].lower()])
     return hashlib.sha256(basis.encode("utf-8")).hexdigest()
 
 
-def _format_note(item: dict) -> str:
+def _format_note(item: dict[str, str]) -> str:
     text = item["text"]
     if len(text) > MAX_NOTE_CHARS:
         text = text[:MAX_NOTE_CHARS] + " [truncated]"
-    return "%s | speaker=%s | %s" % (item["kind"], item["speaker"], text)
+    return f"{item['kind']} | speaker={item['speaker']} | {text}"
 
 
 def init_transcript_store() -> None:
@@ -217,11 +264,14 @@ def ensure_knowledge_entity() -> None:
     """Register the dedicated knowledge entity if absent. Zero capacity
     and zero liquidity: imported notes are pure record, never value."""
     with closing(connect_db()) as conn:
-        conn.execute("""
+        conn.execute(
+            """
             INSERT OR IGNORE INTO entities
                 (entity_id, capacity, available_liquidity, status, last_updated)
             VALUES (?, 0.0, 0.0, 'ACTIVE', ?)
-        """, (ENTITY_ID, _utcnow()))
+        """,
+            (ENTITY_ID, _utcnow()),
+        )
         conn.commit()
 
 
@@ -234,28 +284,41 @@ def _already_imported(item_hash: str) -> bool:
         return row is not None
 
 
-def _record_import(item_hash: str, source: str, item: dict, note: str) -> None:
+def _record_import(
+    item_hash: str, source: str, item: dict[str, str], note: str
+) -> None:
     with closing(connect_db()) as conn:
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO transcript_imports
                 (item_hash, imported_at, source, entity_id, action,
                  kind, speaker, note)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (item_hash, _utcnow(), source, ENTITY_ID,
-              KIND_ACTION[item["kind"]], item["kind"],
-              item["speaker"], note))
+        """,
+            (
+                item_hash,
+                _utcnow(),
+                source,
+                ENTITY_ID,
+                KIND_ACTION[item["kind"]],
+                item["kind"],
+                item["speaker"],
+                note,
+            ),
+        )
         conn.commit()
 
 
-def import_transcript(text: str, source: str = SOURCE_DEFAULT,
-                      dry_run: bool = False) -> dict:
+def import_transcript(
+    text: str, source: str = SOURCE_DEFAULT, dry_run: bool = False
+) -> dict:
     """Parse a transcript and commit one intent per item.
 
     With dry_run=True this is a pure function: it parses and reports
     without touching the database at all.
     """
     items = parse_transcript(text)
-    result = {
+    result: dict[str, Any] = {
         "source": source,
         "items_found": len(items),
         "committed": 0,
@@ -292,15 +355,24 @@ def import_transcript(text: str, source: str = SOURCE_DEFAULT,
     return result
 
 
-def main(argv=None) -> int:
+def main(argv: list[str] | None = None) -> int:
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(message)s")
     parser = argparse.ArgumentParser(
-        description="Import a chat transcript into the WORLD state ledger.")
-    parser.add_argument("path", nargs="?",
-                        help="Transcript file (.md/.txt). Reads stdin if omitted.")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Parse and list items without writing anything.")
-    parser.add_argument("--source", default=SOURCE_DEFAULT,
-                        help="Label recorded with the import (default: paste).")
+        description="Import a chat transcript into the WORLD state ledger."
+    )
+    parser.add_argument(
+        "path", nargs="?", help="Transcript file (.md/.txt). Reads stdin if omitted."
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Parse and list items without writing anything.",
+    )
+    parser.add_argument(
+        "--source",
+        default=SOURCE_DEFAULT,
+        help="Label recorded with the import (default: paste).",
+    )
     args = parser.parse_args(argv)
 
     if args.path:
@@ -312,13 +384,18 @@ def main(argv=None) -> int:
         items = parse_transcript(text)
         for i, item in enumerate(items, 1):
             preview = item["text"][:120]
-            print("%d. [%s] (speaker=%s) %s"
-                  % (i, item["kind"], item["speaker"], preview))
-        print("items=%d (dry run, nothing written)" % len(items))
+            logger.info(
+                "%d. [%s] (speaker=%s) %s", i, item["kind"], item["speaker"], preview
+            )
+        logger.info("items=%d (dry run, nothing written)", len(items))
         return 0
 
-    print(json.dumps(import_transcript(text, source=args.source),
-                     indent=2, sort_keys=True))
+    logger.info(
+        "%s",
+        json.dumps(
+            import_transcript(text, source=args.source), indent=2, sort_keys=True
+        ),
+    )
     return 0
 
 
