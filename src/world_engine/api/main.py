@@ -147,6 +147,7 @@ def post_intent(req: IntentRequest):
             action=req.action,
             requested_delta_capacity=req.delta_capacity,
             requested_delta_cash=req.delta_cash,
+            note=req.note,
         )
         return execute_deterministic_transition(intent)
     except ValueError as exc:
