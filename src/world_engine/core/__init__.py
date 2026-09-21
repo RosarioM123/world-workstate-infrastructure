@@ -1,4 +1,5 @@
 """Deterministic constraint engine: the kernel that validates every intent."""
+
 from world_engine.core.engine import (  # noqa: F401
     SEED_CAPACITY,
     SEED_ENTITY_ID,

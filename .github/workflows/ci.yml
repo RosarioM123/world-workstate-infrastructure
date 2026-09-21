@@ -22,7 +22,7 @@ jobs:
         run: |
           pip install -e ".[test]"
       - name: Run tests
-        run: python -m pytest tests/ -q
+        run: python -m pytest tests/ -q --cov --cov-report=term-missing
 
   lint:
     runs-on: ubuntu-latest

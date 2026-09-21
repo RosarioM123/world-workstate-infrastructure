@@ -127,14 +127,18 @@ dotnet run --project tools/ChainVerify -- ledger.json
 ## Tests
 
 ```bash
-python -m pytest tests/ -q
+python -m pytest tests/ -q --cov
 ```
 
 The test suite covers the hardening guarantees: invalid deltas rejected, unknown
-entities logged as rejected, concurrent writes serialized, weather derates
+entities logged as rejected, concurrent writes serialized (16 threads race
+to over-drain one node; exactly one commits), weather derates
 computed from a fixed baseline, full hash-chain verification with
-tamper pinpointing, and seed-constant consistency between engine and
-ingest. CI runs the suite on Python 3.12 and 3.13 plus the frontend
+tamper pinpointing (including hypothesis property tests over random
+ledgers and random single-field tampers), seed-constant consistency
+between engine and ingest, and FastAPI integration tests for the v1
+routes. CI runs the suite with a pytest-cov gate (85% minimum) on
+Python 3.11, 3.12, and 3.13, plus ruff, mypy, and the frontend
 production build for every push and pull request to `main`.
 
 ## Repository layout
