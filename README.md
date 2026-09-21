@@ -28,7 +28,20 @@ keep it deploy-ready.
 
 ## Quickstart
 
-30 seconds, zero setup beyond Python:
+Five lines, zero setup beyond Python:
+
+```bash
+pip install -e .
+python - <<'EOF'
+from world_engine.core import engine
+engine.init_db()
+r = engine.execute_deterministic_transition(
+    engine.IntentTransaction("node_rotterdam_hub", "ALLOCATE", -50.0, 0.0))
+print(r["status"], engine.verify_chain())  # COMMITTED (True, None)
+EOF
+```
+
+The full tour (test suite, API, dashboard) is right below.
 
 ```bash
 pip install -e ".[test]"
@@ -157,6 +170,14 @@ with 100,000 intents). Your numbers will differ; the shape will not.
 Appends serialize on the single SQLite write lock (by design, see
 `docs/adr/0003-single-transaction-check-then-act.md`); verification is
 a pure sequential hash walk, so it scales linearly with ledger size.
+
+Scope of these numbers, stated plainly: single-writer appends on one
+shared VM, no network, no concurrent readers, no production hardware.
+They measure the kernel's raw throughput, not a deployed system's
+latency. The continuity claim (can a fresh session pick up work from
+the ledger alone) is tested separately by the handoff experiment in
+`experiments/`; its results will ship in this README verbatim, pass or
+fail.
 
 ## Repository layout
 
