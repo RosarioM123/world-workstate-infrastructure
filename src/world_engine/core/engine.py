@@ -124,11 +124,17 @@ def init_db() -> None:
 
 @dataclass
 class IntentTransaction:
-    """An agent's proposal. The agent asks; the engine decides."""
+    """An agent's proposal. The agent asks; the engine decides.
+
+    ``note`` carries free text (a decision, assumption, or observation)
+    into the ledger payload. It never affects the constraint verdict:
+    the engine still decides on the numeric deltas alone.
+    """
     entity_id: str
     action: str
     requested_delta_capacity: float
     requested_delta_cash: float
+    note: str = ""
 
 
 def _validate_intent(intent: IntentTransaction) -> None:
