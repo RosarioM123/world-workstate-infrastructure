@@ -13,8 +13,7 @@ agents submit *intents*, a constraint engine returns `COMMITTED` or
 hash-chained ledger.
 
 **Status: working prototype, not deployed.** Deterministic engine,
-live data ingestion, FastAPI backend, React landing page, full suite
-green in CI. No auth or rate limiting yet, and the ledger is tamper-evident
+FastAPI backend, React landing page, full suite green in CI. No auth or rate limiting yet, and the ledger is tamper-evident
 (via `verify_chain()`) rather than immutable. Sample data in the demo is
 labeled as sample. Hosting is deferred — `render.yaml` and `/health`
 keep it deploy-ready.
@@ -69,13 +68,16 @@ cat notes.md | python import_transcript.py        # read from stdin
 ```mermaid
 flowchart LR
     A[Agent / human / CLI] -->|intent| B[FastAPI\napp.py]
-    E[ingest.py\nlive Open-Meteo data] -->|intent| C
     B --> C[Constraint engine\nengine.py]
     C -->|COMMITTED / REJECTED| D[(SQLite ledger\nSHA-256 hash-chained)]
     D --> F[Materialized state]
     F --> G[/demo dashboard]
     F --> H[/api/v1/state]
 ```
+
+(The Rotterdam weather/port flow that used to sit beside the kernel now
+lives in `examples/synthetic-logistics-demo/` as a synthetic stress-test
+domain, not the product demo.)
 
 1. An **intent** proposes a state change: an entity, an action, and deltas.
 2. The **constraint engine** validates it — capacity and liquidity cannot go
@@ -126,20 +128,21 @@ dotnet run --project tools/ChainVerify -- ledger.json
 
 ## Tests
 
-```bash
-python -m pytest tests/ -q --cov
-```
-
 The test suite covers the hardening guarantees: invalid deltas rejected, unknown
 entities logged as rejected, concurrent writes serialized (16 threads race
-to over-drain one node; exactly one commits), weather derates
-computed from a fixed baseline, full hash-chain verification with
+to over-drain one node; exactly one commits), full hash-chain verification with
 tamper pinpointing (including hypothesis property tests over random
-ledgers and random single-field tampers), seed-constant consistency
-between engine and ingest, and FastAPI integration tests for the v1
-routes. CI runs the suite with a pytest-cov gate (85% minimum) on
-Python 3.11, 3.12, and 3.13, plus ruff, mypy, and the frontend
-production build for every push and pull request to `main`.
+ledgers and random single-field tampers), seed-constant consistency,
+and FastAPI integration tests for the v1 routes. CI runs the suite with a
+pytest-cov gate (85% minimum) on Python 3.11, 3.12, and 3.13, plus ruff,
+mypy, and the frontend production build for every push and pull request
+to `main`.
+
+```bash
+python -m pytest tests/ -q --cov
+# synthetic demo domain tests (kept with the demo, not the product suite)
+python -m pytest examples/synthetic-logistics-demo/tests -q
+```
 
 ## Benchmarks
 
@@ -161,17 +164,21 @@ a pure sequential hash walk, so it scales linearly with ledger size.
 /src/world_engine      — the packaged kernel (pip install -e .)
   /core/engine.py      — deterministic state kernel (hash-chained SQLite
                          ledger, verify_chain(), constraint policy)
-  /ingestion/client.py — live data ingestion piped through the kernel
-                         (CLI: world-ingest)
+  /ingestion/transcript.py — deterministic transcript importer
+                         (CLI: world-import)
 /api/main.py           — FastAPI backend (serves the React build + /demo
                          dashboard); uvicorn world_engine.api.main:app
   /api/v1.py             — versioned routes (/api/v1/*; /api/* are
                          deprecated aliases)
 /api/middleware.py      — request IDs, structured access logging, the
                          uniform JSON error envelope
-/engine.py, /ingest.py,
-/app.py                — thin shims: `uvicorn app:app`, `python ingest.py`,
-                         `python -m engine` all still work unchanged
+/engine.py, /app.py,
+/import_transcript.py  — thin shims: `uvicorn app:app`, `python -m engine`,
+                         `python import_transcript.py` all still work unchanged
+/examples/synthetic-logistics-demo — the Rotterdam weather/port flow, moved
+                         out of the product: a synthetic domain that
+                         stress-tests the constraint engine. Not the
+                         product demo.
 /frontend    — landing page source: React 18 + Sass (Vite)
                → builds into /static/site (committed, served by app.py)
 /static      — built landing page (static/site/) + /demo dashboard
@@ -194,9 +201,10 @@ cd frontend && npm install && npm run build
 - **Tamper-evident, not immutable.** The ledger is hash-chained, so edits
   are detectable — but anyone holding the database file can rewrite it.
 - **No auth or rate limiting yet.** The API trusts its callers.
-- **The weather mapping is a demo hypothesis.** Wind speed derating port
-  capacity is a fixed, auditable rule for demonstration, not a validated
-  operations model.
+- **The Rotterdam weather/port flow is a synthetic stress-test domain,**
+  not the product demo (`examples/synthetic-logistics-demo/`). Wind speed
+  derating port capacity is a fixed, auditable rule invented to exercise
+  the constraint engine, not a validated operations model.
 
 ## The thesis behind it
 

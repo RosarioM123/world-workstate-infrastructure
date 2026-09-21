@@ -10,12 +10,13 @@
         <div class="flex justify-between items-center border-b border-zinc-800 pb-4">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight text-white">WORLD // State Kernel</h1>
-                <p class="text-xs text-zinc-400">Deterministic state infrastructure + live real-world ingestion</p>
+                <p class="text-xs text-zinc-400">Deterministic state infrastructure: intents in, COMMITTED or REJECTED out</p>
             </div>
             <div class="space-x-4">
-                <button onclick="triggerIngest()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm px-4 py-2 rounded font-semibold transition">
-                    ⚡ Inject Real-World Feed
-                </button>
+                <span class="text-xs text-zinc-500" title="The Rotterdam weather/port flow is a synthetic stress-test domain, not the product. Run it from the CLI: python examples/synthetic-logistics-demo/weather_ingest.py --demo">
+                    Synthetic logistics demo moved to <span class="font-mono text-zinc-400">examples/synthetic-logistics-demo/</span>
+                </span>
+                
                 <button onclick="fetchState()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm px-4 py-2 rounded transition">
                     🔄 Refresh State
                 </button>
@@ -123,16 +124,6 @@
                     <td class="py-2 font-mono text-zinc-600">${escapeHtml(tx.record_hash).slice(0, 8)}</td>
                 </tr>
             `).join('');
-        }
-
-        async function triggerIngest() {
-            const res = await fetch('/api/trigger-ingest', { method: 'POST' });
-            const data = await res.json();
-            showBanner(
-                `Feed: ${data.source}${data.synthetic ? ' (synthetic fallback)' : ' (LIVE)'}, wind ${data.wind_kmh} km/h → ${data.intent}: ${data.engine_verdict}`,
-                data.engine_verdict === 'COMMITTED'
-            );
-            fetchState();
         }
 
         async function testIntent(deltaCap, deltaCash) {

@@ -78,7 +78,9 @@ function Limits() {
     </>,
     <>
       <strong>Sample data is labeled.</strong> Anything synthetic in the demo
-      is marked synthetic; live Open-Meteo data needs no API key.
+      is marked synthetic. The Rotterdam weather/port flow is a synthetic
+      stress-test domain (see examples/synthetic-logistics-demo/), not the
+      product demo.
     </>,
   ];
   return (
@@ -153,7 +155,7 @@ export default function App() {
 
       <footer className="site-footer">
         <span>WORLD · deterministic state kernel</span>
-        <span>engine.py · app.py · ingest.py</span>
+        <span>engine.py · app.py · import_transcript.py</span>
       </footer>
     </div>
   );
