@@ -12,9 +12,12 @@ import math
 
 import pytest
 
-import engine
-import ingest
-from engine import IntentTransaction, execute_deterministic_transition
+from world_engine.core import engine
+from world_engine.ingestion import client as ingest
+from world_engine.core.engine import (
+    IntentTransaction,
+    execute_deterministic_transition,
+)
 
 
 @pytest.fixture(autouse=True)
