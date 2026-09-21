@@ -23,13 +23,17 @@ Zero heavy dependencies: standard library + sqlite3 only.
 
 import hashlib
 import json
+import logging
 import math
 import os
 import sqlite3
+import sys
 from contextlib import closing
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 DB_PATH = str(Path(__file__).with_name("world_state.db"))
 
@@ -61,15 +65,27 @@ def connect_db() -> sqlite3.Connection:
 
 
 def _utcnow() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
-def _hash_record(timestamp: str, entity_id: str, action: str,
-                 payload: str, previous_hash: str | None, status: str) -> str:
-    material = "|".join([
-        timestamp, entity_id, action, payload,
-        previous_hash or "GENESIS", status,
-    ])
+def _hash_record(
+    timestamp: str,
+    entity_id: str,
+    action: str,
+    payload: str,
+    previous_hash: str | None,
+    status: str,
+) -> str:
+    material = "|".join(
+        [
+            timestamp,
+            entity_id,
+            action,
+            payload,
+            previous_hash or "GENESIS",
+            status,
+        ]
+    )
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
@@ -115,8 +131,7 @@ def init_db() -> None:
                     (entity_id, capacity, available_liquidity, status, last_updated)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                (SEED_ENTITY_ID, SEED_CAPACITY, SEED_LIQUIDITY,
-                 "ACTIVE", _utcnow()),
+                (SEED_ENTITY_ID, SEED_CAPACITY, SEED_LIQUIDITY, "ACTIVE", _utcnow()),
             )
 
         conn.commit()
@@ -130,6 +145,7 @@ class IntentTransaction:
     into the ledger payload. It never affects the constraint verdict:
     the engine still decides on the numeric deltas alone.
     """
+
     entity_id: str
     action: str
     requested_delta_capacity: float
@@ -150,18 +166,22 @@ def _validate_intent(intent: IntentTransaction) -> None:
     if not isinstance(intent.action, str) or not intent.action:
         raise ValueError("Invalid intent: action must be a non-empty string.")
     if not isinstance(intent.note, str):
-        raise ValueError("Invalid intent: note must be a string.")
+        raise ValueError("Invalid intent: note must be a string.")  # noqa: TRY004
     for name in ("requested_delta_capacity", "requested_delta_cash"):
         value = getattr(intent, name, None)
         if isinstance(value, bool) or not isinstance(value, (int, float)):
-            raise ValueError(f"Invalid intent: {name} must be a number.")
+            raise ValueError(f"Invalid intent: {name} must be a number.")  # noqa: TRY004
         if not math.isfinite(value):
             raise ValueError(f"Invalid intent: {name} must be finite.")
 
 
-def check_constraints(current_capacity: float, current_cash: float,
-                      status: str, delta_capacity: float,
-                      delta_cash: float) -> str | None:
+def check_constraints(
+    current_capacity: float,
+    current_cash: float,
+    status: str,
+    delta_capacity: float,
+    delta_cash: float,
+) -> str | None:
     """The policy itself, as a pure function.
 
     Takes the entity's current state plus the requested deltas and returns
@@ -174,11 +194,9 @@ def check_constraints(current_capacity: float, current_cash: float,
     if status == "LOCKED":
         return "Node is locked due to active macro shock wave."
     if current_capacity + delta_capacity < 0:
-        return ("Constraint Violation: Capacity cannot drop below zero "
-                "(Physical limit).")
+        return "Constraint Violation: Capacity cannot drop below zero (Physical limit)."
     if current_cash + delta_cash < 0:
-        return ("Constraint Violation: Insufficient liquidity "
-                "(Financial limit).")
+        return "Constraint Violation: Insufficient liquidity (Financial limit)."
     return None
 
 
@@ -229,8 +247,11 @@ def execute_deterministic_transition(intent: IntentTransaction) -> dict:
         else:
             current_capacity, current_cash, status = row
             rejection_reason = check_constraints(
-                current_capacity, current_cash, status,
-                intent.requested_delta_capacity, intent.requested_delta_cash,
+                current_capacity,
+                current_cash,
+                status,
+                intent.requested_delta_capacity,
+                intent.requested_delta_cash,
             )
             target_capacity = current_capacity + intent.requested_delta_capacity
             target_cash = current_cash + intent.requested_delta_cash
@@ -253,8 +274,12 @@ def execute_deterministic_transition(intent: IntentTransaction) -> dict:
         prev = cursor.fetchone()
         previous_hash = prev[0] if prev else None
         record_hash = _hash_record(
-            timestamp, intent.entity_id, intent.action,
-            payload_json, previous_hash, tx_status,
+            timestamp,
+            intent.entity_id,
+            intent.action,
+            payload_json,
+            previous_hash,
+            tx_status,
         )
 
         # Append to the log regardless, full audit trail.
@@ -264,8 +289,15 @@ def execute_deterministic_transition(intent: IntentTransaction) -> dict:
                 (timestamp, entity_id, action, payload, previous_hash, record_hash, status)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (timestamp, intent.entity_id, intent.action, payload_json,
-             previous_hash, record_hash, tx_status),
+            (
+                timestamp,
+                intent.entity_id,
+                intent.action,
+                payload_json,
+                previous_hash,
+                record_hash,
+                tx_status,
+            ),
         )
 
         # Mutate materialized state ONLY on commit.
@@ -342,8 +374,12 @@ def verify_chain() -> tuple[bool, int | None]:
         if row["previous_hash"] != expected_previous:
             return False, tx_id
         recomputed = _hash_record(
-            row["timestamp"], row["entity_id"], row["action"],
-            row["payload"], row["previous_hash"], row["status"],
+            row["timestamp"],
+            row["entity_id"],
+            row["action"],
+            row["payload"],
+            row["previous_hash"],
+            row["status"],
         )
         if recomputed != row["record_hash"]:
             return False, tx_id
@@ -352,8 +388,9 @@ def verify_chain() -> tuple[bool, int | None]:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(message)s")
     init_db()
-    print("State engine initialized. Testing guardrail constraints...")
+    logger.info("State engine initialized. Testing guardrail constraints...")
 
     # Test 1: valid intent, allocate resources within physical limits.
     t1 = IntentTransaction(
@@ -362,7 +399,7 @@ if __name__ == "__main__":
         requested_delta_capacity=-200.0,
         requested_delta_cash=5000.0,
     )
-    print("Attempt 1 (Valid):", execute_deterministic_transition(t1))
+    logger.info("Attempt 1 (Valid): %s", execute_deterministic_transition(t1))
 
     # Test 2: invalid intent, tries to drain more capacity than physics allows.
     t2 = IntentTransaction(
@@ -371,8 +408,10 @@ if __name__ == "__main__":
         requested_delta_capacity=-5000.0,
         requested_delta_cash=0.0,
     )
-    print("Attempt 2 (Invalid, Hallucination Blocked):",
-          execute_deterministic_transition(t2))
+    logger.info(
+        "Attempt 2 (Invalid, Hallucination Blocked): %s",
+        execute_deterministic_transition(t2),
+    )
 
     # Test 3: unknown entity, rejected but still logged for the audit trail.
     t3 = IntentTransaction(
@@ -381,6 +420,6 @@ if __name__ == "__main__":
         requested_delta_capacity=10.0,
         requested_delta_cash=10.0,
     )
-    print("Attempt 3 (Unknown entity):", execute_deterministic_transition(t3))
+    logger.info("Attempt 3 (Unknown entity): %s", execute_deterministic_transition(t3))
 
-    print("Final entity state:", get_entity("node_rotterdam_hub"))
+    logger.info("Final entity state: %s", get_entity("node_rotterdam_hub"))
