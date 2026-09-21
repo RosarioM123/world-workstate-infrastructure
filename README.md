@@ -212,6 +212,8 @@ between different models, agents, humans, tools, and time.
 
 Start here:
 
+- `docs/VISION.md` — the one-page thesis: the one secret, the three
+  layers, the build order
 - `docs/hypothesis.md` — the thesis, precisely stated, with falsifiability criteria
 - `docs/thesis-challenge.md` — the adversarial case: "why isn't WORLD just X?"
 - `docs/state-model.md` — the canonical state ontology (draft v0.1)
