@@ -135,6 +135,7 @@ class IntentRequest(BaseModel):
     action: str = Field(max_length=128)
     delta_capacity: float
     delta_cash: float
+    note: str = Field(default="", max_length=4000)
 
 
 @app.post("/api/intent")
