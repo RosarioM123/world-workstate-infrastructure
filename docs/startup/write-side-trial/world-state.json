@@ -32,7 +32,7 @@
    "created_at": "2026-09-21",
    "created_by": "assistant",
    "id": "A4",
-   "source": "transfer kit + shakedown-01 committed 2026-09-21; no external-vendor run yet",
+   "source": "transfer kit + shakedown-01 committed 2026-09-21; browser external-run attempt 2026-09-21 blocked (no logged-in AI chat); manual path handed to user; no external-vendor run yet",
    "statement": "Cross-vendor portability defends against native agent memory",
    "status": "active"
   },
@@ -106,8 +106,8 @@
    "status": "accepted"
   }
  ],
- "generated_at": "2026-09-21T12:50:00-04:00",
- "generated_by": "assistant (write-side trial, Day 1 seed)",
+ "generated_at": "2026-09-21T13:35:00-04:00",
+ "generated_by": "assistant (write-side trial, Day 1 session 03)",
  "guardrails": [
   {
    "id": "G1",
@@ -186,6 +186,22 @@
    "reason": "ideas 4-6: tools/staleness.py, tools/write_cost.py, tools/guardrail_audit.py + README",
    "seq": 3,
    "timestamp": "2026-09-21T12:50:00-04:00"
+  },
+  {
+   "actor": "assistant",
+   "change": "source updated",
+   "entity_id": "A4",
+   "reason": "browser transfer-test attempt 2026-09-21 blocked (no logged-in AI chat session); manual path handed to user",
+   "seq": 4,
+   "timestamp": "2026-09-21T13:35:00-04:00"
+  },
+  {
+   "actor": "assistant",
+   "change": "session recorded",
+   "entity_id": "bundle",
+   "reason": "session 03: Phase 2 continuation recorded, A4 source refined, Q1 compaction data point, write-cost point 3",
+   "seq": 5,
+   "timestamp": "2026-09-21T13:35:00-04:00"
   }
  ]
 }
