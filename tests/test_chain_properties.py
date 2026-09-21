@@ -4,21 +4,20 @@ Two invariants, stated as properties over generated inputs:
 
 1. No false positives: any ledger built purely through
    execute_deterministic_transition() verifies cleanly.
-2. No false negatives: any single-field tamper of any record (payload,
-   timestamp, action, or status) is detected, and verify_chain() names
-   the exact tampered record.
+2. No false negatives: any single-byte tamper of any record's stored
+   field (payload, timestamp, action, or status) is detected, and
+   verify_chain() names the exact tampered record.
 
 A row deleted from the middle of the chain is also detected, since the
 following record's previous_hash no longer links.
 """
 
-import json
 import os
 import shutil
 import sqlite3
 import tempfile
 
-from hypothesis import HealthCheck, given, settings
+from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from tests.conftest import checkpoint
@@ -103,9 +102,11 @@ def test_random_ledgers_always_verify(draws):
 @given(
     st.integers(min_value=0, max_value=7),
     st.sampled_from(["payload", "timestamp", "action", "status"]),
+    st.data(),
 )
 @settings(max_examples=40, deadline=None, suppress_health_check=[HealthCheck.too_slow])
-def test_single_field_tamper_always_detected_and_named(record_index, field):
+def test_single_byte_tamper_always_detected_and_named(record_index, field, data):
+    """Flip exactly one byte of one stored field; the chain must name it."""
     old = os.environ.get("WORLD_DB_PATH")
     try:
         db = _fresh_db()
@@ -118,20 +119,19 @@ def test_single_field_tamper_always_detected_and_named(record_index, field):
 
         conn = sqlite3.connect(tampered)
         try:
-            if field == "payload":
-                (payload,) = conn.execute(
-                    "SELECT payload FROM state_ledger WHERE transaction_id = ?",
-                    (target_id,),
-                ).fetchone()
-                doc = json.loads(payload)
-                doc["_tampered"] = True
-                new_value = json.dumps(doc, sort_keys=True)
-            else:
-                (current,) = conn.execute(
-                    f"SELECT {field} FROM state_ledger WHERE transaction_id = ?",
-                    (target_id,),
-                ).fetchone()
-                new_value = current + "X"
+            (current,) = conn.execute(
+                f"SELECT {field} FROM state_ledger WHERE transaction_id = ?",
+                (target_id,),
+            ).fetchone()
+            raw = current.encode("utf-8")
+            assume(all(b < 128 for b in raw))
+            pos = data.draw(st.integers(min_value=0, max_value=len(raw) - 1))
+            new_byte = data.draw(
+                st.integers(min_value=32, max_value=126).filter(lambda b: b != raw[pos])
+            )
+            mutated = raw[:pos] + bytes([new_byte]) + raw[pos + 1 :]
+            assert len(mutated) == len(raw)
+            new_value = mutated.decode("ascii")
             conn.execute(
                 f"UPDATE state_ledger SET {field} = ? WHERE transaction_id = ?",
                 (new_value, target_id),
