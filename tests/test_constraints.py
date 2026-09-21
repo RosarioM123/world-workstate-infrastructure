@@ -6,7 +6,7 @@ microseconds and pin the exact policy, including check order and the
 zero boundary.
 """
 
-from engine import check_constraints
+from world_engine.core.engine import check_constraints
 
 
 def test_valid_intent_allowed():
