@@ -2,6 +2,30 @@
 
 Newest entries first.
 
+## 2026-09-21 — Experiment #002 Day 5: blind evaluation complete (protocol §6)
+
+- Predeclared the grading answer key from Agent A's decisions/assumptions BEFORE grading
+  (`docs/experiment-002/day-05-answer-key.md`): 14 decisions, 13 assumptions with confidence,
+  3 revisions, 4 guardrails, 6 open questions, 2 failed approaches, provenance anchors.
+- Independent evaluator subagent scored all 14 protocol metrics individually for each
+  continuation, blinded: outputs relabeled cand-p/q/r via fresh random shuffle, identifying
+  headers stripped, mapping declared off-limits — grader confirmed compliance (no mapping
+  used, no conditions mentioned).
+- Mapping revealed only after grading: X→C (raw journal) · Y→A (WORLD state) · Z→B
+  (independent summary). Scores (means of metrics 1–10+14, reference only): Y (WORLD) 3.92 ·
+  X (journal) 3.58 · Z (summary) 3.33.
+- Where WORLD helped: assumption preservation 5/5 and confidence preservation 5/5 (vs 3/3
+  for both alternatives); Y was the only continuation to revisit all 13 assumptions with
+  explicit CONFIRMED/REVISED verdicts. Where it hurt: revision history weak in ALL
+  conditions (Y=2, X=3, Z=2) — the WORLD continuation lost the R1–R3 old→new→trigger
+  chains too. No gratuitous WORLD overhead found; 0 unsupported assumptions and
+  0 contradictions in all three; continuation quality 5/5/5 everywhere.
+- Blinding note, documented not hidden: the evaluator subagent inherited the parent
+  transcript containing the mapping (full control file returns whole on fetch); mitigated
+  as above; residual imperfection stands per protocol §10.4.
+- Full record: `docs/experiment-002/day-05.md`. Next: Day 6 (Sep 22) — Disney (DIS)
+  replication per protocol §7 with a FRESH blind mapping; protocol unchanged.
+
 ## 2026-09-20 — Experiment #002 Day 4: three Agent B continuations run (protocol §5)
 
 - Ran three isolated Agent B continuations, one per blind handoff (X/Y/Z), per protocol §5: same model, identical brief (the §5 continuation objective verbatim), same 8-section output format, no browsing, blinded. Each run was instructed to use ONLY its assigned handoff file and to ignore everything else in its inherited context (protocol §10.1 limitation acknowledged and mitigated by explicit source restriction plus post-hoc verification).
