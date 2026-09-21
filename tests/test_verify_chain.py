@@ -13,8 +13,11 @@ import sqlite3
 
 import pytest
 
-import engine
-from engine import IntentTransaction, execute_deterministic_transition
+from world_engine.core import engine
+from world_engine.core.engine import (
+    IntentTransaction,
+    execute_deterministic_transition,
+)
 
 
 @pytest.fixture(autouse=True)
