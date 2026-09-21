@@ -30,8 +30,9 @@ def isolated_db(tmp_path, monkeypatch):
 def _commit(n=3):
     for i in range(n):
         execute_deterministic_transition(
-            IntentTransaction("node_rotterdam_hub", f"ACTION_{i}",
-                              -10.0 * (i + 1), 100.0 * i)
+            IntentTransaction(
+                "node_rotterdam_hub", f"ACTION_{i}", -10.0 * (i + 1), 100.0 * i
+            )
         )
 
 
@@ -58,7 +59,8 @@ def test_clean_ledger_verifies():
 
 def test_rejected_rows_are_part_of_the_chain():
     execute_deterministic_transition(
-        IntentTransaction("node_rotterdam_hub", "DRAIN", -999999.0, 0.0))
+        IntentTransaction("node_rotterdam_hub", "DRAIN", -999999.0, 0.0)
+    )
     assert engine.verify_chain() == (True, None)
 
 
@@ -88,8 +90,7 @@ def test_spliced_previous_hash_pinpointed():
             "SELECT record_hash FROM state_ledger WHERE transaction_id = 1"
         ).fetchone()[0]
         conn.execute(
-            "UPDATE state_ledger SET previous_hash = ?"
-            " WHERE transaction_id = 3",
+            "UPDATE state_ledger SET previous_hash = ? WHERE transaction_id = 3",
             (first_hash,),
         )
         conn.commit()
