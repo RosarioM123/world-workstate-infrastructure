@@ -44,7 +44,7 @@ EOF
 # run the API + dashboard
 uvicorn app:app
 # http://127.0.0.1:8000/demo    interactive dashboard
-# http://127.0.0.1:8000/api/state  materialized state + recent ledger
+# http://127.0.0.1:8000/api/v1/state  materialized state + recent ledger
 ```
 
 **GitHub Codespaces** (zero local setup): Code → Codespaces → Create
@@ -74,7 +74,7 @@ flowchart LR
     C -->|COMMITTED / REJECTED| D[(SQLite ledger\nSHA-256 hash-chained)]
     D --> F[Materialized state]
     F --> G[/demo dashboard]
-    F --> H[/api/state]
+    F --> H[/api/v1/state]
 ```
 
 1. An **intent** proposes a state change: an entity, an action, and deltas.
@@ -90,19 +90,25 @@ Try the rogue-attack simulation — illegal drain, withdrawal, and spoof
 intents are all blocked and logged:
 
 ```bash
-curl -X POST 127.0.0.1:8000/api/rogue-attack
+curl -X POST 127.0.0.1:8000/api/v1/rogue-attack
 # every verdict: REJECTED
 ```
+
+(The unversioned `/api/*` routes still work as deprecated aliases.)
 
 **API quickstart:**
 
 ```bash
-curl 127.0.0.1:8000/api/state
+curl 127.0.0.1:8000/api/v1/state
 
-curl -X POST 127.0.0.1:8000/api/intent \
+curl -X POST 127.0.0.1:8000/api/v1/intent \
   -H "Content-Type: application/json" \
   -d '{"entity_id":"node_rotterdam_hub","action":"ALLOCATE","requested_delta_capacity":-50.0,"requested_delta_cash":0.0}'
 ```
+
+Every response carries an `X-Request-ID` header, and every failure
+returns the same JSON error envelope:
+`{"error": {"code": "...", "message": "...", "request_id": "..."}}`.
 
 ## Verify the chain
 
@@ -141,6 +147,10 @@ production build for every push and pull request to `main`.
                          (CLI: world-ingest)
 /api/main.py           — FastAPI backend (serves the React build + /demo
                          dashboard); uvicorn world_engine.api.main:app
+  /api/v1.py             — versioned routes (/api/v1/*; /api/* are
+                         deprecated aliases)
+/api/middleware.py      — request IDs, structured access logging, the
+                         uniform JSON error envelope
 /engine.py, /ingest.py,
 /app.py                — thin shims: `uvicorn app:app`, `python ingest.py`,
                          `python -m engine` all still work unchanged

@@ -8,9 +8,17 @@ FastAPI service with a built-in dark-mode dashboard.
     ingest.py  → live real-world feed (Open-Meteo, no API keys)
 
 Run:
-    pip install fastapi uvicorn
+    pip install -e ".[test]"
     uvicorn app:app --reload
     → http://127.0.0.1:8000
+
+API versions:
+    /api/v1/*  - canonical routes (see world_engine/api/v1.py)
+    /api/*     - deprecated aliases kept for the dashboard and existing
+                 clients; they log a warning and will be removed in v0.3.0
+
+Every response carries X-Request-ID, and every failure returns the uniform
+error envelope defined in world_engine/api/middleware.py.
 
 Demo flow:
     1. Dashboard shows live node capacity / liquidity.
@@ -19,27 +27,18 @@ Demo flow:
     3. "Rogue Agent Attack" fires illegal intents, every one REJECTED in red.
 """
 
-import sqlite3
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
 
-from world_engine.core.engine import (
-    IntentTransaction,
-    connect_db,
-    execute_deterministic_transition,
-    init_db,
-)
-from world_engine.ingestion.client import (
-    ingest_live,
-    init_observations,
-    rogue_agent_attack,
-)
+from world_engine.api.middleware import install as install_middleware
+from world_engine.api.v1 import router as v1_router
+from world_engine.core.engine import init_db
+from world_engine.ingestion.client import init_observations
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SITE_DIR = REPO_ROOT / "static" / "site"
@@ -54,7 +53,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-def serve() -> None:
+def serve() -> None:  # pragma: no cover - thin uvicorn wrapper
     """Run the API server. Entry point for the ``world-server`` console script."""
     import uvicorn
 
@@ -74,7 +73,7 @@ def _load_landing_page() -> str:
     except OSError:
         return (
             "<!DOCTYPE html><html><body style='font-family:monospace'>"
-            "WORLD — landing page not built yet. Run "
+            "WORLD - landing page not built yet. Run "
             "<code>cd frontend && npm install && npm run build</code>, "
             "or open the <a href='/demo'>live demo</a>.</body></html>"
         )
@@ -92,12 +91,18 @@ def _load_dashboard_page() -> str:
     except OSError:
         return (
             "<!DOCTYPE html><html><body style='font-family:monospace'>"
-            "WORLD dashboard unavailable — try <a href='/api/state'>/api/state</a>"
+            "WORLD dashboard unavailable - try <a href='/api/v1/state'>/api/v1/state</a>"
             "</body></html>"
         )
 
 
 app = FastAPI(title="WORLD Deterministic State Kernel", lifespan=lifespan)
+
+install_middleware(app)
+
+# Canonical versioned routes, plus deprecated unversioned aliases.
+app.include_router(v1_router, prefix="/api/v1", tags=["v1"])
+app.include_router(v1_router, prefix="/api", tags=["deprecated"], deprecated=True)
 
 # Hashed JS/CSS for the React landing page (static/site/assets/*).
 if SITE_DIR.is_dir():
@@ -114,70 +119,6 @@ def landing() -> str:
 def health() -> dict[str, str]:
     """Liveness probe for the hosting platform. Touches no database."""
     return {"status": "ok"}
-
-
-@app.get("/api/state")
-def get_world_state() -> dict[str, list[dict]]:
-    """Current materialized state + recent tamper-evident ledger entries."""
-    conn = connect_db()
-    try:
-        conn.row_factory = sqlite3.Row
-        entities = [dict(r) for r in conn.execute("SELECT * FROM entities")]
-        ledger = [
-            dict(r)
-            for r in conn.execute(
-                "SELECT transaction_id, timestamp, entity_id, action, status,"
-                " record_hash FROM state_ledger"
-                " ORDER BY transaction_id DESC LIMIT 10"
-            )
-        ]
-    finally:
-        conn.close()
-    return {"entities": entities, "recent_ledger": ledger}
-
-
-class IntentRequest(BaseModel):
-    entity_id: str = Field(max_length=64)
-    action: str = Field(max_length=128)
-    delta_capacity: float
-    delta_cash: float
-    note: str = Field(default="", max_length=4000)
-
-
-@app.post("/api/intent")
-def post_intent(req: IntentRequest) -> dict:
-    """Any agent (or human) submits an intent; the math engine decides."""
-    try:
-        intent = IntentTransaction(
-            entity_id=req.entity_id,
-            action=req.action,
-            requested_delta_capacity=req.delta_capacity,
-            requested_delta_cash=req.delta_cash,
-            note=req.note,
-        )
-        return execute_deterministic_transition(intent)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-
-
-@app.post("/api/trigger-ingest")
-def trigger_ingest() -> dict:
-    """Pull the live real-world feed and pipe it through the ledger."""
-    tick = ingest_live()
-    return {
-        "status": "Ingestion cycle complete",
-        "source": tick["observation"]["source"],
-        "synthetic": tick["observation"]["synthetic"],
-        "wind_kmh": tick["observation"]["wind_speed_kmh"],
-        "intent": tick["intent"]["action"],
-        "engine_verdict": tick["engine_result"]["status"],
-    }
-
-
-@app.post("/api/rogue-attack")
-def trigger_rogue_attack() -> dict[str, list[dict]]:
-    """Unleash the rogue agent. Every illegal intent must come back REJECTED."""
-    return {"attacks": rogue_agent_attack()}
 
 
 @app.get("/demo", response_class=HTMLResponse)
