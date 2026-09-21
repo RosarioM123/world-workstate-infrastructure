@@ -13,11 +13,11 @@ import math
 import pytest
 
 from world_engine.core import engine
-from world_engine.ingestion import client as ingest
 from world_engine.core.engine import (
     IntentTransaction,
     execute_deterministic_transition,
 )
+from world_engine.ingestion import client as ingest
 
 
 @pytest.fixture(autouse=True)
@@ -31,8 +31,7 @@ def isolated_db(tmp_path, monkeypatch):
 def test_nan_capacity_delta_rejected_before_constraints():
     with pytest.raises(ValueError, match="must be finite"):
         execute_deterministic_transition(
-            IntentTransaction("node_rotterdam_hub", "NAN_PROBE",
-                              float("nan"), 0.0)
+            IntentTransaction("node_rotterdam_hub", "NAN_PROBE", float("nan"), 0.0)
         )
     # State untouched, nothing half-written.
     entity = engine.get_entity("node_rotterdam_hub")
@@ -43,23 +42,20 @@ def test_nan_capacity_delta_rejected_before_constraints():
 def test_inf_cash_delta_rejected():
     with pytest.raises(ValueError, match="must be finite"):
         execute_deterministic_transition(
-            IntentTransaction("node_rotterdam_hub", "INF_PROBE",
-                              0.0, float("inf"))
+            IntentTransaction("node_rotterdam_hub", "INF_PROBE", 0.0, float("inf"))
         )
 
 
 def test_non_numeric_delta_rejected():
     with pytest.raises(ValueError, match="must be a number"):
         execute_deterministic_transition(
-            IntentTransaction("node_rotterdam_hub", "TYPE_PROBE",
-                              "100", 0.0)
+            IntentTransaction("node_rotterdam_hub", "TYPE_PROBE", "100", 0.0)
         )
 
 
 def test_unknown_entity_rejected_and_logged():
     result = execute_deterministic_transition(
-        IntentTransaction("node_does_not_exist", "SPOOF",
-                          10.0, 10.0)
+        IntentTransaction("node_does_not_exist", "SPOOF", 10.0, 10.0)
     )
     assert result["status"] == "REJECTED"
     assert "Unknown entity" in result["details"]["reason"]
@@ -79,8 +75,7 @@ def test_rogue_attack_all_rejected_no_exception():
 
 def test_valid_intent_still_commits():
     result = execute_deterministic_transition(
-        IntentTransaction("node_rotterdam_hub", "ALLOCATE",
-                          -200.0, 5000.0)
+        IntentTransaction("node_rotterdam_hub", "ALLOCATE", -200.0, 5000.0)
     )
     assert result["status"] == "COMMITTED"
     entity = engine.get_entity("node_rotterdam_hub")
@@ -90,8 +85,7 @@ def test_valid_intent_still_commits():
 
 def test_overspend_rejected_and_state_unchanged():
     result = execute_deterministic_transition(
-        IntentTransaction("node_rotterdam_hub", "DRAIN",
-                          -5000.0, 0.0)
+        IntentTransaction("node_rotterdam_hub", "DRAIN", -5000.0, 0.0)
     )
     assert result["status"] == "REJECTED"
     entity = engine.get_entity("node_rotterdam_hub")
@@ -102,8 +96,7 @@ def test_weather_derate_uses_baseline_not_current_capacity():
     # Drain capacity first; the derate must still be computed from the
     # 1000.0 baseline so repeated ticks do not compound geometrically.
     execute_deterministic_transition(
-        IntentTransaction("node_rotterdam_hub", "DRAIN",
-                          -500.0, 0.0)
+        IntentTransaction("node_rotterdam_hub", "DRAIN", -500.0, 0.0)
     )
     intent = ingest.weather_to_intent({"wind_speed_kmh": 60.0})
     assert intent.action == "WIND_DERATE"
@@ -116,15 +109,16 @@ def test_weather_derate_deterministic():
     first = ingest.weather_to_intent(obs)
     second = ingest.weather_to_intent(obs)
     assert first.action == second.action == "STORM_DERATE"
-    assert (first.requested_delta_capacity ==
-            second.requested_delta_capacity == -300.0)
+    assert first.requested_delta_capacity == second.requested_delta_capacity == -300.0
 
 
 def test_ledger_hash_chain_links():
     execute_deterministic_transition(
-        IntentTransaction("node_rotterdam_hub", "A", -10.0, 0.0))
+        IntentTransaction("node_rotterdam_hub", "A", -10.0, 0.0)
+    )
     execute_deterministic_transition(
-        IntentTransaction("node_rotterdam_hub", "B", -10.0, 0.0))
+        IntentTransaction("node_rotterdam_hub", "B", -10.0, 0.0)
+    )
     rows = engine.get_ledger("node_rotterdam_hub", limit=2)
     newest, older = rows[0], rows[1]
     assert newest["previous_hash"] == older["record_hash"]
@@ -135,8 +129,8 @@ def test_ledger_hash_chain_links():
 def test_rejected_attempts_do_not_mutate_state():
     before = engine.get_entity("node_rotterdam_hub")
     execute_deterministic_transition(
-        IntentTransaction("node_rotterdam_hub", "DRAIN",
-                          -999999.0, -99999999.0))
+        IntentTransaction("node_rotterdam_hub", "DRAIN", -999999.0, -99999999.0)
+    )
     after = engine.get_entity("node_rotterdam_hub")
     assert before == after
     assert math.isfinite(after["capacity"])
