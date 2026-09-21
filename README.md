@@ -141,6 +141,20 @@ routes. CI runs the suite with a pytest-cov gate (85% minimum) on
 Python 3.11, 3.12, and 3.13, plus ruff, mypy, and the frontend
 production build for every push and pull request to `main`.
 
+## Benchmarks
+
+Measured 2026-09-21 on a shared Linux dev VM (`python tools/bench.py`
+with 100,000 intents). Your numbers will differ; the shape will not.
+
+| operation | rows | total | per-op | throughput |
+| --- | ---: | ---: | ---: | ---: |
+| append (`execute_deterministic_transition`) | 100,000 | 57.8s | 0.58 ms/intent | 1,730 intents/s |
+| `verify_chain` | 100,000 | 0.57s | 0.006 ms/row | 176,195 rows/s |
+
+Appends serialize on the single SQLite write lock (by design, see
+`docs/adr/0003-single-transaction-check-then-act.md`); verification is
+a pure sequential hash walk, so it scales linearly with ledger size.
+
 ## Repository layout
 
 ```
@@ -163,6 +177,7 @@ production build for every push and pull request to `main`.
 /static      — built landing page (static/site/) + /demo dashboard
 /tests       — regression tests for the kernel
 /tools       — export_ledger.py + ChainVerify (independent C# chain verifier)
+                         + bench.py (ledger append/verify benchmarks)
 /research    — competitive/technical research
 /docs        — product hypothesis, architecture, experiments, development log
 ```
