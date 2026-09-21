@@ -34,14 +34,16 @@ jobs:
           python-version: "3.12"
       - name: Install package and lint tools
         run: |
-          pip install -e .
+          # Test extras needed: examples/ tests import pytest, and mypy
+          # type-checks them, so the lint env needs the test dependencies.
+          pip install -e ".[test]"
           pip install ruff mypy
       - name: Ruff lint
-        run: ruff check src/ tests/
+        run: ruff check src/ tests/ examples/ experiments/
       - name: Ruff format check
-        run: ruff format --check src/ tests/
+        run: ruff format --check src/ tests/ examples/ experiments/
       - name: Mypy type check
-        run: mypy src/
+        run: mypy src/ examples/ experiments/
 
   frontend:
     runs-on: ubuntu-latest
