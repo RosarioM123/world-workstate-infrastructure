@@ -15,8 +15,7 @@ def test_valid_intent_allowed():
 
 def test_exact_zero_targets_allowed():
     # Draining to exactly zero is legal; only negative is a violation.
-    assert check_constraints(1000.0, 50000.0, "ACTIVE",
-                             -1000.0, -50000.0) is None
+    assert check_constraints(1000.0, 50000.0, "ACTIVE", -1000.0, -50000.0) is None
 
 
 def test_capacity_below_zero_rejected():
