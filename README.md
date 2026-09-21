@@ -13,8 +13,8 @@ agents submit *intents*, a constraint engine returns `COMMITTED` or
 hash-chained ledger.
 
 **Status: working prototype, not deployed.** Deterministic engine,
-live data ingestion, FastAPI backend, React landing page, 33 passing
-tests. No auth or rate limiting yet, and the ledger is tamper-evident
+live data ingestion, FastAPI backend, React landing page, full suite
+green in CI. No auth or rate limiting yet, and the ledger is tamper-evident
 (via `verify_chain()`) rather than immutable. Sample data in the demo is
 labeled as sample. Hosting is deferred — `render.yaml` and `/health`
 keep it deploy-ready.
@@ -124,7 +124,7 @@ dotnet run --project tools/ChainVerify -- ledger.json
 python -m pytest tests/ -q
 ```
 
-45 tests cover the hardening guarantees: invalid deltas rejected, unknown
+The test suite covers the hardening guarantees: invalid deltas rejected, unknown
 entities logged as rejected, concurrent writes serialized, weather derates
 computed from a fixed baseline, full hash-chain verification with
 tamper pinpointing, and seed-constant consistency between engine and
