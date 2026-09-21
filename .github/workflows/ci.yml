@@ -25,6 +25,25 @@ jobs:
       - name: Run tests
         run: python -m pytest tests/ -q
 
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and lint tools
+        run: |
+          pip install -e .
+          pip install ruff mypy
+      - name: Ruff lint
+        run: ruff check src/ tests/
+      - name: Ruff format check
+        run: ruff format --check src/ tests/
+      - name: Mypy type check
+        run: mypy src/
+
   frontend:
     runs-on: ubuntu-latest
     steps:
