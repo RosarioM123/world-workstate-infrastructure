@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from world_engine.core.engine import (
+    INTENT_KIND_INTERNAL,
     IntentTransaction,
     connect_db,
     execute_deterministic_transition,
@@ -29,6 +30,12 @@ class IntentRequest(BaseModel):
     delta_capacity: float
     delta_cash: float
     note: str = Field(default="", max_length=4000)
+    # Multi-agent schema seam: recorded into the ledger payload, unenforced.
+    # See docs/adr/0005-multi-agent-conflict-policy.md and
+    # docs/adr/0006-auth-rbac-shape.md.
+    actor: str | None = Field(default=None, max_length=128)
+    kind: str = Field(default=INTENT_KIND_INTERNAL, max_length=32)
+    idempotency_key: str | None = Field(default=None, max_length=128)
 
 
 @router.get("/state")
@@ -61,6 +68,9 @@ def post_intent(req: IntentRequest) -> dict:
             requested_delta_capacity=req.delta_capacity,
             requested_delta_cash=req.delta_cash,
             note=req.note,
+            actor=req.actor,
+            kind=req.kind,
+            idempotency_key=req.idempotency_key,
         )
         return execute_deterministic_transition(intent)
     except ValueError as exc:
