@@ -33,6 +33,8 @@ from pathlib import Path
 from typing import Any
 
 from world_engine.core.engine import (
+    INTENT_KIND_INTERNAL,
+    INTENT_KINDS,
     SEED_CAPACITY,
     SEED_ENTITY_ID,
     SEED_LIQUIDITY,
@@ -59,6 +61,13 @@ ENTITIES_TABLE_DDL = """
         available_liquidity REAL NOT NULL,
         status TEXT NOT NULL,
         last_updated TEXT NOT NULL
+    )
+"""
+
+IDEMPOTENCY_TABLE_DDL = """
+    CREATE TABLE IF NOT EXISTS idempotency_keys (
+        idempotency_key TEXT PRIMARY KEY,
+        transaction_id INTEGER NOT NULL
     )
 """
 
@@ -177,6 +186,7 @@ class LocalLedger:
                 "CREATE INDEX IF NOT EXISTS idx_sdk_ledger_entity "
                 "ON state_ledger(entity_id)"
             )
+            cursor.execute(IDEMPOTENCY_TABLE_DDL)
             cursor.execute(ENTITIES_TABLE_DDL)
             cursor.execute("SELECT COUNT(*) FROM entities")
             if cursor.fetchone()[0] == 0:
@@ -209,6 +219,9 @@ class LocalLedger:
         action: str,
         deltas: Mapping[str, Any] | Sequence[Any] | None = None,
         note: str = "",
+        actor: str | None = None,
+        kind: str = INTENT_KIND_INTERNAL,
+        idempotency_key: str | None = None,
     ) -> dict[str, Any]:
         """Validate an intent locally and append it to the client ledger.
 
@@ -217,6 +230,11 @@ class LocalLedger:
         raises ValueError only for malformed intents. The returned dict also
         carries ``transaction_id`` and ``timestamp`` for the appended row so
         callers (e.g. the timestamp sidecar) can index it.
+
+        ``actor`` names the submitter, ``kind`` marks INTERNAL_STATE vs
+        EXTERNAL_EFFECT, and ``idempotency_key`` deduplicates retries: a
+        second submission with the same key returns the first submission's
+        verdict without appending a new row.
         """
         if not isinstance(entity_id, str) or not entity_id:
             raise ValueError("Invalid intent: entity_id must be a non-empty string.")
@@ -226,12 +244,42 @@ class LocalLedger:
             raise ValueError(  # noqa: TRY004
                 "Invalid intent: note must be a string."
             )
+        if actor is not None and (not isinstance(actor, str) or not actor):
+            raise ValueError("Invalid intent: actor must be a non-empty string.")
+        if not isinstance(kind, str) or kind not in INTENT_KINDS:
+            raise ValueError(
+                "Invalid intent: kind must be 'INTERNAL_STATE' or 'EXTERNAL_EFFECT'."
+            )
+        if idempotency_key is not None and not isinstance(idempotency_key, str):
+            raise ValueError("Invalid intent: idempotency_key must be a string.")
         delta_capacity, delta_cash = normalize_deltas(deltas)
 
         conn = self._connect()
         try:
             conn.execute("BEGIN IMMEDIATE")
             cursor = conn.cursor()
+
+            if idempotency_key:
+                cursor.execute(
+                    "SELECT transaction_id FROM idempotency_keys "
+                    "WHERE idempotency_key = ?",
+                    (idempotency_key,),
+                )
+                seen = cursor.fetchone()
+                if seen is not None:
+                    replay = cursor.execute(
+                        "SELECT transaction_id, timestamp, status, payload "
+                        "FROM state_ledger WHERE transaction_id = ?",
+                        (seen[0],),
+                    ).fetchone()
+                    if replay is not None:
+                        conn.commit()
+                        return {
+                            "status": replay[2],
+                            "details": json.loads(replay[3]),
+                            "transaction_id": replay[0],
+                            "timestamp": replay[1],
+                        }
 
             cursor.execute(
                 "SELECT capacity, available_liquidity, status FROM entities "
@@ -268,6 +316,9 @@ class LocalLedger:
                     "requested_delta_capacity": delta_capacity,
                     "requested_delta_cash": delta_cash,
                     "note": note,
+                    "actor": actor,
+                    "kind": kind,
+                    "idempotency_key": idempotency_key,
                 },
                 "previous_capacity": current_capacity,
                 "previous_cash": current_cash,
@@ -302,6 +353,13 @@ class LocalLedger:
                 ),
             )
             transaction_id = cursor.lastrowid
+
+            if idempotency_key:
+                cursor.execute(
+                    "INSERT OR REPLACE INTO idempotency_keys "
+                    "(idempotency_key, transaction_id) VALUES (?, ?)",
+                    (idempotency_key, transaction_id),
+                )
 
             if tx_status == "COMMITTED":
                 cursor.execute(
