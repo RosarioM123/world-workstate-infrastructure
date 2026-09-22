@@ -38,7 +38,7 @@ world-server = "world_engine.api.main:serve"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["world_engine"]
+source = ["world_engine", "world_sdk"]
 branch = true
 
 [tool.coverage.report]
