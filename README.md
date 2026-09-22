@@ -139,6 +139,27 @@ python tools/export_ledger.py ledger.json
 dotnet run --project tools/ChainVerify -- ledger.json
 ```
 
+## Client SDK (local index)
+
+Work Item 1 of the buildout: an offline-first, stdlib-only Python client
+(`src/world_sdk/`, 41 tests in `tests/test_sdk.py`). `WorldClient.intent()`
+validates intents locally against the same constraint policy as the server
+(imported, not copied) and appends to a client-owned ledger in the same
+entry format, so client and server rows stay interoperable. A sqlite3
+sidecar holds the disposable indexes: block height to embedding vector
+(bring-your-own vectors, pure-Python cosine search) and block height to
+block time, which powers client-side time-travel reads
+(`state_at_time(T)` resolves locally, then replays the ledger). The ledger
+remains the sole system of record; verification stays deterministic and
+LLM-free. Full doc: `docs/SDK.md`.
+
+```python
+from world_sdk import WorldClient
+client = WorldClient()
+client.intent("node_rotterdam_hub", "ALLOCATE", deltas={"capacity": -50.0})
+print(client.verify())  # (True, None)
+```
+
 ## Tests
 
 The test suite covers the hardening guarantees: invalid deltas rejected, unknown
@@ -187,6 +208,11 @@ fail.
                          ledger, verify_chain(), constraint policy)
   /ingestion/transcript.py — deterministic transcript importer
                          (CLI: world-import)
+/src/world_sdk          — offline-first client SDK (Work Item 1): WorldClient
+                         with local intent validation, client-owned ledger
+                         in the server entry format, sqlite3 sidecar for
+                         the embedding index and the timestamp index
+                         (docs/SDK.md)
 /api/main.py           — FastAPI backend (serves the React build + /demo
                          dashboard); uvicorn world_engine.api.main:app
   /api/v1.py             — versioned routes (/api/v1/*; /api/* are
