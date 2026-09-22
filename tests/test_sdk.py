@@ -429,3 +429,86 @@ def test_client_verify_detects_tampering(client, tmp_path):
     conn.close()
     ok, bad_id = client.verify()
     assert ok is False and bad_id == 1
+
+
+# ---------------------------------------------------------------------------
+# Adversarial sidecar: the ledger always wins
+# ---------------------------------------------------------------------------
+
+
+def test_state_at_time_phantom_sidecar_height_clamps_to_ledger(client):
+    """A timestamp index entry for a height the ledger never reached
+    (drifted sidecar) must not break time-travel: the ledger's actual
+    latest height wins."""
+    client.intent(SEED_ENTITY_ID, "ALLOCATE", {"capacity": -10.0})
+    latest = client.latest_height()
+    # Phantom entry: the sidecar claims a block far beyond the ledger.
+    client.record_timestamp(latest + 1000, "2030-01-01T00:00:00+00:00")
+    state = client.state_at_time("2030-01-01T00:00:00+00:00")
+    assert state == client.state_at_block(latest)
+
+
+def _delete_sidecar_files(tmp_path):
+    for suffix in ("", "-wal", "-shm", "-journal"):
+        p = tmp_path / f"index.db{suffix}"
+        if p.exists():
+            p.unlink()
+
+
+def test_deleted_sidecar_degrades_gracefully(tmp_path):
+    """Deleting the disposable sidecar loses index data, never ledger
+    truth: ledger ops keep working, search/resolve degrade cleanly."""
+    ledger_path = tmp_path / "client.db"
+    index_path = tmp_path / "index.db"
+    client = WorldClient(ledger_path=ledger_path, index_path=index_path)
+    client.intent(SEED_ENTITY_ID, "ALLOCATE", {"capacity": -10.0})
+    client.add_embedding(1, [1.0, 0.0])
+    assert client.verify() == (True, None)
+
+    _delete_sidecar_files(tmp_path)
+    rebuilt = WorldClient(ledger_path=ledger_path, index_path=index_path)
+    # Ledger truth intact.
+    assert rebuilt.verify() == (True, None)
+    assert rebuilt.state_at_block(1) == client.state_at_block(1)
+    # Index degrades cleanly: empty search, clear resolve failure.
+    assert rebuilt.search([1.0, 0.0]) == []
+    with pytest.raises(ValueError, match="No block recorded"):
+        rebuilt.state_at_time("2030-01-01T00:00:00+00:00")
+    # New intents keep working and re-populate the timestamp index.
+    r = rebuilt.intent(SEED_ENTITY_ID, "ALLOCATE", {"capacity": -5.0})
+    assert r["status"] == "COMMITTED"
+    assert rebuilt.state_at_time("2030-01-01T00:00:00+00:00") == rebuilt.state_at_block(
+        rebuilt.latest_height()
+    )
+
+
+def test_stale_sidecar_never_returns_unknown_heights(client):
+    """A sidecar that stopped being updated returns a subset of the
+    ledger's heights, never heights the ledger does not have."""
+    client.intent(SEED_ENTITY_ID, "ALLOCATE", {"capacity": -10.0})
+    client.intent(SEED_ENTITY_ID, "ALLOCATE", {"capacity": -10.0})
+    client.intent(SEED_ENTITY_ID, "ALLOCATE", {"capacity": -10.0})
+    # Only the first block was ever indexed.
+    client.add_embedding(1, [1.0, 0.0])
+    hits = client.search([1.0, 0.0], k=10)
+    assert hits, "expected the one indexed vector back"
+    assert all(h <= client.latest_height() for h, _ in hits)
+    assert [h for h, _ in hits] == [1]
+
+
+def test_timestamp_index_rebuilds_from_ledger_rows(tmp_path):
+    """The documented rebuild path works: re-record timestamps from the
+    ledger's own rows after sidecar loss, and time-travel works again."""
+    ledger_path = tmp_path / "client.db"
+    index_path = tmp_path / "index.db"
+    client = WorldClient(ledger_path=ledger_path, index_path=index_path)
+    client.intent(SEED_ENTITY_ID, "ALLOCATE", {"capacity": -10.0})
+    before = client.state_at_time("2030-01-01T00:00:00+00:00")
+
+    _delete_sidecar_files(tmp_path)
+    rebuilt = WorldClient(ledger_path=ledger_path, index_path=index_path)
+    # Rebuild: the ledger's own rows carry authoritative timestamps.
+    for row in rebuilt.ledger.get_ledger(limit=100000):
+        rebuilt.record_timestamp(int(row["transaction_id"]), str(row["timestamp"]))
+    after = rebuilt.state_at_time("2030-01-01T00:00:00+00:00")
+    assert after == before
