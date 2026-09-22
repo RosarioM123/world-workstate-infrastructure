@@ -2,6 +2,38 @@
 
 Newest entries first.
 
+## 2026-09-22 — Experiment #002 Day 6: Disney replication complete (protocol §7)
+
+- Lighter Agent A research on Disney (DIS) with live public sources, committed as
+  `docs/experiment-002/dis-agent-a-journal.md` (1,147 words, 3 pre-registered priors),
+  `dis-agent-a-report.md` (1,908 words), `dis-agent-a-world-state.md` (2,199 words):
+  11 decisions (D3a superseded by D3b), 10 assumptions with confidence, 3 revisions
+  (R1-R3), 3 guardrails, 5 open questions, 2 failed approaches, 19 evidence entries.
+- Three handoffs from the same Agent A output: A = WORLD state (2,200 words),
+  B = independent summary by a separate writer that saw only journal+report
+  (2,523 words, schema-free, compliance confirmed), C = raw journal (1,157 words).
+  Fresh blind mapping (X→B summary · Y→C journal · Z→A WORLD) kept local-only
+  until grading completed, then recorded in experiment-state.md.
+- Three blind Agent B continuations (identical §5 brief, no browsing, leak-scan
+  clean): dis-agent-b-x/y/z.md (2,998 / 3,189 / 3,000 words).
+- Predeclared answer key (`day-06-answer-key.md`) built BEFORE grading; independent
+  blinded evaluator scored all 14 metrics (relabel cand-p/q/r, headers stripped,
+  mapping off-limits — compliance confirmed). Full report: `day-06-grading.md`.
+- Results (mapping revealed post-grading; means of metrics 1–10+14, reference only):
+  A (WORLD state) 4.45 · B (summary) 4.09 · C (journal) 2.82. WORLD-best direction
+  REPLICATES; the alternative ordering does not (Day 5: journal 3.58 > summary 3.33;
+  Day 6: summary 4.09 > journal 2.82 — instance-sensitive, n=1).
+- Mechanism-level finding: the journal continuation renumbered every
+  decision/assumption/question under its own labels, and that is where governance
+  items were lost (entire Epic thread D7/A8/Q5, D11, Q4, inherited confidences,
+  provenance IDs). Label stability is where structured state pays.
+- Evidence AGAINST WORLD, replicated: revision history weak in the WORLD
+  continuation again (metric 5 = 2; journal = 4) — the state still does not carry
+  old→new→trigger chains into the continuation. Superseded decisions only partially
+  preserved (A=3). Mild decorative overhead: second-order confidence phrasing.
+- 0 contradictions in all three continuations. Next: Day 7 (2026-09-23) — results.md
+  per §8, hypothesis.md if warranted, day-07.md, commit, retire the schedule.
+
 ## 2026-09-21 — Experiment #002 Day 5: blind evaluation complete (protocol §6)
 
 - Predeclared the grading answer key from Agent A's decisions/assumptions BEFORE grading
