@@ -44,6 +44,18 @@ SEED_ENTITY_ID = "node_rotterdam_hub"
 SEED_CAPACITY = 1000.0
 SEED_LIQUIDITY = 50000.0
 
+# Intent metadata for the multi-agent future (the MIND/REALITY seam).
+#
+# These fields are schema-level: cheap to add now, expensive to retrofit
+# onto existing ledger history later. They are recorded into every intent
+# payload (and therefore covered by the hash chain) but not yet enforced
+# or acted on. See docs/adr/0005-multi-agent-conflict-policy.md and
+# docs/adr/0006-auth-rbac-shape.md for what they will mean once a second
+# agent is actually submitting intents.
+INTENT_KIND_INTERNAL = "INTERNAL_STATE"
+INTENT_KIND_EXTERNAL = "EXTERNAL_EFFECT"
+INTENT_KINDS = frozenset({INTENT_KIND_INTERNAL, INTENT_KIND_EXTERNAL})
+
 
 def _db_path() -> str:
     """Resolve the database file. WORLD_DB_PATH overrides the default so
@@ -112,6 +124,17 @@ def init_db() -> None:
             ON state_ledger(entity_id)
         """)
 
+        # Idempotency keys map a client-supplied request id to the ledger
+        # row of its first submission. A retry with the same key returns
+        # the original verdict instead of appending a duplicate row. The
+        # table is keyed, not the ledger, so old rows need no migration.
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS idempotency_keys (
+                idempotency_key TEXT PRIMARY KEY,
+                transaction_id INTEGER NOT NULL
+            )
+        """)
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS entities (
                 entity_id TEXT PRIMARY KEY,
@@ -144,6 +167,22 @@ class IntentTransaction:
     ``note`` carries free text (a decision, assumption, or observation)
     into the ledger payload. It never affects the constraint verdict:
     the engine still decides on the numeric deltas alone.
+
+    ``actor`` names who submitted the intent (an agent id, a human, a
+    service). Optional and unenforced today; it exists so ledger rows
+    written before multi-agent use share one schema with rows written
+    after, instead of forcing a backfill or a schema split later.
+
+    ``kind`` marks whether the intent only changes WORLD's own state
+    (``INTERNAL_STATE``) or requests an effect outside the ledger
+    (``EXTERNAL_EFFECT``, e.g. a future REALITY action whose outcome is
+    logged as a follow-up intent). Recorded, not acted on: the constraint
+    verdict is identical either way.
+
+    ``idempotency_key`` is a client-supplied request id. When set, a
+    second submission with the same key returns the first submission's
+    verdict instead of appending a duplicate row, so a retrying agent
+    cannot accidentally double-apply an action.
     """
 
     entity_id: str
@@ -151,6 +190,9 @@ class IntentTransaction:
     requested_delta_capacity: float
     requested_delta_cash: float
     note: str = ""
+    actor: str | None = None
+    kind: str = INTENT_KIND_INTERNAL
+    idempotency_key: str | None = None
 
 
 def _validate_intent(intent: IntentTransaction) -> None:
@@ -167,6 +209,18 @@ def _validate_intent(intent: IntentTransaction) -> None:
         raise ValueError("Invalid intent: action must be a non-empty string.")
     if not isinstance(intent.note, str):
         raise ValueError("Invalid intent: note must be a string.")  # noqa: TRY004
+    if intent.actor is not None and (
+        not isinstance(intent.actor, str) or not intent.actor
+    ):
+        raise ValueError("Invalid intent: actor must be a non-empty string.")
+    if not isinstance(intent.kind, str) or intent.kind not in INTENT_KINDS:
+        raise ValueError(
+            "Invalid intent: kind must be 'INTERNAL_STATE' or 'EXTERNAL_EFFECT'."
+        )
+    if intent.idempotency_key is not None and not isinstance(
+        intent.idempotency_key, str
+    ):
+        raise ValueError("Invalid intent: idempotency_key must be a string.")
     for name in ("requested_delta_capacity", "requested_delta_cash"):
         value = getattr(intent, name, None)
         if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -223,6 +277,27 @@ def execute_deterministic_transition(intent: IntentTransaction) -> dict:
         # One write transaction for the whole check-then-act sequence.
         conn.execute("BEGIN IMMEDIATE")
         cursor = conn.cursor()
+
+        # Idempotent retry: a key seen before returns the original verdict
+        # without appending a duplicate row. The key, not the payload,
+        # defines identity, so a retried submission gets the first
+        # submission's outcome even if the agent changed the fields.
+        if intent.idempotency_key:
+            cursor.execute(
+                "SELECT transaction_id FROM idempotency_keys WHERE idempotency_key = ?",
+                (intent.idempotency_key,),
+            )
+            seen = cursor.fetchone()
+            if seen is not None:
+                replay = cursor.execute(
+                    "SELECT status, payload FROM state_ledger WHERE transaction_id = ?",
+                    (seen[0],),
+                ).fetchone()
+                if replay is not None:
+                    conn.commit()
+                    return {"status": replay[0], "details": json.loads(replay[1])}
+                # Key mapping without a ledger row (manual DB surgery):
+                # fall through and re-process; the mapping is repaired below.
 
         cursor.execute(
             "SELECT capacity, available_liquidity, status FROM entities WHERE entity_id = ?",
@@ -299,6 +374,15 @@ def execute_deterministic_transition(intent: IntentTransaction) -> dict:
                 tx_status,
             ),
         )
+        transaction_id = cursor.lastrowid
+
+        # Remember the key for idempotent retries.
+        if intent.idempotency_key:
+            cursor.execute(
+                "INSERT OR REPLACE INTO idempotency_keys "
+                "(idempotency_key, transaction_id) VALUES (?, ?)",
+                (intent.idempotency_key, transaction_id),
+            )
 
         # Mutate materialized state ONLY on commit.
         if tx_status == "COMMITTED":
