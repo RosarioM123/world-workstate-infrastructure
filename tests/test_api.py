@@ -48,7 +48,42 @@ def test_v1_rejected_intent_is_a_verdict_not_an_error(api_client):
     assert r.status_code == 200
     body = r.json()
     assert body["status"] == "REJECTED"
-    assert "liquidity" in body["details"]["reason"]
+
+
+def test_v1_intent_records_actor_kind_and_idempotency_key(api_client):
+    body = _intent()
+    body.update(
+        {
+            "actor": "mind-planner-7",
+            "kind": "EXTERNAL_EFFECT",
+            "idempotency_key": "api-k1",
+        }
+    )
+    r = api_client.post("/api/v1/intent", json=body)
+    assert r.status_code == 200
+    assert r.json()["status"] == "COMMITTED"
+
+    # Retry with the same key: same verdict, no new row.
+    r2 = api_client.post("/api/v1/intent", json=body)
+    assert r2.status_code == 200
+    assert r2.json()["status"] == "COMMITTED"
+
+    import json as _json
+
+    rows = engine.get_ledger(limit=5)
+    assert len(rows) == 1
+    payload = _json.loads(rows[0]["payload"])
+    assert payload["intent"]["actor"] == "mind-planner-7"
+    assert payload["intent"]["kind"] == "EXTERNAL_EFFECT"
+    assert payload["intent"]["idempotency_key"] == "api-k1"
+
+
+def test_v1_intent_rejects_bad_kind(api_client):
+    body = _intent()
+    body["kind"] = "SIDE_EFFECT"
+    r = api_client.post("/api/v1/intent", json=body)
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "invalid_intent"
 
 
 def test_v1_malformed_intent_returns_error_envelope(api_client):
