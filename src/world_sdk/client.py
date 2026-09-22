@@ -18,6 +18,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from world_engine.core.engine import INTENT_KIND_INTERNAL
 from world_sdk.index import EmbeddingSidecar, default_index_path
 from world_sdk.ledger import LocalLedger, default_db_path, normalize_deltas
 
@@ -39,6 +40,9 @@ class WorldClient:
         action: str,
         deltas: Mapping[str, Any] | Sequence[Any] | None = None,
         note: str | None = None,
+        actor: str | None = None,
+        kind: str = INTENT_KIND_INTERNAL,
+        idempotency_key: str | None = None,
     ) -> dict[str, Any]:
         """Propose an intent: validated and committed locally, no server.
 
@@ -47,9 +51,19 @@ class WorldClient:
         server-shaped verdict ``{"status": ..., "details": ...}``. The
         block's timestamp is recorded in the client timestamp index
         automatically, so ``state_at_time`` works without extra bookkeeping.
+
+        ``actor`` names the submitter, ``kind`` marks INTERNAL_STATE vs
+        EXTERNAL_EFFECT, and ``idempotency_key`` deduplicates retries: a
+        second submission with the same key returns the first verdict.
         """
         result = self.ledger.intent(
-            entity, action, deltas=deltas, note="" if note is None else note
+            entity,
+            action,
+            deltas=deltas,
+            note="" if note is None else note,
+            actor=actor,
+            kind=kind,
+            idempotency_key=idempotency_key,
         )
         self.index.record_timestamp(
             int(result["transaction_id"]), str(result["timestamp"])
