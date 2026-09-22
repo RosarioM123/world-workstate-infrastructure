@@ -31,7 +31,7 @@ keep it deploy-ready.
 Five lines, zero setup beyond Python:
 
 ```bash
-pip install -e .
+pip install -e ".[test]"
 python - <<'EOF'
 from world_engine.core import engine
 engine.init_db()
@@ -252,6 +252,11 @@ cd frontend && npm install && npm run build
   not the product demo (`examples/synthetic-logistics-demo/`). Wind speed
   derating port capacity is a fixed, auditable rule invented to exercise
   the constraint engine, not a validated operations model.
+- **Two API decisions are open by design, not oversight.** The OBSERVE
+  intent schema (freeform note-only vs structured fields) and the
+  time-travel canonical key (block height vs timestamp) are unresolved;
+  timestamp resolution currently lives client-side in the SDK so the
+  server stays stdlib-pure.
 
 ## The thesis behind it
 
