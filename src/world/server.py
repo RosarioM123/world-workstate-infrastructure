@@ -12,12 +12,12 @@ import hmac
 import logging
 import time
 from collections import deque
-from collections.abc import Callable
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from .core import ConflictError, InvariantViolation, World
+from .core import ConflictError, Invariant, InvariantViolation, World
 
 log = logging.getLogger("world.server")
 
@@ -26,7 +26,7 @@ def create_app(
     name: str,
     *,
     dir: str | None = None,
-    invariants: list[Callable] | tuple = (),
+    invariants: list[Invariant] | tuple[Invariant, ...] = (),
     api_key: str | None = None,
     write_limit_per_min: int = 60,
 ) -> FastAPI:
@@ -76,7 +76,7 @@ def create_app(
         return None
 
     @app.get("/health")
-    def health() -> dict:
+    def health() -> dict[str, Any]:
         return {"ok": True, "world": work.name, "version": work.version}
 
     @app.get("/v1/state")
@@ -184,15 +184,15 @@ def create_app(
         )
 
     @app.get("/v1/history")
-    def get_history(limit: int | None = None) -> dict:
+    def get_history(limit: int | None = None) -> dict[str, Any]:
         return {"history": work.history(limit=limit)}
 
     @app.get("/v1/checkpoints")
-    def get_checkpoints() -> dict:
+    def get_checkpoints() -> dict[str, Any]:
         return {"checkpoints": work.checkpoints()}
 
     @app.get("/v1/verify")
-    def get_verify() -> dict:
+    def get_verify() -> dict[str, Any]:
         return {"ok": work.verify()}
 
     return app

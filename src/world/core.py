@@ -205,7 +205,9 @@ class World:
         :class:`InvariantViolation`. A stale ``expected_version`` raises
         :class:`ConflictError` before any judgment. A repeated
         ``idempotency_key`` for a committed update returns the original seq
-        without appending.
+        without appending. Every proposal is judged first, so a rejected
+        attempt is always recorded even when its key was seen before — a
+        repeated key can never mask a rejection from the audit trail.
         """
         if not isinstance(state, dict):
             raise TypeError(f"state must be a dict, got {type(state).__name__}")
@@ -215,12 +217,6 @@ class World:
             raise ValueError(f"state is not JSON-serializable: {e}") from e
         timestamp = _utcnow()
         with closing(self._connect()) as cx:
-            if idempotency_key is not None:
-                hit = cx.execute(
-                    "SELECT seq FROM idempotency WHERE key = ?", (idempotency_key,)
-                ).fetchone()
-                if hit is not None:
-                    return int(hit["seq"])
             cur = self._latest_committed(cx)
             cur_seq = int(cur["seq"]) if cur is not None else 0
             old: dict[str, Any] = json.loads(cur["state"]) if cur is not None else {}
@@ -244,25 +240,33 @@ class World:
                 )
             else:
                 final_note = note
-            # Serialize writers: check-then-append is one atomic step.
+            # Serialize writers: dedupe-check and append are one atomic step.
+            # Idempotency dedupes committed updates only: every proposal is
+            # judged first, so rejected attempts are always recorded.
             cx.execute("BEGIN IMMEDIATE")
             try:
-                seq = self._append(
-                    cx,
-                    timestamp=timestamp,
-                    actor=actor,
-                    note=final_note,
-                    state_text=state_text,
-                    status=status,
-                )
-                # Idempotency dedupes committed updates only: rejected attempts
-                # are always recorded, since repeated invalid attempts are
-                # themselves worth auditing.
-                if idempotency_key is not None and status == "COMMITTED":
-                    cx.execute(
-                        "INSERT INTO idempotency(key, seq) VALUES (?, ?)",
-                        (idempotency_key, seq),
+                seq: int | None = None
+                if status == "COMMITTED" and idempotency_key is not None:
+                    hit = cx.execute(
+                        "SELECT seq FROM idempotency WHERE key = ?",
+                        (idempotency_key,),
+                    ).fetchone()
+                    if hit is not None:
+                        seq = int(hit["seq"])
+                if seq is None:
+                    seq = self._append(
+                        cx,
+                        timestamp=timestamp,
+                        actor=actor,
+                        note=final_note,
+                        state_text=state_text,
+                        status=status,
                     )
+                    if idempotency_key is not None and status == "COMMITTED":
+                        cx.execute(
+                            "INSERT INTO idempotency(key, seq) VALUES (?, ?)",
+                            (idempotency_key, seq),
+                        )
             except BaseException:
                 cx.rollback()
                 raise

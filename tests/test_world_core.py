@@ -1,7 +1,10 @@
 """Tests for the WORLD v0.2 primitive core (world.core)."""
 
 import json
+import os
 import sqlite3
+import subprocess
+import sys
 import threading
 
 import pytest
@@ -167,6 +170,82 @@ def test_handles_are_stateless_views(tmp_path):
     assert w2.version == 1
     w2.checkpoint("c1")
     assert w1.checkpoints()[0]["name"] == "c1"
+
+
+def test_fresh_process_loads_previous_state(tmp_path):
+    """State persists across processes: a new interpreter sees everything."""
+    env = dict(os.environ, WORLD_DIR=str(tmp_path))
+    seed = (
+        "from world import World; "
+        "w = World('xp'); "
+        "w.update({'step': 1}, actor='a'); "
+        "w.checkpoint('v1'); "
+        "print(w.version)"
+    )
+    r1 = subprocess.run(
+        [sys.executable, "-c", seed],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert r1.returncode == 0, r1.stderr
+    assert r1.stdout.strip() == "1"
+
+    read = (
+        "from world import World; "
+        "w = World('xp'); "
+        "print(w.version); "
+        "print(w.state()['step']); "
+        "print(w.checkpoints()[0]['name']); "
+        "print(w.verify())"
+    )
+    r2 = subprocess.run(
+        [sys.executable, "-c", read],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert r2.returncode == 0, r2.stderr
+    assert r2.stdout.splitlines() == ["1", "1", "v1", "True"]
+
+
+def test_rejected_attempts_ignore_idempotency_key(tmp_path):
+    """Idempotency dedupes COMMITTED updates only; rejections are evidence."""
+    w = make_world(tmp_path, invariants=[no_negative("balance")])
+    assert w.update({"balance": 100}, idempotency_key="k") == 1
+    for _ in range(2):
+        with pytest.raises(InvariantViolation):
+            w.update({"balance": -1}, idempotency_key="k")
+    assert w.version == 1  # nothing new committed
+    assert w.state() == {"balance": 100}
+    assert [h["status"] for h in w.history()] == [
+        "COMMITTED",
+        "REJECTED",
+        "REJECTED",
+    ]
+
+
+def test_history_limit_returns_oldest_first(tmp_path):
+    w = make_world(tmp_path)
+    for i in range(1, 4):
+        w.update({"i": i})
+    limited = w.history(limit=2)
+    assert [h["seq"] for h in limited] == [1, 2]
+    assert [h["seq"] for h in w.history()] == [1, 2, 3]
+
+
+def test_checkpoints_listed_in_creation_order(tmp_path):
+    w = make_world(tmp_path)
+    w.update({"a": 1})
+    w.checkpoint("first")
+    w.update({"a": 2})
+    w.checkpoint("second")
+    assert [(c["name"], c["seq"]) for c in w.checkpoints()] == [
+        ("first", 1),
+        ("second", 2),
+    ]
 
 
 def test_concurrent_updates_serialize(tmp_path):

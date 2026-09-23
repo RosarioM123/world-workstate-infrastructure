@@ -26,8 +26,22 @@ The general-purpose successor to the demo engine: a named, durable,
 versioned JSON document where every state change is judged by invariants
 and every verdict — COMMITTED *or* REJECTED — is hash-chained evidence.
 
+### 60-second quickstart
+
+Five operations. Zero dependencies (stdlib only). No agent framework, no
+UI, no vector DB, no LLM calls — state lives in SQLite, so a fresh
+process loads it with `World(name)`.
+
+| Operation  | Python                          | CLI                                     |
+|------------|---------------------------------|-----------------------------------------|
+| create     | `World("my-project")`           | `world init my-project`                 |
+| update     | `work.update({...})`            | `world update my-project --file s.json` |
+| checkpoint | `work.checkpoint("v1")`         | `world checkpoint my-project v1`        |
+| load       | `World("my-project").state()`   | `world state my-project`                |
+| resume     | `work.resume("v1")`             | `world resume my-project v1`            |
+
 ```bash
-pip install -e ".[test]"   # exposes the `world` command
+pip install -e .   # core: no dependencies. Add [server] for `world serve`, [test] for the suite
 world init my-project
 echo '{"balance": 100}' > s.json
 world update my-project --file s.json --actor alice --note "seed"
@@ -39,20 +53,21 @@ world verify my-project   # ok
 from world import World, InvariantViolation
 from world.invariants import no_negative
 
-work = World("my-project", invariants=[no_negative("balance")])
+work = World("my-project", invariants=[no_negative("balance")])  # create (or load)
 work.update({"balance": 100}, actor="alice")          # -> 1 (COMMITTED)
 try:
     work.update({"balance": -5}, actor="bob")         # judged: REJECTED, recorded, raised
 except InvariantViolation as e:
     print(e.seq, e.reason)                            # 2  no_negative: balance = -5
 work.state()                                          # {"balance": 100} — untouched
-work.checkpoint("v1")
+work.checkpoint("v1")                                 # pin version 1
 work.resume("v1")                                     # restore appends a new version
 work.history()                                        # verdict log, rejections included
-work.verify()                                         # hash chain intact?
+print(work.verify())                                  # True — hash chain intact
 ```
 
-`world serve my-project` exposes the same model over HTTP (`POST /v1/update`,
+`world serve my-project` (needs `pip install -e ".[server]"`) exposes the same
+model over HTTP (`POST /v1/update`,
 `GET /v1/state`, checkpoints, resume, history, verify) with the API-key gate
 and per-IP rate limiting; declare invariants once via
 `--invariants mymod:rules` so every remote writer is judged equally.

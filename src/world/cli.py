@@ -130,9 +130,16 @@ def _load_invariants(spec: str) -> list[Invariant]:
 
 
 def cmd_serve(args: argparse.Namespace) -> int:
-    import uvicorn  # lazy: `world` works without server deps installed
+    try:
+        import uvicorn  # lazy: `world` works without server deps installed
 
-    from .server import create_app
+        from .server import create_app
+    except ImportError:
+        print(
+            'error: `world serve` needs the server extra: pip install -e ".[server]"',
+            file=sys.stderr,
+        )
+        return 2
 
     invariants = _load_invariants(args.invariants) if args.invariants else []
     api_key = args.api_key or os.environ.get("WORLD_API_KEY")

@@ -4,22 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "world-engine"
-version = "0.1.0"
+version = "0.2.0"
 description = "Deterministic, constraint-checked state ledger for AI agents: every intent validated against physical/financial rules, every attempt hash-chained into a tamper-evident audit trail."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Proprietary" }
-dependencies = [
+# The `world` primitive core (world.core, world.invariants, world.cli) is
+# dependency-free (stdlib only). The HTTP layer is opt-in via the `server`
+# extra so `pip install .` stays minimal.
+dependencies = []
+
+[project.optional-dependencies]
+server = [
     "fastapi==0.141.1",
     "uvicorn==0.53.0",
 ]
-
-[project.optional-dependencies]
 test = [
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
     "hypothesis==6.168.0",
     "httpx==0.28.1",
+    # fastapi mirrors the `server` extra: the server tests need it.
+    "fastapi==0.141.1",
 ]
 
 # src layout: the kernel lives in src/world_engine/ (core/engine.py,
