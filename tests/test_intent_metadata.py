@@ -225,3 +225,77 @@ def test_world_client_threads_metadata(tmp_path):
     )
     assert again["status"] == "COMMITTED"
     assert len(client.ledger.get_ledger(limit=10)) == 1
+
+
+# ---------------------------------------------------------------------------
+# Fixes: empty keys, import rebuild, malformed payloads
+# ---------------------------------------------------------------------------
+
+
+def test_empty_idempotency_key_is_malformed(isolated_db):
+    with pytest.raises(ValueError, match="idempotency_key"):
+        engine.execute_deterministic_transition(_intent(idempotency_key=""))
+
+
+def test_sdk_empty_idempotency_key_is_malformed(sdk_ledger):
+    with pytest.raises(ValueError, match="idempotency_key"):
+        sdk_ledger.intent(SEED_ENTITY_ID, "ALLOCATE", idempotency_key="")
+
+
+def test_import_rebuilds_idempotency_mappings(tmp_path):
+    source = LocalLedger(tmp_path / "source.db")
+    first = source.intent(
+        SEED_ENTITY_ID, "ALLOCATE", deltas=(-50.0, 0.0), idempotency_key="imp-1"
+    )
+    rows = source.get_ledger(limit=10)
+
+    dest = LocalLedger(tmp_path / "dest.db")
+    assert dest.import_ledger_rows(rows) == 1
+
+    # Same key on the imported ledger dedups to the original verdict;
+    # no new row is appended.
+    retry = dest.intent(
+        SEED_ENTITY_ID, "ALLOCATE", deltas=(-999.0, 0.0), idempotency_key="imp-1"
+    )
+    assert retry["status"] == first["status"]
+    assert retry["transaction_id"] == first["transaction_id"]
+    assert len(dest.get_ledger(limit=10)) == 1
+
+
+def test_import_skips_rows_without_keys(tmp_path):
+    source = LocalLedger(tmp_path / "source.db")
+    source.intent(SEED_ENTITY_ID, "ALLOCATE", deltas=(-50.0, 0.0))
+    rows = source.get_ledger(limit=10)
+
+    dest = LocalLedger(tmp_path / "dest.db")
+    assert dest.import_ledger_rows(rows) == 1
+
+    # No mapping was created, so an unkeyed intent appends a new row.
+    dest.intent(SEED_ENTITY_ID, "ALLOCATE", deltas=(-10.0, 0.0))
+    assert len(dest.get_ledger(limit=10)) == 2
+
+
+def test_rebuild_tolerates_malformed_payload(sdk_ledger):
+    import sqlite3
+
+    conn = sqlite3.connect(sdk_ledger.db_path)
+    try:
+        conn.execute(
+            "INSERT INTO state_ledger "
+            "(timestamp, entity_id, action, payload, previous_hash, "
+            " record_hash, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                "2026-01-01T00:00:00",
+                SEED_ENTITY_ID,
+                "ALLOCATE",
+                "not-json{{{",
+                None,
+                "tampered",
+                "COMMITTED",
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    # Must not raise; the bad row is simply skipped.
+    sdk_ledger._rebuild_idempotency_keys()
