@@ -146,6 +146,6 @@ def test_note_validation_rejects_non_string(tdb):
                 action="NOTE",
                 requested_delta_capacity=0.0,
                 requested_delta_cash=0.0,
-                note=123,  # type: ignore[arg-type]
+                note=123,
             )
         )
