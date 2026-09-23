@@ -145,3 +145,11 @@ def test_unknown_route_returns_error_envelope(api_client):
 def test_request_id_is_echoed_when_supplied(api_client):
     r = api_client.get("/api/v1/state", headers={"X-Request-ID": "demo-123"})
     assert r.headers["X-Request-ID"] == "demo-123"
+
+
+def test_v1_intent_rejects_empty_idempotency_key(api_client):
+    body = _intent()
+    body["idempotency_key"] = ""
+    r = api_client.post("/api/v1/intent", json=body)
+    assert r.status_code == 400
+    assert r.json()["error"]["code"] == "invalid_intent"
