@@ -30,6 +30,11 @@ test = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# PEP 561: ship the type markers so downstream mypy runs (examples/,
+# experiments/, consumers) can analyze imports of world_engine/world_sdk.
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+
 [project.scripts]
 world-import = "world_engine.ingestion.transcript:main"
 world-server = "world_engine.api.main:serve"
