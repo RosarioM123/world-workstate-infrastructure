@@ -20,6 +20,46 @@ per-IP rate-limited; the ledger is tamper-evident
 labeled as sample. Hosting is deferred — `render.yaml` (with a persistent
 disk for the ledger) and `/health` keep it deploy-ready.
 
+## The `world` primitive (v0.2)
+
+The general-purpose successor to the demo engine: a named, durable,
+versioned JSON document where every state change is judged by invariants
+and every verdict — COMMITTED *or* REJECTED — is hash-chained evidence.
+
+```bash
+pip install -e ".[test]"   # exposes the `world` command
+world init my-project
+echo '{"balance": 100}' > s.json
+world update my-project --file s.json --actor alice --note "seed"
+world checkpoint my-project v1
+world verify my-project   # ok
+```
+
+```python
+from world import World, InvariantViolation
+from world.invariants import no_negative
+
+work = World("my-project", invariants=[no_negative("balance")])
+work.update({"balance": 100}, actor="alice")          # -> 1 (COMMITTED)
+try:
+    work.update({"balance": -5}, actor="bob")         # judged: REJECTED, recorded, raised
+except InvariantViolation as e:
+    print(e.seq, e.reason)                            # 2  no_negative: balance = -5
+work.state()                                          # {"balance": 100} — untouched
+work.checkpoint("v1")
+work.resume("v1")                                     # restore appends a new version
+work.history()                                        # verdict log, rejections included
+work.verify()                                         # hash chain intact?
+```
+
+`world serve my-project` exposes the same model over HTTP (`POST /v1/update`,
+`GET /v1/state`, checkpoints, resume, history, verify) with the API-key gate
+and per-IP rate limiting; declare invariants once via
+`--invariants mymod:rules` so every remote writer is judged equally.
+`world import-transcript` folds a chat transcript into the document
+(idempotent on the transcript text). See `docs/adr/0008-world-primitive.md`
+for the design rationale.
+
 ## Demo
 
 <!-- TODO: drop a ~30s screen recording here (docs/demo.gif): the /demo

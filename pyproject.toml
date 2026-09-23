@@ -36,6 +36,7 @@ where = ["src"]
 "*" = ["py.typed"]
 
 [project.scripts]
+world = "world.cli:main"
 world-import = "world_engine.ingestion.transcript:main"
 world-server = "world_engine.api.main:serve"
 
@@ -43,7 +44,7 @@ world-server = "world_engine.api.main:serve"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["world_engine", "world_sdk"]
+source = ["world_engine", "world_sdk", "world"]
 branch = true
 
 [tool.coverage.report]
