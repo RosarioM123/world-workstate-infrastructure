@@ -101,6 +101,49 @@ def _hash_record(
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
+def _append_ledger_row(
+    cursor: sqlite3.Cursor,
+    timestamp: str,
+    entity_id: str,
+    action: str,
+    payload_json: str,
+    status: str,
+) -> int:
+    """Append one hash-chained row to the ledger. Returns transaction_id.
+
+    The caller owns the transaction: this only runs the SELECT + INSERT
+    on the given cursor. Every writer goes through here so the
+    chain-linking discipline lives in exactly one place.
+    """
+    cursor.execute(
+        "SELECT record_hash FROM state_ledger ORDER BY transaction_id DESC LIMIT 1"
+    )
+    prev = cursor.fetchone()
+    previous_hash = prev[0] if prev else None
+    record_hash = _hash_record(
+        timestamp, entity_id, action, payload_json, previous_hash, status
+    )
+    cursor.execute(
+        """
+        INSERT INTO state_ledger
+            (timestamp, entity_id, action, payload, previous_hash, record_hash, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            timestamp,
+            entity_id,
+            action,
+            payload_json,
+            previous_hash,
+            record_hash,
+            status,
+        ),
+    )
+    transaction_id = cursor.lastrowid
+    assert transaction_id is not None  # INSERT always yields a rowid
+    return transaction_id
+
+
 def init_db() -> None:
     """Initializes the append-only, hash-chained state ledger."""
     with closing(connect_db()) as conn:
@@ -254,7 +297,10 @@ def check_constraints(
     return None
 
 
-def execute_deterministic_transition(intent: IntentTransaction) -> dict:
+def execute_deterministic_transition(
+    intent: IntentTransaction,
+    conn: sqlite3.Connection | None = None,
+) -> dict:
     """
     The Math Constraint Engine.
 
@@ -267,15 +313,24 @@ def execute_deterministic_transition(intent: IntentTransaction) -> dict:
     transaction so two concurrent writers cannot both pass the constraint
     checks against the same stale state.
 
+    ``conn`` is a seam for batch writers (e.g. the transcript importer):
+    pass an open connection already holding a BEGIN IMMEDIATE transaction
+    and this call participates in it — no BEGIN/COMMIT/close of its own.
+    When omitted, the call manages its own connection exactly as before.
+
     Returns {"status": "COMMITTED" | "REJECTED", "details": {...}}.
     Raises ValueError only for malformed intents (see _validate_intent).
     """
     _validate_intent(intent)
 
-    conn = connect_db()
+    own_conn = conn is None
+    if own_conn:
+        conn = connect_db()
+    assert conn is not None
     try:
-        # One write transaction for the whole check-then-act sequence.
-        conn.execute("BEGIN IMMEDIATE")
+        if own_conn:
+            # One write transaction for the whole check-then-act sequence.
+            conn.execute("BEGIN IMMEDIATE")
         cursor = conn.cursor()
 
         # Idempotent retry: a key seen before returns the original verdict
@@ -342,39 +397,16 @@ def execute_deterministic_transition(intent: IntentTransaction) -> dict:
         }
         payload_json = json.dumps(final_payload, sort_keys=True)
 
-        # Hash-chain to the previous ledger record (tamper-evidence).
-        cursor.execute(
-            "SELECT record_hash FROM state_ledger ORDER BY transaction_id DESC LIMIT 1"
-        )
-        prev = cursor.fetchone()
-        previous_hash = prev[0] if prev else None
-        record_hash = _hash_record(
+        # Hash-chain to the previous ledger record (tamper-evidence) and
+        # append to the log regardless: full audit trail.
+        transaction_id = _append_ledger_row(
+            cursor,
             timestamp,
             intent.entity_id,
             intent.action,
             payload_json,
-            previous_hash,
             tx_status,
         )
-
-        # Append to the log regardless, full audit trail.
-        cursor.execute(
-            """
-            INSERT INTO state_ledger
-                (timestamp, entity_id, action, payload, previous_hash, record_hash, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                timestamp,
-                intent.entity_id,
-                intent.action,
-                payload_json,
-                previous_hash,
-                record_hash,
-                tx_status,
-            ),
-        )
-        transaction_id = cursor.lastrowid
 
         # Remember the key for idempotent retries.
         if intent.idempotency_key:
@@ -395,12 +427,15 @@ def execute_deterministic_transition(intent: IntentTransaction) -> dict:
                 (target_capacity, target_cash, timestamp, intent.entity_id),
             )
 
-        conn.commit()
+        if own_conn:
+            conn.commit()
     except Exception:
-        conn.rollback()
+        if own_conn:
+            conn.rollback()
         raise
     finally:
-        conn.close()
+        if own_conn:
+            conn.close()
 
     return {"status": tx_status, "details": final_payload}
 
@@ -478,35 +513,14 @@ def register_entity(
             "actor": actor,
         }
         payload_json = json.dumps(payload, sort_keys=True)
-        cursor.execute(
-            "SELECT record_hash FROM state_ledger ORDER BY transaction_id DESC LIMIT 1"
-        )
-        prev = cursor.fetchone()
-        previous_hash = prev[0] if prev else None
-        record_hash = _hash_record(
+        transaction_id = _append_ledger_row(
+            cursor,
             timestamp,
             entity_id,
             "REGISTER_ENTITY",
             payload_json,
-            previous_hash,
             "COMMITTED",
         )
-        cursor.execute(
-            "INSERT INTO state_ledger"
-            " (timestamp, entity_id, action, payload, previous_hash,"
-            " record_hash, status)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (
-                timestamp,
-                entity_id,
-                "REGISTER_ENTITY",
-                payload_json,
-                previous_hash,
-                record_hash,
-                "COMMITTED",
-            ),
-        )
-        transaction_id = cursor.lastrowid
         conn.commit()
     except Exception:
         conn.rollback()
@@ -521,6 +535,89 @@ def register_entity(
         "status": "ACTIVE",
         "transaction_id": transaction_id,
     }
+
+
+def _set_entity_lock(entity_id: str, locked: bool, actor: str | None = None) -> dict:
+    """Core for lock_entity/unlock_entity: flip the status flag and log it.
+
+    The flip is a ledger event (action LOCK_ENTITY / UNLOCK_ENTITY,
+    COMMITTED), so locks are auditable and replayable like every other
+    state change. Runs under BEGIN IMMEDIATE so two concurrent lock
+    attempts serialize instead of double-logging.
+
+    Raises ValueError for an unknown entity or when the node is already
+    in the requested state (no-op flips would spam the ledger).
+    """
+    if not isinstance(entity_id, str) or not entity_id:
+        raise ValueError("Invalid entity: entity_id must be a non-empty string.")
+    if actor is not None and (not isinstance(actor, str) or not actor):
+        raise ValueError("Invalid entity: actor must be a non-empty string.")
+
+    action = "LOCK_ENTITY" if locked else "UNLOCK_ENTITY"
+    want_status = "LOCKED" if locked else "ACTIVE"
+    conn = connect_db()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT capacity, available_liquidity, status FROM entities"
+            " WHERE entity_id = ?",
+            (entity_id,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            raise ValueError(f"Unknown entity: {entity_id!r} is not registered.")
+        if row[2] == want_status:
+            raise ValueError(f"Entity {entity_id!r} is already {want_status.lower()}.")
+        timestamp = _utcnow()
+        cursor.execute(
+            "UPDATE entities SET status = ?, last_updated = ? WHERE entity_id = ?",
+            (want_status, timestamp, entity_id),
+        )
+        # The pre-image lets replay_ledger() materialize entities that
+        # were created outside the ledger (seed, transcript-knowledge).
+        payload_json = json.dumps(
+            {
+                "action": action,
+                "entity_id": entity_id,
+                "actor": actor,
+                "status": want_status,
+                "previous_capacity": row[0],
+                "previous_cash": row[1],
+            },
+            sort_keys=True,
+        )
+        transaction_id = _append_ledger_row(
+            cursor, timestamp, entity_id, action, payload_json, "COMMITTED"
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+    return {
+        "entity_id": entity_id,
+        "status": want_status,
+        "transaction_id": transaction_id,
+    }
+
+
+def lock_entity(entity_id: str, actor: str | None = None) -> dict:
+    """Lock a node: while locked, every intent against it is REJECTED by
+    the constraint engine's LOCKED branch ("Node is locked due to active
+    macro shock wave."). Unlock with unlock_entity().
+
+    This is what makes the README's "node locks are respected" claim
+    true: previously the LOCKED branch in check_constraints() was
+    unreachable because no code path could ever set the flag.
+    """
+    return _set_entity_lock(entity_id, True, actor)
+
+
+def unlock_entity(entity_id: str, actor: str | None = None) -> dict:
+    """Unlock a node locked by lock_entity(). Intents are accepted again."""
+    return _set_entity_lock(entity_id, False, actor)
 
 
 def get_ledger(
@@ -591,6 +688,177 @@ def verify_chain() -> tuple[bool, int | None]:
             return False, tx_id
         expected_previous = row["record_hash"]
     return True, None
+
+
+def replay_ledger(apply: bool = False) -> dict:
+    """Rebuild materialized state from the ledger and compare it (or repair).
+
+    This is the engine-side deterministic replay the README promises:
+    starting from the genesis seed, every ledger row is re-applied in
+    transaction-ID order and the rebuilt entity map is compared against
+    the live ``entities`` table — "any participant can replay history
+    and arrive at the same state", as a function you can call.
+
+    - ``apply=False`` (default): verify only. The database is untouched.
+    - ``apply=True``: after a clean chain verify, replace the
+      ``entities`` table with the rebuilt state inside one transaction
+      (repair mode for a corrupted materialized state).
+
+    The hash chain is verified first via verify_chain(); a broken chain
+    aborts before any comparison or repair.
+
+    Simulation rules mirror the writers exactly:
+    - REGISTER_ENTITY creates the entity (status ACTIVE).
+    - LOCK_ENTITY / UNLOCK_ENTITY flip the status flag.
+    - COMMITTED intent rows set capacity/liquidity to the recorded
+      target_* values; REJECTED rows change nothing.
+    - The seed node has no ledger row (init_db inserts it directly), so
+      it is bootstrapped from the SEED_* constants.
+    - Entities created outside the ledger (transcript-knowledge) are
+      materialized from each row's recorded pre-image
+      (previous_capacity / previous_cash).
+
+    Returns {"chain_ok", "bad_transaction_id", "rows_replayed",
+    "entities_rebuilt", "divergences", "applied", "skipped_actions"}.
+    ``divergences`` is [] when replay arrives at the same state.
+    """
+    chain_ok, bad_tx = verify_chain()
+    report: dict = {
+        "chain_ok": chain_ok,
+        "bad_transaction_id": bad_tx,
+        "rows_replayed": 0,
+        "entities_rebuilt": 0,
+        "divergences": [],
+        "applied": False,
+        "skipped_actions": [],
+    }
+    if not chain_ok:
+        return report
+
+    with closing(connect_db()) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT transaction_id, entity_id, action, payload, status"
+            " FROM state_ledger ORDER BY transaction_id ASC"
+        ).fetchall()
+        live = {
+            r["entity_id"]: dict(r)
+            for r in conn.execute(
+                "SELECT entity_id, capacity, available_liquidity, status FROM entities"
+            ).fetchall()
+        }
+
+    sim: dict[str, dict] = {
+        SEED_ENTITY_ID: {
+            "capacity": SEED_CAPACITY,
+            "available_liquidity": SEED_LIQUIDITY,
+            "status": "ACTIVE",
+        }
+    }
+
+    def _materialize(entity_id: str, payload: dict) -> None:
+        """Bootstrap a ledger-external entity from the row's pre-image."""
+        if entity_id not in sim:
+            sim[entity_id] = {
+                "capacity": payload.get("previous_capacity") or 0.0,
+                "available_liquidity": payload.get("previous_cash") or 0.0,
+                "status": "ACTIVE",
+            }
+
+    skipped: set[str] = set()
+    for row in rows:
+        payload = json.loads(row["payload"])
+        action = row["action"]
+        entity_id = row["entity_id"]
+        if action == "REGISTER_ENTITY":
+            sim[entity_id] = {
+                "capacity": payload["initial_capacity"],
+                "available_liquidity": payload["initial_liquidity"],
+                "status": "ACTIVE",
+            }
+        elif action in ("LOCK_ENTITY", "UNLOCK_ENTITY"):
+            _materialize(entity_id, payload)
+            sim[entity_id]["status"] = payload.get(
+                "status", "LOCKED" if action == "LOCK_ENTITY" else "ACTIVE"
+            )
+        elif row["status"] == "COMMITTED":
+            _materialize(entity_id, payload)
+            if payload.get("target_capacity") is not None:
+                sim[entity_id]["capacity"] = payload["target_capacity"]
+            if payload.get("target_cash") is not None:
+                sim[entity_id]["available_liquidity"] = payload["target_cash"]
+        elif row["status"] == "REJECTED":
+            pass  # rejected rows never mutate materialized state
+        else:  # defensive: an unknown ledger status value
+            skipped.add(f"{action}:{row['status']}")
+
+    divergences = []
+    for entity_id in sorted(set(sim) | set(live)):
+        s, live_row = sim.get(entity_id), live.get(entity_id)
+        if s is None:
+            divergences.append(
+                {
+                    "entity_id": entity_id,
+                    "field": "entity",
+                    "live": "present",
+                    "replayed": "absent",
+                }
+            )
+        elif live_row is None:
+            divergences.append(
+                {
+                    "entity_id": entity_id,
+                    "field": "entity",
+                    "live": "absent",
+                    "replayed": "present",
+                }
+            )
+        else:
+            for field in ("capacity", "available_liquidity", "status"):
+                if s[field] != live_row[field]:
+                    divergences.append(
+                        {
+                            "entity_id": entity_id,
+                            "field": field,
+                            "live": live_row[field],
+                            "replayed": s[field],
+                        }
+                    )
+
+    report.update(
+        rows_replayed=len(rows),
+        entities_rebuilt=len(sim),
+        divergences=divergences,
+        skipped_actions=sorted(skipped),
+    )
+
+    if apply:
+        with closing(connect_db()) as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                conn.execute("DELETE FROM entities")
+                conn.executemany(
+                    "INSERT INTO entities"
+                    " (entity_id, capacity, available_liquidity, status,"
+                    " last_updated) VALUES (?, ?, ?, ?, ?)",
+                    [
+                        (
+                            entity_id,
+                            state["capacity"],
+                            state["available_liquidity"],
+                            state["status"],
+                            _utcnow(),
+                        )
+                        for entity_id, state in sim.items()
+                    ],
+                )
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+        report["applied"] = True
+        report["divergences"] = []  # just wrote sim to the table
+    return report
 
 
 def rogue_agent_attack(entity_id: str | None = None) -> list[dict]:

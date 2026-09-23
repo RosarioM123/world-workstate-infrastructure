@@ -21,7 +21,9 @@ field and is hash-chained into the ledger like every other record.
 
 Idempotency: each imported item's content hash is recorded in the
 ``transcript_imports`` table (UNIQUE on the hash). Re-importing the same
-transcript imports zero new items.
+transcript imports zero new items. The whole import runs inside a single
+transaction, so a crash mid-import rolls back to zero items and two
+concurrent importers serialize instead of duplicating rows.
 
 Usage:
     python import_transcript.py notes.md
@@ -35,6 +37,7 @@ import hashlib
 import json
 import logging
 import re
+import sqlite3
 import sys
 from contextlib import closing
 from datetime import UTC, datetime
@@ -275,38 +278,52 @@ def ensure_knowledge_entity() -> None:
         conn.commit()
 
 
-def _already_imported(item_hash: str) -> bool:
-    with closing(connect_db()) as conn:
-        row = conn.execute(
-            "SELECT 1 FROM transcript_imports WHERE item_hash = ?",
-            (item_hash,),
-        ).fetchone()
-        return row is not None
+def _already_imported(item_hash: str, conn: sqlite3.Connection | None = None) -> bool:
+    """Check the idempotency store. Pass the import's shared connection
+    inside import_transcript so the check sees the current transaction."""
+    if conn is None:
+        with closing(connect_db()) as owned:
+            return _already_imported(item_hash, owned)
+    row = conn.execute(
+        "SELECT 1 FROM transcript_imports WHERE item_hash = ?",
+        (item_hash,),
+    ).fetchone()
+    return row is not None
 
 
 def _record_import(
-    item_hash: str, source: str, item: dict[str, str], note: str
+    item_hash: str,
+    source: str,
+    item: dict[str, str],
+    note: str,
+    conn: sqlite3.Connection | None = None,
 ) -> None:
-    with closing(connect_db()) as conn:
-        conn.execute(
-            """
-            INSERT INTO transcript_imports
-                (item_hash, imported_at, source, entity_id, action,
-                 kind, speaker, note)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                item_hash,
-                _utcnow(),
-                source,
-                ENTITY_ID,
-                KIND_ACTION[item["kind"]],
-                item["kind"],
-                item["speaker"],
-                note,
-            ),
-        )
-        conn.commit()
+    """Record an imported item's hash. With the shared connection the row
+    joins the import's transaction (no commit here); standalone callers
+    get their own connection and commit."""
+    if conn is None:
+        with closing(connect_db()) as owned:
+            _record_import(item_hash, source, item, note, owned)
+            owned.commit()
+        return
+    conn.execute(
+        """
+        INSERT INTO transcript_imports
+            (item_hash, imported_at, source, entity_id, action,
+             kind, speaker, note)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """,
+        (
+            item_hash,
+            _utcnow(),
+            source,
+            ENTITY_ID,
+            KIND_ACTION[item["kind"]],
+            item["kind"],
+            item["speaker"],
+            note,
+        ),
+    )
 
 
 def import_transcript(
@@ -316,6 +333,14 @@ def import_transcript(
 
     With dry_run=True this is a pure function: it parses and reports
     without touching the database at all.
+
+    The import is atomic and concurrency-safe: every new item's ledger
+    row and idempotency record are written inside a single BEGIN
+    IMMEDIATE transaction on one shared connection. A crash or error
+    anywhere rolls back to zero imported items (no partial imports, no
+    ledger rows without their dedup record), and two concurrent
+    importers serialize on the write lock — the loser sees the winner's
+    item hashes and imports nothing new.
     """
     items = parse_transcript(text)
     result: dict[str, Any] = {
@@ -332,26 +357,38 @@ def import_transcript(
     init_db()
     init_transcript_store()
     ensure_knowledge_entity()
-    for item in items:
-        digest = _item_hash(item)
-        if _already_imported(digest):
-            result["skipped_duplicate"] += 1
-            continue
-        note = _format_note(item)
-        intent = IntentTransaction(
-            entity_id=ENTITY_ID,
-            action=KIND_ACTION[item["kind"]],
-            requested_delta_capacity=0.0,
-            requested_delta_cash=0.0,
-            note=note,
-        )
-        outcome = execute_deterministic_transition(intent)
-        _record_import(digest, source, item, note)
-        result["statuses"].append(outcome["status"])
-        if outcome["status"] == "COMMITTED":
-            result["committed"] += 1
-        else:
-            result["rejected"] += 1
+
+    conn = connect_db()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        for item in items:
+            digest = _item_hash(item)
+            if _already_imported(digest, conn):
+                result["skipped_duplicate"] += 1
+                continue
+            note = _format_note(item)
+            intent = IntentTransaction(
+                entity_id=ENTITY_ID,
+                action=KIND_ACTION[item["kind"]],
+                requested_delta_capacity=0.0,
+                requested_delta_cash=0.0,
+                note=note,
+            )
+            # Shares this connection: the transition joins the import's
+            # transaction instead of committing on its own.
+            outcome = execute_deterministic_transition(intent, conn=conn)
+            _record_import(digest, source, item, note, conn=conn)
+            result["statuses"].append(outcome["status"])
+            if outcome["status"] == "COMMITTED":
+                result["committed"] += 1
+            else:
+                result["rejected"] += 1
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
     return result
 
 

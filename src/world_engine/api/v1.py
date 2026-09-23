@@ -18,8 +18,11 @@ from world_engine.core.engine import (
     connect_db,
     execute_deterministic_transition,
     get_ledger,
+    lock_entity,
     register_entity,
+    replay_ledger,
     rogue_agent_attack,
+    unlock_entity,
 )
 
 logger = logging.getLogger(__name__)
@@ -138,3 +141,51 @@ def read_ledger(
     rows = get_ledger(entity_id=entity_id, limit=limit, cursor=cursor)
     next_cursor = rows[-1]["transaction_id"] if len(rows) == limit else None
     return {"ledger": rows, "next_cursor": next_cursor}
+
+
+@router.get("/replay")
+def verify_replay() -> dict:
+    """Engine-side deterministic replay, verified live.
+
+    Rebuilds materialized state from the ledger from the genesis seed
+    and reports whether replay arrives at the same state as the live
+    tables (``divergences`` is [] when it does). Read-only: the database
+    is untouched. Repair mode (``replay_ledger(apply=True)``) stays an
+    operator-level engine call, not an HTTP endpoint.
+    """
+    return replay_ledger()
+
+
+def _lock_error(exc: ValueError) -> HTTPException:
+    message = str(exc)
+    if message.startswith("Unknown entity"):
+        return HTTPException(
+            status_code=404,
+            detail={"code": "entity_not_found", "message": message},
+        )
+    return HTTPException(
+        status_code=409,
+        detail={"code": "lock_conflict", "message": message},
+    )
+
+
+@router.post("/entities/{entity_id}/lock", dependencies=[Depends(require_api_key)])
+def lock_node(entity_id: str) -> dict:
+    """Lock a node: intents against it are REJECTED until unlocked.
+
+    The flip is a COMMITTED LOCK_ENTITY ledger row, so it is auditable
+    and replayable. Unknown ids come back 404, double-locks 409.
+    """
+    try:
+        return lock_entity(entity_id)
+    except ValueError as exc:
+        raise _lock_error(exc)
+
+
+@router.post("/entities/{entity_id}/unlock", dependencies=[Depends(require_api_key)])
+def unlock_node(entity_id: str) -> dict:
+    """Unlock a node locked by POST /entities/{id}/lock."""
+    try:
+        return unlock_entity(entity_id)
+    except ValueError as exc:
+        raise _lock_error(exc)

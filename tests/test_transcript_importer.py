@@ -16,7 +16,9 @@ Covers:
 
 import json
 import os
+import sqlite3
 import sys
+import threading
 
 import pytest
 
@@ -149,3 +151,82 @@ def test_note_validation_rejects_non_string(tdb):
                 note=123,
             )
         )
+
+
+def _import_counts(db_path):
+    with sqlite3.connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT COUNT(*) FROM state_ledger WHERE entity_id = ?",
+            (ti.ENTITY_ID,),
+        ).fetchone()[0]
+        digests = conn.execute("SELECT COUNT(*) FROM transcript_imports").fetchone()[0]
+    return rows, digests
+
+
+def test_import_is_atomic_on_mid_import_failure(tdb, monkeypatch):
+    """A crash halfway through imports zero items: the ledger row and
+    its dedup record commit in the same transaction, so a failure
+    anywhere rolls back the whole import."""
+    calls = {"n": 0}
+    real_transition = ti.execute_deterministic_transition
+
+    def failing_transition(intent, conn=None):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise RuntimeError("simulated crash mid-import")
+        return real_transition(intent, conn=conn)
+
+    monkeypatch.setattr(ti, "execute_deterministic_transition", failing_transition)
+    with pytest.raises(RuntimeError, match="simulated crash"):
+        ti.import_transcript(SAMPLE, source="test")
+
+    rows, digests = _import_counts(tdb)
+    assert rows == 0, "partial import leaked ledger rows"
+    assert digests == 0, "partial import leaked dedup records"
+
+    # And the failed import is cleanly retryable: nothing was recorded.
+    result = ti.import_transcript(SAMPLE, source="test")
+    assert result["committed"] == 5
+    assert result["skipped_duplicate"] == 0
+
+
+def test_concurrent_imports_do_not_duplicate(tdb):
+    """N threads importing the same transcript serialize on the write
+    lock; each item lands exactly once."""
+    n = 8
+    barrier = threading.Barrier(n)
+    errors = []
+
+    def worker():
+        try:
+            barrier.wait()
+            ti.import_transcript(SAMPLE, source="race")
+        except Exception as exc:  # noqa: BLE001
+            errors.append(exc)
+
+    threads = [threading.Thread(target=worker) for _ in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not errors, f"importer threads raised: {errors}"
+    rows, digests = _import_counts(tdb)
+    assert rows == 5, f"expected 5 ledger rows, got {rows}"
+    assert digests == 5, f"expected 5 dedup records, got {digests}"
+    ok, bad_id = engine.verify_chain()
+    assert ok is True, f"chain broken at {bad_id}"
+
+
+def test_import_failure_leaves_chain_valid(tdb, monkeypatch):
+    """Even a failed import cannot corrupt the hash chain."""
+    monkeypatch.setattr(
+        ti,
+        "execute_deterministic_transition",
+        lambda intent, conn=None: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+    with pytest.raises(RuntimeError):
+        ti.import_transcript(SAMPLE, source="test")
+    ok, bad_id = engine.verify_chain()
+    assert ok is True
+    assert bad_id is None

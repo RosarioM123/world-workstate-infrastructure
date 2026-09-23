@@ -70,7 +70,10 @@ codespace on `main`, wait ~2 minutes, then open forwarded port **8000**
 Feed a chat transcript in, get WORLD state out. The importer extracts
 decisions, assumptions, open questions, constraints, and notes with a
 deterministic parser (no network, no LLM, stdlib only) and commits one
-intent per item to the ledger. Re-imports are idempotent.
+intent per item to the ledger. Re-imports are idempotent, and each import
+is atomic: a crash mid-import rolls back to zero items (no partial
+imports, no ledger row without its dedup record), and concurrent
+importers serialize on the write lock instead of duplicating rows.
 
 ```bash
 python import_transcript.py notes.md --dry-run   # preview, writes nothing
@@ -129,6 +132,15 @@ curl -X POST 127.0.0.1:8000/api/v1/entities \
 
 curl "127.0.0.1:8000/api/v1/ledger?limit=10"
 # pass next_cursor back as ?cursor= to keep walking toward older rows
+
+# Lock a node — intents against it are REJECTED until unlocked
+# (the flip is a ledger-logged LOCK_ENTITY row, so it replays too):
+curl -X POST 127.0.0.1:8000/api/v1/entities/node_singapore_hub/lock
+curl -X POST 127.0.0.1:8000/api/v1/entities/node_singapore_hub/unlock
+
+# Engine-side deterministic replay: rebuild state from the ledger and
+# confirm it matches the live tables (read-only):
+curl 127.0.0.1:8000/api/v1/replay
 ```
 
 **Exposing a public demo:** set `WORLD_API_KEY` to a long random value —
@@ -155,6 +167,22 @@ EOF
 python tools/export_ledger.py ledger.json
 dotnet run --project tools/ChainVerify -- ledger.json
 ```
+
+**Replay the ledger** — rebuild materialized state from history, from the
+genesis seed forward, and compare it against the live tables:
+
+```bash
+python - <<'EOF'
+import engine
+report = engine.replay_ledger()
+print(report["chain_ok"], report["divergences"])  # True, [] on a healthy node
+# engine.replay_ledger(apply=True)  # repair a corrupted state from the ledger
+EOF
+```
+
+`GET /api/v1/replay` exposes the verify-only report on a running server.
+Repair (`apply=True`) stays an operator-level engine call: it rewrites the
+`entities` table and is never an HTTP endpoint.
 
 ## Client SDK (local index)
 

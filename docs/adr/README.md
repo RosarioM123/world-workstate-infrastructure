@@ -10,3 +10,4 @@ so future contributors can understand the why without archaeology.
 - [0004: Stdlib-only transcript parsing](0004-stdlib-transcript-parsing.md)
 - [0005: Multi-agent conflict policy](0005-multi-agent-conflict-policy.md)
 - [0006: Auth/RBAC shape (deferred, schema prepared)](0006-auth-rbac-shape.md)
+- [0007: Node locks and engine-side replay](0007-locks-and-replay.md)
