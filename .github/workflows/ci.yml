@@ -23,6 +23,8 @@ jobs:
           pip install -e ".[test]"
       - name: Run tests
         run: python -m pytest tests/ -q --cov --cov-report=term-missing
+      - name: Run examples tests
+        run: python -m pytest examples/ -q
 
   lint:
     runs-on: ubuntu-latest
@@ -34,9 +36,7 @@ jobs:
           python-version: "3.12"
       - name: Install package and lint tools
         run: |
-          # Test extras needed: examples/ tests import pytest, and mypy
-          # type-checks them, so the lint env needs the test dependencies.
-          pip install -e ".[test]"
+          pip install -e .
           pip install ruff mypy
       - name: Ruff lint
         run: ruff check src/ tests/ examples/ experiments/
