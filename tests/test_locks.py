@@ -8,6 +8,9 @@ routes expose the same behavior behind the API-key gate.
 """
 
 import pytest
+
+pytest.importorskip("fastapi")
+pytest.importorskip("httpx")
 from fastapi.testclient import TestClient
 
 from world_engine.api.main import app

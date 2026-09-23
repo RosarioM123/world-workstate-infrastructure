@@ -17,6 +17,9 @@ import shutil
 import sqlite3
 import tempfile
 
+import pytest
+
+pytest.importorskip("hypothesis")
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 

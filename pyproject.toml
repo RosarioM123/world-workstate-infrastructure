@@ -4,15 +4,29 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "world-engine"
-version = "0.2.0"
-description = "Deterministic, constraint-checked state ledger for AI agents: every intent validated against physical/financial rules, every attempt hash-chained into a tamper-evident audit trail."
+dynamic = ["version"]
+description = "WORLD: canonical, durable state for AI-agent work — a named JSON document with judged, hash-chained versions that survives handoffs between sessions, processes, and models."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Proprietary" }
+keywords = ["ai-agents", "state", "ledger", "handoff"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 # The `world` primitive core (world.core, world.invariants, world.cli) is
 # dependency-free (stdlib only). The HTTP layer is opt-in via the `server`
 # extra so `pip install .` stays minimal.
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/RosarioM123/world-workstate-infrastructure"
+Repository = "https://github.com/RosarioM123/world-workstate-infrastructure.git"
 
 [project.optional-dependencies]
 server = [
@@ -35,6 +49,10 @@ test = [
 # examples/synthetic-logistics-demo/ and is not part of the package.
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# Single source of truth for the version: src/world/__init__.py.
+[tool.setuptools.dynamic]
+version = { attr = "world.__version__" }
 
 # PEP 561: ship the type markers so downstream mypy runs (examples/,
 # experiments/, consumers) can analyze imports of world_engine/world_sdk.

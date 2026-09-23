@@ -9,8 +9,26 @@ verdict — COMMITTED or REJECTED — is hash-chained evidence.
 [![CI](https://github.com/RosarioM123/world-workstate-infrastructure/actions/workflows/ci.yml/badge.svg)](https://github.com/RosarioM123/world-workstate-infrastructure/actions/workflows/ci.yml)
 ![Python 3.11 | 3.12 | 3.13](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)
 
-**Status:** v0.2 primitive. Working prototype, not deployed. 239 tests
+**Status:** v0.1.0 primitive. Working prototype, not deployed. 239 tests
 green in CI (pytest + ruff + mypy).
+
+## Install
+
+Not on PyPI yet — install from source. The core has zero dependencies
+(stdlib only).
+
+```bash
+git clone https://github.com/RosarioM123/world-workstate-infrastructure.git
+cd world-workstate-infrastructure
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -e .            # the `world` primitive + `world` CLI
+pip install -e ".[server]"  # optional: `world serve` HTTP API
+pip install -e ".[test]"    # optional: full test suite (server + property tests)
+
+python examples/quickstart.py   # minimal example, self-contained
+python -m pytest tests/ -q      # without the extras, server tests skip cleanly
+world --help
+```
 
 ## Quickstart
 

@@ -8,6 +8,9 @@ a contract both backends must honor identically.
 import json
 
 import pytest
+
+pytest.importorskip("fastapi")
+pytest.importorskip("httpx")
 from fastapi.testclient import TestClient
 
 from world_engine.api.main import app
