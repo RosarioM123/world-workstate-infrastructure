@@ -34,8 +34,25 @@ print(client.verify())      # (True, None): hash chain intact
   answers "what did we know at time T" by resolving T to a height locally
   and replaying its ledger to that height (`state_at_time(T)`).
 
-## The guarantee boundary
+## Multi-agent fields
 
+Every intent carries three optional fields, recorded into the ledger
+payload (hence hash-covered) but unenforced:
+
+- `actor`: who submitted the intent. Self-asserted today; no auth behind
+  it (see ADR 0006).
+- `kind`: `INTERNAL_STATE` (default) or `EXTERNAL_EFFECT`. Recorded only;
+  it never changes the constraint verdict.
+- `idempotency_key`: a client-supplied request id. A second submission
+  with the same key returns the first submission's verdict without
+  appending a new row, so retries are safe. Empty keys are rejected.
+  Keys are rebuilt from ledger payloads on `import_ledger_rows()`, so a
+  synced ledger keeps deduplicating.
+
+See docs/adr/0005-multi-agent-conflict-policy.md for why contention still
+surfaces as ordinary REJECTED rows until a second real agent exists.
+
+## The guarantee boundary
 The ledger is the sole system of record. Both sidecars are derived and
 disposable: delete the index file and nothing of value is lost, rebuild it
 from the ledger. Verification (`verify()`) walks the SHA-256 hash chain
