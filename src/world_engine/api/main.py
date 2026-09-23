@@ -25,6 +25,7 @@ Demo flow:
        exercises the same engine from the CLI with a weather-driven domain.
 """
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -33,9 +34,12 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from world_engine.api.auth import expected_api_key
 from world_engine.api.middleware import install as install_middleware
 from world_engine.api.v1 import router as v1_router
 from world_engine.core.engine import init_db
+
+logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SITE_DIR = REPO_ROOT / "static" / "site"
@@ -44,6 +48,12 @@ SITE_DIR = REPO_ROOT / "static" / "site"
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     init_db()
+    if expected_api_key() is None:
+        logger.warning(
+            "WORLD_API_KEY is not set: write endpoints are unauthenticated. "
+            "Set it before exposing this service publicly "
+            "(see docs/adr/0006-auth-rbac-shape.md)."
+        )
     app.state.landing_html = _load_landing_page()
     app.state.dashboard_html = _load_dashboard_page()
     yield

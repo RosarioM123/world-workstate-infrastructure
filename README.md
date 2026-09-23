@@ -13,10 +13,12 @@ agents submit *intents*, a constraint engine returns `COMMITTED` or
 hash-chained ledger.
 
 **Status: working prototype, not deployed.** Deterministic engine,
-FastAPI backend, React landing page, full suite green in CI. No auth or rate limiting yet, and the ledger is tamper-evident
+FastAPI backend, React landing page, full suite green in CI. Write
+endpoints require `X-API-Key` when `WORLD_API_KEY` is set and are
+per-IP rate-limited; the ledger is tamper-evident
 (via `verify_chain()`) rather than immutable. Sample data in the demo is
-labeled as sample. Hosting is deferred — `render.yaml` and `/health`
-keep it deploy-ready.
+labeled as sample. Hosting is deferred — `render.yaml` (with a persistent
+disk for the ledger) and `/health` keep it deploy-ready.
 
 ## Demo
 
@@ -128,6 +130,13 @@ curl -X POST 127.0.0.1:8000/api/v1/entities \
 curl "127.0.0.1:8000/api/v1/ledger?limit=10"
 # pass next_cursor back as ?cursor= to keep walking toward older rows
 ```
+
+**Exposing a public demo:** set `WORLD_API_KEY` to a long random value —
+the write endpoints then require it as the `X-API-Key` header, and
+per-IP rate limits apply (tune with `WORLD_RATE_LIMIT_*_PER_MIN`, disable
+with `WORLD_RATE_LIMIT_ENABLED=0`). Point `WORLD_DB_PATH` at persistent
+storage so redeploys don't wipe the ledger (`render.yaml` wires this to
+a Render disk).
 
 Every response carries an `X-Request-ID` header, and every failure
 returns the same JSON error envelope:
@@ -255,7 +264,11 @@ cd frontend && npm install && npm run build
 
 - **Tamper-evident, not immutable.** The ledger is hash-chained, so edits
   are detectable — but anyone holding the database file can rewrite it.
-- **No auth or rate limiting yet.** The API trusts its callers.
+- **Interim auth, not full RBAC.** When `WORLD_API_KEY` is set, the
+  write endpoints (`POST /intent`, `/entities`, `/rogue-attack`) require
+  it as the `X-API-Key` header and are per-IP rate-limited; reads stay
+  open. There is still no per-actor identity — `actor` remains
+  self-asserted (see `docs/adr/0006-auth-rbac-shape.md`).
 - **The Rotterdam weather/port flow is a synthetic stress-test domain,**
   not the product demo (`examples/synthetic-logistics-demo/`). Wind speed
   derating port capacity is a fixed, auditable rule invented to exercise

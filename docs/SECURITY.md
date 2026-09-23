@@ -39,9 +39,12 @@ marketing.
    cleanly. The chain detects accidental corruption and casual
    tampering; it does not stop a sophisticated adversary holding the
    file. File permissions are currently the only access control.
-2. **No authentication or authorization.** The API trusts its callers.
-   There is no auth, no rate limiting, and no per-entity permission
-   model yet.
+2. **Only interim authentication.** When `WORLD_API_KEY` is set, the
+   write endpoints require it as the `X-API-Key` header and are
+   per-IP rate-limited (`src/world_engine/api/auth.py`,
+   `world_engine/api/middleware.py`). Reads are open, and there is
+   still no per-actor identity and no per-entity permission model:
+   `actor` remains self-asserted (ADR 0006).
 3. **No confidentiality.** Ledger payloads (including intent notes) are
    stored in cleartext. Anyone who can read the database file can read
    every decision, assumption, and note ever imported.
@@ -70,7 +73,9 @@ marketing.
 2. **Append-only storage.** Ship ledger segments to WORM storage (or a
    write-once file) so history cannot be rewritten even by a file holder.
 3. **Authentication and per-entity authorization** on the API, before
-   any multi-tenant deployment.
+   any multi-tenant deployment. Interim step done: `WORLD_API_KEY`
+   gates the write routes and per-IP rate limiting is in place; full
+   RBAC per ADR 0006 is still open.
 4. **Encrypted notes.** Envelope encryption for sensitive intent notes,
    with key management outside the database.
 

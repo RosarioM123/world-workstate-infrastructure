@@ -8,9 +8,10 @@ clients). Route handlers live here exactly once.
 import logging
 import sqlite3
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from world_engine.api.auth import require_api_key
 from world_engine.core.engine import (
     INTENT_KIND_INTERNAL,
     IntentTransaction,
@@ -60,7 +61,7 @@ def get_world_state() -> dict[str, list[dict]]:
     return {"entities": entities, "recent_ledger": ledger}
 
 
-@router.post("/intent")
+@router.post("/intent", dependencies=[Depends(require_api_key)])
 def post_intent(req: IntentRequest) -> dict:
     """Any agent (or human) submits an intent; the math engine decides."""
     try:
@@ -82,7 +83,7 @@ def post_intent(req: IntentRequest) -> dict:
         )
 
 
-@router.post("/rogue-attack")
+@router.post("/rogue-attack", dependencies=[Depends(require_api_key)])
 def trigger_rogue_attack(entity_id: str | None = None) -> dict[str, list[dict]]:
     """Unleash the rogue agent. Every illegal intent must come back REJECTED.
 
@@ -100,7 +101,7 @@ class EntityRequest(BaseModel):
     actor: str | None = Field(default=None, max_length=128)
 
 
-@router.post("/entities", status_code=201)
+@router.post("/entities", status_code=201, dependencies=[Depends(require_api_key)])
 def create_entity(req: EntityRequest) -> dict:
     """Register a new node in the world. Duplicate ids come back 409."""
     try:

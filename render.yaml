@@ -5,6 +5,19 @@ services:
     buildCommand: pip install -e .
     startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
+    # The ledger must survive deploys: without a persistent disk every
+    # restart wipes world_state.db (it lives on Render's ephemeral FS).
+    disk:
+      name: world-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.13.0
+      - key: WORLD_DB_PATH
+        value: /var/data/world_state.db
+      # Demo gate for the write endpoints (see src/world_engine/api/auth.py).
+      # sync: false keeps the secret out of the repo: set it in the Render
+      # dashboard (Environment -> Secret Files / Env Vars), never here.
+      - key: WORLD_API_KEY
+        sync: false
