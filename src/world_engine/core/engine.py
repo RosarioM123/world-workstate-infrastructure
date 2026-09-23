@@ -217,10 +217,10 @@ def _validate_intent(intent: IntentTransaction) -> None:
         raise ValueError(
             "Invalid intent: kind must be 'INTERNAL_STATE' or 'EXTERNAL_EFFECT'."
         )
-    if intent.idempotency_key is not None and not isinstance(
-        intent.idempotency_key, str
+    if intent.idempotency_key is not None and (
+        not isinstance(intent.idempotency_key, str) or not intent.idempotency_key
     ):
-        raise ValueError("Invalid intent: idempotency_key must be a string.")
+        raise ValueError("Invalid intent: idempotency_key must be a non-empty string.")
     for name in ("requested_delta_capacity", "requested_delta_cash"):
         value = getattr(intent, name, None)
         if isinstance(value, bool) or not isinstance(value, (int, float)):
