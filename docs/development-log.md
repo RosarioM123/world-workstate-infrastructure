@@ -2,6 +2,13 @@
 
 Newest entries first.
 
+## 2026-09-23: Experiment #002 Day 7, final verdict complete (protocol §8), schedule retired
+
+- Wrote `docs/experiment-002/results.md` per protocol §8 (all 19 required sections: protocol, tasks, Agent A research, handoffs, Agent B outputs, blind grading, individual metrics, token/input comparison, information loss, failure cases, replication results, where WORLD helped/hurt, strongest evidence for and against, #001 replication verdict, updated hypothesis, further experiments, prototype verdict). Drafted by a dedicated subagent from the experiment materials, reviewed and finalized with no invented numbers.
+- Verdict: the WORLD-state continuation preserved decision governance best in both runs (Intel 3.92 vs 3.58 vs 3.33; Disney 4.45 vs 4.09 vs 2.82, reference means), so the WORLD-best direction replicates; the journal-vs-summary ordering flipped between runs (instance-sensitive, n=1). Strongest evidence FOR WORLD: assumption/confidence governance (5/5 vs 3/3, main run), provenance and supersession (replication), label-stability mechanism ("relabeling is not neutral reformatting"). Strongest evidence AGAINST WORLD, replicated: revision history weak in the WORLD continuation both runs (metric 5 = 2 twice); an independent summary came within 0.36 in the Disney run, keeping falsifiability condition 1 open.
+- Updated `docs/hypothesis.md` with an "Experiment #002 verdict (2026-09-23)" section: thesis partially supported and narrowed; success criteria 2 (human auditability) and 3 (cross-model consistency) untested. Prototype development justified only for the narrow demonstrated advantage (stable labeled governance records), revision-history preservation first, not the full WORLD vision.
+- Updated `docs/experiment-002/experiment-state.md` (Day 7 complete, all fields, fresh timestamp, next action: none), wrote `day-07.md`, committed everything to `main`, verified, and retired the `world-exp002-daily` schedule (enabled=false) per the protocol §12 Day 7 plan. Experiment #001's direction replicated in the harder #002 design; its clean sweep did not. No new errors or blockers.
+
 ## 2026-09-22 — Experiment #002 Day 6: Disney replication complete (protocol §7)
 
 - Lighter Agent A research on Disney (DIS) with live public sources, committed as
