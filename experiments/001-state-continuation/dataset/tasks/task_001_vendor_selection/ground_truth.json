@@ -1,0 +1,211 @@
+{
+  "already_done": [
+    {
+      "id": "R1",
+      "must_mention": [
+        "evaluate qdrant vs weaviate",
+        "compare the vendors",
+        "vendor shootout"
+      ],
+      "text": "Re-running the vendor evaluation as if undecided."
+    },
+    {
+      "id": "R2",
+      "must_mention": [
+        "re-run the recall benchmark",
+        "measure recall again"
+      ],
+      "text": "Re-benchmarking recall at the 2M scale (already measured at 0.97)."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D1",
+      "must_mention": [
+        "pgvector",
+        "0.97",
+        "soc2"
+      ],
+      "rationale": "Cheapest option at $0.6k/mo incremental, SOC2 inherited from AWS, the team already operates Postgres, and recall 0.97 at k=10 clears the 0.95 threshold.",
+      "text": "Select pgvector on RDS as the vector database."
+    },
+    {
+      "id": "D2",
+      "must_mention": [
+        "reject qdrant",
+        "operational risk"
+      ],
+      "rationale": "Operational risk: nobody on the team has run Qdrant, and the performance headroom is not needed at 2M documents and 50 QPS.",
+      "text": "Reject Qdrant despite its better raw performance."
+    },
+    {
+      "id": "D3",
+      "must_mention": [
+        "sunset pinecone",
+        "oct 15",
+        "auto-renews"
+      ],
+      "rationale": "$3.1k/mo exceeds the $2k budget cap, and the contract auto-renews Nov 1.",
+      "text": "Sunset Pinecone by end of Q4; file cancellation before Oct 15."
+    },
+    {
+      "id": "D4",
+      "must_mention": [
+        "dual-write",
+        "zero downtime"
+      ],
+      "rationale": "Zero downtime is required for the support copilot.",
+      "text": "Migrate via dual-write then cutover."
+    }
+  ],
+  "facts": [
+    {
+      "id": "F1",
+      "must_mention": [
+        "2m documents",
+        "50 qps"
+      ],
+      "source": "capacity planning doc",
+      "text": "Corpus is 2M documents; peak load is 50 QPS."
+    },
+    {
+      "id": "F2",
+      "must_mention": [
+        "2k/mo",
+        "3.1k/mo"
+      ],
+      "source": "infra budget sheet",
+      "text": "Budget cap is $2k/mo; Pinecone costs $3.1k/mo."
+    },
+    {
+      "id": "F3",
+      "must_mention": [
+        "soc2 type ii",
+        "hard requirement"
+      ],
+      "source": "enterprise MSA terms",
+      "text": "SOC2 Type II is a hard requirement from enterprise contracts."
+    },
+    {
+      "id": "F4",
+      "must_mention": [
+        "5 backend engineers",
+        "postgres-fluent"
+      ],
+      "source": "team skills matrix",
+      "text": "Team is 5 backend engineers, all Postgres-fluent, with no Qdrant or Weaviate operational experience."
+    },
+    {
+      "id": "F5",
+      "must_mention": [
+        "recall",
+        "0.97",
+        "0.95"
+      ],
+      "source": "recall eval notebook",
+      "text": "pgvector recall is 0.97 at k=10 on the team's eval set; the acceptance threshold was 0.95."
+    },
+    {
+      "id": "F6",
+      "must_mention": [
+        "weaviate",
+        "weakest recall"
+      ],
+      "source": "vendor eval notes",
+      "text": "Weaviate was evaluated and dropped: weakest recall and a GraphQL API the team dislikes."
+    }
+  ],
+  "ground_truth_version": 1,
+  "must_not_state": [
+    {
+      "id": "C1",
+      "must_mention": [
+        "recommend qdrant",
+        "select qdrant",
+        "go with qdrant"
+      ],
+      "text": "Recommending Qdrant (it was rejected)."
+    },
+    {
+      "id": "C2",
+      "must_mention": [
+        "soc2 is not required",
+        "soc2 doesn't matter",
+        "drop the soc2"
+      ],
+      "text": "Claiming SOC2 does not matter."
+    },
+    {
+      "id": "C3",
+      "must_mention": [
+        "stay on pinecone",
+        "keep pinecone"
+      ],
+      "text": "Proposing to stay on Pinecone."
+    }
+  ],
+  "next_actions": [
+    {
+      "id": "N1",
+      "must_mention": [
+        "benchmark",
+        "10m vectors",
+        "priya"
+      ],
+      "text": "Run the pgvector benchmark at 10M vectors (owner: Priya, due Oct 10)."
+    },
+    {
+      "id": "N2",
+      "must_mention": [
+        "soc2 inheritance",
+        "aws artifact",
+        "sam"
+      ],
+      "text": "Confirm SOC2 inheritance wording with the AWS artifact (owner: Sam)."
+    },
+    {
+      "id": "N3",
+      "must_mention": [
+        "pinecone cancellation",
+        "oct 15"
+      ],
+      "text": "File the Pinecone cancellation before Oct 15 (owner: Sam)."
+    },
+    {
+      "id": "N4",
+      "must_mention": [
+        "dual-write cutover",
+        "alex"
+      ],
+      "text": "Design the dual-write cutover plan (owner: Alex)."
+    }
+  ],
+  "open_questions": [
+    {
+      "id": "Q1",
+      "must_mention": [
+        "10m documents",
+        "re-architecture"
+      ],
+      "text": "Can RDS pgvector handle 5x growth to 10M documents without a re-architecture?"
+    },
+    {
+      "id": "Q2",
+      "must_mention": [
+        "embedding pipeline",
+        "ml team or backend"
+      ],
+      "text": "Who owns the embedding pipeline after migration: the ML team or backend?"
+    },
+    {
+      "id": "Q3",
+      "must_mention": [
+        "dual-write",
+        "embedding api costs"
+      ],
+      "text": "Does dual-write double embedding API costs during the migration window?"
+    }
+  ],
+  "task_id": "task_001_vendor_selection",
+  "objective": "Select a vector database for the support copilot and plan the migration."
+}

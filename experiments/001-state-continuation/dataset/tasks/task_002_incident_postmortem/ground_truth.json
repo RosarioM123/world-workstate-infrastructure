@@ -1,0 +1,201 @@
+{
+  "already_done": [
+    {
+      "id": "R1",
+      "must_mention": [
+        "roll back to v2.13",
+        "rollback"
+      ],
+      "text": "Proposing the rollback as a future action (completed 14:20)."
+    },
+    {
+      "id": "R2",
+      "must_mention": [
+        "identify the root cause",
+        "find the root cause"
+      ],
+      "text": "Proposing a root-cause investigation (already identified: pool 100\u219220)."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D1",
+      "must_mention": [
+        "roll back",
+        "v2.13",
+        "14:20"
+      ],
+      "rationale": "Stop the bleeding first; the v2.14 features were not urgent.",
+      "text": "Roll back to v2.13 immediately (done 14:20), then fix forward."
+    },
+    {
+      "id": "D2",
+      "must_mention": [
+        "feature flag",
+        "decouple"
+      ],
+      "rationale": "Decouple the UI rollout from backend changes.",
+      "text": "Keep v2.14's new checkout UI behind a feature flag on re-release."
+    },
+    {
+      "id": "D3",
+      "must_mention": [
+        "no blame",
+        "process failure"
+      ],
+      "rationale": "The config change shipped unreviewed; that is a process failure, not an individual one.",
+      "text": "No blame on the on-call engineer."
+    }
+  ],
+  "facts": [
+    {
+      "id": "F1",
+      "must_mention": [
+        "14:02",
+        "14:47",
+        "45 minutes"
+      ],
+      "source": "incident timeline",
+      "text": "Outage ran 14:02\u201314:47 UTC, 45 minutes."
+    },
+    {
+      "id": "F2",
+      "must_mention": [
+        "312 failed checkouts",
+        "18,400"
+      ],
+      "source": "payments dashboard",
+      "text": "312 failed checkouts, \u2248$18,400 in lost revenue."
+    },
+    {
+      "id": "F3",
+      "must_mention": [
+        "pool",
+        "100",
+        "20"
+      ],
+      "source": "v2.14 diff",
+      "text": "Root cause: the v2.14 config change cut the DB connection pool from 100 to 20; the pool exhausted under normal load."
+    },
+    {
+      "id": "F4",
+      "must_mention": [
+        "canary",
+        "5 minutes",
+        "1%"
+      ],
+      "source": "deploy logs",
+      "text": "The canary ran 5 minutes at 1% traffic \u2014 too little to surface pool exhaustion."
+    },
+    {
+      "id": "F5",
+      "must_mention": [
+        "unreviewed",
+        "release pr"
+      ],
+      "source": "PR history",
+      "text": "The config change shipped unreviewed, bundled inside the release PR."
+    },
+    {
+      "id": "F6",
+      "must_mention": [
+        "database was never down",
+        "db was fine"
+      ],
+      "source": "DB metrics",
+      "text": "The database was never down; the DB was fine throughout."
+    }
+  ],
+  "ground_truth_version": 1,
+  "must_not_state": [
+    {
+      "id": "C1",
+      "must_mention": [
+        "database was down",
+        "db outage",
+        "database outage"
+      ],
+      "text": "Claiming the database was down (it was pool exhaustion)."
+    },
+    {
+      "id": "C2",
+      "must_mention": [
+        "on-call's fault",
+        "blame the on-call",
+        "on-call engineer caused"
+      ],
+      "text": "Blaming the on-call engineer."
+    },
+    {
+      "id": "C3",
+      "must_mention": [
+        "raise the pool to 200",
+        "increase the pool to 200"
+      ],
+      "text": "Prescribing a pool increase to 200 as the fix (fix is process, not pool size)."
+    }
+  ],
+  "next_actions": [
+    {
+      "id": "N1",
+      "must_mention": [
+        "pool saturation alert",
+        "oct 21"
+      ],
+      "text": "Add a connection-pool saturation alert (owner: on-call, due Oct 21)."
+    },
+    {
+      "id": "N2",
+      "must_mention": [
+        "separate review",
+        "config changes"
+      ],
+      "text": "Require separate review for config changes inside release PRs (owner: eng manager)."
+    },
+    {
+      "id": "N3",
+      "must_mention": [
+        "canary",
+        "10%",
+        "30 min"
+      ],
+      "text": "Load-test the canary at 10% traffic for a 30 min minimum (owner: platform)."
+    },
+    {
+      "id": "N4",
+      "must_mention": [
+        "pool sizes",
+        "priya"
+      ],
+      "text": "Audit connection pool sizes across all services (owner: Priya)."
+    }
+  ],
+  "open_questions": [
+    {
+      "id": "Q1",
+      "must_mention": [
+        "who approved",
+        "bundling"
+      ],
+      "text": "Who approved bundling the config change into the release PR?"
+    },
+    {
+      "id": "Q2",
+      "must_mention": [
+        "canary duration",
+        "catch pool exhaustion"
+      ],
+      "text": "Why was the canary duration and traffic level insufficient to catch pool exhaustion?"
+    },
+    {
+      "id": "Q3",
+      "must_mention": [
+        "other services",
+        "silently reduced"
+      ],
+      "text": "Are there other services with silently reduced pool sizes?"
+    }
+  ],
+  "task_id": "task_002_incident_postmortem",
+  "objective": "Resolve the checkout API outage and produce the postmortem with corrective actions."
+}

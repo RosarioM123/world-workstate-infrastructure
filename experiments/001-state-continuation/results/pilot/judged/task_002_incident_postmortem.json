@@ -1,0 +1,29 @@
+[
+  {
+    "id": "T002-A",
+    "condition": "transcript",
+    "M1": 3,
+    "M2_judged": 3,
+    "M5_judged_hits": [],
+    "M6_judged": 3,
+    "notes": "Actions+owners+explicit non-actions; no invented deadlines (faithful)."
+  },
+  {
+    "id": "T002-B",
+    "condition": "world",
+    "M1": 3,
+    "M2_judged": 3,
+    "M5_judged_hits": [],
+    "M6_judged": 3,
+    "notes": "Table format; timeline numbers correct."
+  },
+  {
+    "id": "T002-C",
+    "condition": "summary",
+    "M1": 3,
+    "M2_judged": 3,
+    "M5_judged_hits": [],
+    "M6_judged": 3,
+    "notes": "All parts present; facts correct."
+  }
+]

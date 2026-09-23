@@ -1,0 +1,38 @@
+{
+  "T001-A": {
+    "task": "task_001_vendor_selection",
+    "condition": "world"
+  },
+  "T001-B": {
+    "task": "task_001_vendor_selection",
+    "condition": "transcript"
+  },
+  "T001-C": {
+    "task": "task_001_vendor_selection",
+    "condition": "summary"
+  },
+  "T002-A": {
+    "task": "task_002_incident_postmortem",
+    "condition": "transcript"
+  },
+  "T002-B": {
+    "task": "task_002_incident_postmortem",
+    "condition": "world"
+  },
+  "T002-C": {
+    "task": "task_002_incident_postmortem",
+    "condition": "summary"
+  },
+  "T003-A": {
+    "task": "task_003_api_migration",
+    "condition": "world"
+  },
+  "T003-B": {
+    "task": "task_003_api_migration",
+    "condition": "summary"
+  },
+  "T003-C": {
+    "task": "task_003_api_migration",
+    "condition": "transcript"
+  }
+}

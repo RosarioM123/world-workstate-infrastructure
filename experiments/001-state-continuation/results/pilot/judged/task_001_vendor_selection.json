@@ -1,0 +1,29 @@
+[
+  {
+    "id": "T001-A",
+    "condition": "world",
+    "M1": 3,
+    "M2_judged": 3,
+    "M5_judged_hits": [],
+    "M6_judged": 3,
+    "notes": "All brief parts present; facts correct."
+  },
+  {
+    "id": "T001-B",
+    "condition": "transcript",
+    "M1": 3,
+    "M2_judged": 3,
+    "M5_judged_hits": [],
+    "M6_judged": 3,
+    "notes": "All brief parts present; facts correct."
+  },
+  {
+    "id": "T001-C",
+    "condition": "summary",
+    "M1": 3,
+    "M2_judged": 3,
+    "M5_judged_hits": [],
+    "M6_judged": 3,
+    "notes": "All brief parts present; facts correct."
+  }
+]

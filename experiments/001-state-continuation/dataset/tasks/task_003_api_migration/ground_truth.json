@@ -1,0 +1,197 @@
+{
+  "already_done": [
+    {
+      "id": "R1",
+      "must_mention": [
+        "choose between apollo",
+        "apollo or hot chocolate"
+      ],
+      "text": "Re-deciding the federation vendor (already chosen: Apollo)."
+    },
+    {
+      "id": "R2",
+      "must_mention": [
+        "decide strangler vs rewrite",
+        "strangler or rewrite"
+      ],
+      "text": "Re-deciding strangler vs rewrite (already decided: strangler)."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D1",
+      "must_mention": [
+        "v1",
+        "clients untouched"
+      ],
+      "rationale": "No rewrite; v1 REST clients untouched behind the SLA freeze.",
+      "text": "Strangler facade: a GraphQL gateway in front of the existing REST services."
+    },
+    {
+      "id": "D2",
+      "must_mention": [
+        "apollo federation",
+        "schema-first"
+      ],
+      "rationale": "Subgraph ownership matches the microservice org structure.",
+      "text": "Schema-first with Apollo Federation."
+    },
+    {
+      "id": "D3",
+      "must_mention": [
+        "launch screen",
+        "14 calls"
+      ],
+      "rationale": "Biggest latency win: 14 calls collapse to 2.",
+      "text": "Migrate the mobile launch screen first."
+    },
+    {
+      "id": "D4",
+      "must_mention": [
+        "rest",
+        "system of record",
+        "q2"
+      ],
+      "rationale": "Enterprise SLA freezes v1 REST clients until Q2.",
+      "text": "Keep REST as the system of record through Q2."
+    }
+  ],
+  "facts": [
+    {
+      "id": "F1",
+      "must_mention": [
+        "14 rest calls",
+        "1.8s"
+      ],
+      "source": "mobile perf traces",
+      "text": "The app makes 14 REST calls on launch; p95 is 1.8s."
+    },
+    {
+      "id": "F2",
+      "must_mention": [
+        "no breaking changes",
+        "q2"
+      ],
+      "source": "enterprise SLA",
+      "text": "No breaking changes for v1 REST clients until Q2."
+    },
+    {
+      "id": "F3",
+      "must_mention": [
+        "p95",
+        "300ms"
+      ],
+      "source": "perf budget doc",
+      "text": "The GraphQL layer must hold p95 under 300ms."
+    },
+    {
+      "id": "F4",
+      "must_mention": [
+        "no production graphql experience",
+        "training"
+      ],
+      "source": "team skills matrix",
+      "text": "The backend team has no production GraphQL experience; training is budgeted."
+    },
+    {
+      "id": "F5",
+      "must_mention": [
+        "collapse",
+        "2 calls"
+      ],
+      "source": "schema spike",
+      "text": "GraphQL would collapse the launch sequence to 2 calls."
+    }
+  ],
+  "ground_truth_version": 1,
+  "must_not_state": [
+    {
+      "id": "C1",
+      "must_mention": [
+        "deprecate rest now",
+        "shut down rest",
+        "turn off rest"
+      ],
+      "text": "Proposing to deprecate or shut down REST now (frozen until Q2)."
+    },
+    {
+      "id": "C2",
+      "must_mention": [
+        "rewrite services",
+        "rewrite the services"
+      ],
+      "text": "Proposing to rewrite services in GraphQL (strangler, not rewrite)."
+    },
+    {
+      "id": "C3",
+      "must_mention": [
+        "1.8s is acceptable",
+        "1.8s is fine"
+      ],
+      "text": "Claiming the current 1.8s p95 is acceptable."
+    }
+  ],
+  "next_actions": [
+    {
+      "id": "N1",
+      "must_mention": [
+        "federation gateway",
+        "staging",
+        "nov 1"
+      ],
+      "text": "Stand up the federation gateway in staging (owner: mobile platform, due Nov 1)."
+    },
+    {
+      "id": "N2",
+      "must_mention": [
+        "launch-screen subgraph",
+        "feed team"
+      ],
+      "text": "Write the launch-screen subgraph (owner: feed team)."
+    },
+    {
+      "id": "N3",
+      "must_mention": [
+        "schema governance rfc",
+        "staff eng"
+      ],
+      "text": "Define the schema governance RFC (owner: staff eng)."
+    },
+    {
+      "id": "N4",
+      "must_mention": [
+        "graphql training",
+        "eng manager"
+      ],
+      "text": "Book GraphQL training for backend engineers (owner: eng manager)."
+    }
+  ],
+  "open_questions": [
+    {
+      "id": "Q1",
+      "must_mention": [
+        "schema governance",
+        "council"
+      ],
+      "text": "Who owns federated schema governance: a single team or a council?"
+    },
+    {
+      "id": "Q2",
+      "must_mention": [
+        "n+1",
+        "dataloader"
+      ],
+      "text": "How are N+1 queries prevented: dataloader discipline or review?"
+    },
+    {
+      "id": "Q3",
+      "must_mention": [
+        "rollback trigger",
+        "300ms"
+      ],
+      "text": "What is the rollback trigger if p95 exceeds 300ms in prod?"
+    }
+  ],
+  "task_id": "task_003_api_migration",
+  "objective": "Plan the REST to GraphQL migration for the mobile app."
+}

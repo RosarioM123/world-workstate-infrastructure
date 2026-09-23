@@ -1,0 +1,54 @@
+{
+  "objective": "Plan the REST to GraphQL migration for the mobile app.",
+  "decisions": [
+    {
+      "text": "Strangler facade: a GraphQL gateway in front of the existing REST services.",
+      "rationale": "No rewrite; v1 REST clients untouched behind the SLA freeze."
+    },
+    {
+      "text": "Schema-first with Apollo Federation.",
+      "rationale": "Subgraph ownership matches the microservice org structure."
+    },
+    {
+      "text": "Migrate the mobile launch screen first.",
+      "rationale": "Biggest latency win: 14 calls collapse to 2."
+    },
+    {
+      "text": "Keep REST as the system of record through Q2.",
+      "rationale": "Enterprise SLA freezes v1 REST clients until Q2."
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The app makes 14 REST calls on launch; p95 is 1.8s.",
+      "source": "mobile perf traces"
+    },
+    {
+      "claim": "No breaking changes for v1 REST clients until Q2.",
+      "source": "enterprise SLA"
+    },
+    {
+      "claim": "The GraphQL layer must hold p95 under 300ms.",
+      "source": "perf budget doc"
+    },
+    {
+      "claim": "The backend team has no production GraphQL experience; training is budgeted.",
+      "source": "team skills matrix"
+    },
+    {
+      "claim": "GraphQL would collapse the launch sequence to 2 calls.",
+      "source": "schema spike"
+    }
+  ],
+  "open_questions": [
+    "Who owns federated schema governance: a single team or a council?",
+    "How are N+1 queries prevented: dataloader discipline or review?",
+    "What is the rollback trigger if p95 exceeds 300ms in prod?"
+  ],
+  "next_actions": [
+    "Stand up the federation gateway in staging (owner: mobile platform, due Nov 1).",
+    "Write the launch-screen subgraph (owner: feed team).",
+    "Define the schema governance RFC (owner: staff eng).",
+    "Book GraphQL training for backend engineers (owner: eng manager)."
+  ]
+}

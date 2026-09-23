@@ -1,0 +1,105 @@
+{
+  "created": "2026-09-23T23:49:21.891870+00:00",
+  "adapter": "manual",
+  "items": [
+    {
+      "task": "task_001_vendor_selection",
+      "condition": "transcript",
+      "file": "results/pilot/raw/task_001_vendor_selection__transcript.md",
+      "prompt_words": 785,
+      "prompt_chars": 4880,
+      "output_words": 182,
+      "output_chars": 1209,
+      "input_tokens": null,
+      "output_tokens": null
+    },
+    {
+      "task": "task_001_vendor_selection",
+      "condition": "summary",
+      "file": "results/pilot/raw/task_001_vendor_selection__summary.md",
+      "prompt_words": 522,
+      "prompt_chars": 3401,
+      "output_words": 183,
+      "output_chars": 1213,
+      "input_tokens": null,
+      "output_tokens": null
+    },
+    {
+      "task": "task_001_vendor_selection",
+      "condition": "world",
+      "file": "results/pilot/raw/task_001_vendor_selection__world.md",
+      "prompt_words": 637,
+      "prompt_chars": 4370,
+      "output_words": 176,
+      "output_chars": 1168,
+      "input_tokens": null,
+      "output_tokens": null
+    },
+    {
+      "task": "task_002_incident_postmortem",
+      "condition": "transcript",
+      "file": "results/pilot/raw/task_002_incident_postmortem__transcript.md",
+      "prompt_words": 674,
+      "prompt_chars": 4133,
+      "output_words": 202,
+      "output_chars": 1283,
+      "input_tokens": null,
+      "output_tokens": null
+    },
+    {
+      "task": "task_002_incident_postmortem",
+      "condition": "summary",
+      "file": "results/pilot/raw/task_002_incident_postmortem__summary.md",
+      "prompt_words": 493,
+      "prompt_chars": 3039,
+      "output_words": 185,
+      "output_chars": 1144,
+      "input_tokens": null,
+      "output_tokens": null
+    },
+    {
+      "task": "task_002_incident_postmortem",
+      "condition": "world",
+      "file": "results/pilot/raw/task_002_incident_postmortem__world.md",
+      "prompt_words": 566,
+      "prompt_chars": 3793,
+      "output_words": 206,
+      "output_chars": 1156,
+      "input_tokens": null,
+      "output_tokens": null
+    },
+    {
+      "task": "task_003_api_migration",
+      "condition": "transcript",
+      "file": "results/pilot/raw/task_003_api_migration__transcript.md",
+      "prompt_words": 601,
+      "prompt_chars": 3678,
+      "output_words": 205,
+      "output_chars": 1291,
+      "input_tokens": null,
+      "output_tokens": null
+    },
+    {
+      "task": "task_003_api_migration",
+      "condition": "summary",
+      "file": "results/pilot/raw/task_003_api_migration__summary.md",
+      "prompt_words": 412,
+      "prompt_chars": 2614,
+      "output_words": 167,
+      "output_chars": 1101,
+      "input_tokens": null,
+      "output_tokens": null
+    },
+    {
+      "task": "task_003_api_migration",
+      "condition": "world",
+      "file": "results/pilot/raw/task_003_api_migration__world.md",
+      "prompt_words": 495,
+      "prompt_chars": 3351,
+      "output_words": 186,
+      "output_chars": 1191,
+      "input_tokens": null,
+      "output_tokens": null
+    }
+  ]
+}

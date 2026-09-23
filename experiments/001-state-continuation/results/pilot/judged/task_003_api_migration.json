@@ -1,0 +1,29 @@
+[
+  {
+    "id": "T003-A",
+    "condition": "world",
+    "M1": 3,
+    "M2_judged": 3,
+    "M5_judged_hits": [],
+    "M6_judged": 3,
+    "notes": "Scope/sequencing/owners/rollback all present."
+  },
+  {
+    "id": "T003-B",
+    "condition": "summary",
+    "M1": 3,
+    "M2_judged": 3,
+    "M5_judged_hits": [],
+    "M6_judged": 3,
+    "notes": "All parts present; facts correct."
+  },
+  {
+    "id": "T003-C",
+    "condition": "transcript",
+    "M1": 3,
+    "M2_judged": 3,
+    "M5_judged_hits": [],
+    "M6_judged": 3,
+    "notes": "All parts present; facts correct."
+  }
+]
