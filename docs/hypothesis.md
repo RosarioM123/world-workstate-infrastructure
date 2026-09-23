@@ -79,3 +79,34 @@ The thesis is false, or not useful, if any of the following hold:
 If (1) or (2) holds, WORLD should be re-scoped as a convention, not built as
 infrastructure. If (3) holds, the project is dead. See
 `docs/thesis-challenge.md` for the full adversarial case.
+## Experiment #002 verdict (2026-09-23)
+
+Experiment #002 (Intel main run plus Disney replication, blind grading on 14
+metrics against a predeclared answer key) partially supports the WORLD
+thesis, in a specifically narrowed form.
+
+**Supported:** structured work-state with stable labels preserved
+decision-governance items across agent handoffs better than a raw journal or
+an independently written summary in both runs (reference means 3.92 vs 3.58
+vs 3.33 on Intel; 4.45 vs 4.09 vs 2.82 on Disney). The advantage concentrated
+in assumptions with confidence levels, provenance, and supersession records.
+The mechanism is label stability: the journal continuation renumbered every
+item under its own labels, and that relabeling is where governance items were
+lost.
+
+**Not supported:** revision history. The WORLD continuation scored 2 on
+revision history in BOTH runs, losing the old-to-new-to-trigger chains the
+state was built to preserve. The current state representation does not
+transmit revision chains into a continuation. An independent summary came
+within 0.36 of the WORLD continuation in the replication, so falsifiability
+condition 1 (summary parity) remains open.
+
+**Untested:** success criterion 2 (no human has traced a decision from the
+state to its evidence) and criterion 3 (same model family throughout).
+
+The claim is therefore narrowed: WORLD-style stable labeled governance
+records help cross-agent handoffs for assumptions, provenance, and
+supersession, but the revision mechanism is unproven. The next experiment
+should test revision-chain preservation explicitly before any broader
+infrastructure claim is made.
+
