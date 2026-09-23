@@ -418,21 +418,33 @@ class LocalLedger:
             expected_previous = row["record_hash"]
         return True, None
 
-    def get_ledger(self, entity_id: str | None = None, limit: int = 50) -> list[dict]:
-        """Recent ledger rows, newest first. Same shape as the server's."""
+    def get_ledger(
+        self,
+        entity_id: str | None = None,
+        limit: int = 50,
+        cursor: int | None = None,
+    ) -> list[dict]:
+        """Recent ledger rows, newest first. Same shape as the server's.
+
+        ``cursor`` is an exclusive upper bound on transaction_id: only
+        rows older than the cursor are returned.
+        """
+        query = "SELECT * FROM state_ledger"
+        params: list = []
+        clauses = []
+        if entity_id:
+            clauses.append("entity_id = ?")
+            params.append(entity_id)
+        if cursor is not None:
+            clauses.append("transaction_id < ?")
+            params.append(cursor)
+        if clauses:
+            query += " WHERE " + " AND ".join(clauses)
+        query += " ORDER BY transaction_id DESC LIMIT ?"
+        params.append(limit)
         with closing(self._connect()) as conn:
             conn.row_factory = sqlite3.Row
-            if entity_id:
-                rows = conn.execute(
-                    "SELECT * FROM state_ledger WHERE entity_id = ? "
-                    "ORDER BY transaction_id DESC LIMIT ?",
-                    (entity_id, limit),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    "SELECT * FROM state_ledger ORDER BY transaction_id DESC LIMIT ?",
-                    (limit,),
-                ).fetchall()
+            rows = conn.execute(query, params).fetchall()
             return [dict(r) for r in rows]
 
     def get_entity(self, entity_id: str) -> dict | None:
@@ -443,6 +455,106 @@ class LocalLedger:
                 "SELECT * FROM entities WHERE entity_id = ?", (entity_id,)
             ).fetchone()
             return dict(row) if row else None
+
+    def register_entity(
+        self,
+        entity_id: str,
+        capacity: float,
+        liquidity: float,
+        actor: str | None = None,
+    ) -> dict:
+        """Register a new entity and log its creation on the ledger.
+
+        Same contract as the server's ``register_entity``: inputs are
+        validated the same way intents are, duplicates raise ValueError,
+        and the creation is appended as a COMMITTED REGISTER_ENTITY row so
+        it is auditable like every other state change.
+        """
+        if not isinstance(entity_id, str) or not entity_id:
+            raise ValueError("Invalid entity: entity_id must be a non-empty string.")
+        if len(entity_id) > 64:
+            raise ValueError("Invalid entity: entity_id must be at most 64 characters.")
+        for name, value in (("capacity", capacity), ("liquidity", liquidity)):
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ValueError(  # noqa: TRY004
+                    f"Invalid entity: {name} must be a number."
+                )
+            if not math.isfinite(value):
+                raise ValueError(f"Invalid entity: {name} must be finite.")
+            if value < 0:
+                raise ValueError(f"Invalid entity: {name} must be non-negative.")
+        if actor is not None and (not isinstance(actor, str) or not actor):
+            raise ValueError("Invalid entity: actor must be a non-empty string.")
+
+        capacity = float(capacity)
+        liquidity = float(liquidity)
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 FROM entities WHERE entity_id = ?", (entity_id,))
+            if cursor.fetchone() is not None:
+                raise ValueError(f"Entity already exists: {entity_id!r} is registered.")
+
+            timestamp = _utcnow()
+            cursor.execute(
+                "INSERT INTO entities "
+                "(entity_id, capacity, available_liquidity, status, "
+                " last_updated) VALUES (?, ?, ?, ?, ?)",
+                (entity_id, capacity, liquidity, "ACTIVE", timestamp),
+            )
+
+            payload = {
+                "action": "REGISTER_ENTITY",
+                "entity_id": entity_id,
+                "initial_capacity": capacity,
+                "initial_liquidity": liquidity,
+                "actor": actor,
+            }
+            payload_json = json.dumps(payload, sort_keys=True)
+            cursor.execute(
+                "SELECT record_hash FROM state_ledger "
+                "ORDER BY transaction_id DESC LIMIT 1"
+            )
+            prev = cursor.fetchone()
+            previous_hash = prev[0] if prev else None
+            record_hash = _hash_record(
+                timestamp,
+                entity_id,
+                "REGISTER_ENTITY",
+                payload_json,
+                previous_hash,
+                "COMMITTED",
+            )
+            cursor.execute(
+                "INSERT INTO state_ledger "
+                "(timestamp, entity_id, action, payload, previous_hash, "
+                " record_hash, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    timestamp,
+                    entity_id,
+                    "REGISTER_ENTITY",
+                    payload_json,
+                    previous_hash,
+                    record_hash,
+                    "COMMITTED",
+                ),
+            )
+            transaction_id = cursor.lastrowid
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+        return {
+            "entity_id": entity_id,
+            "capacity": capacity,
+            "available_liquidity": liquidity,
+            "status": "ACTIVE",
+            "transaction_id": transaction_id,
+        }
 
     def replay_to(self, height: int) -> dict[str, dict[str, Any]]:
         """Rebuild materialized state by replaying COMMITTED rows.
@@ -474,6 +586,16 @@ class LocalLedger:
             ).fetchall()
         for row in rows:
             payload = json.loads(row["payload"])
+            if payload.get("action") == "REGISTER_ENTITY":
+                new_id = payload.get("entity_id")
+                if isinstance(new_id, str) and new_id:
+                    state[new_id] = {
+                        "entity_id": new_id,
+                        "capacity": payload.get("initial_capacity", 0.0),
+                        "available_liquidity": payload.get("initial_liquidity", 0.0),
+                        "status": "ACTIVE",
+                    }
+                continue
             intent = payload.get("intent") or {}
             entity = state.get(intent.get("entity_id", ""))
             if entity is None:
@@ -596,14 +718,15 @@ class LocalLedger:
             cursor = conn.cursor()
             for entity_id, entity in state.items():
                 cursor.execute(
-                    "UPDATE entities SET capacity = ?, available_liquidity = ?, "
-                    "status = ?, last_updated = ? WHERE entity_id = ?",
+                    "INSERT OR REPLACE INTO entities "
+                    "(entity_id, capacity, available_liquidity, status, "
+                    " last_updated) VALUES (?, ?, ?, ?, ?)",
                     (
+                        entity_id,
                         entity["capacity"],
                         entity["available_liquidity"],
                         entity["status"],
                         _utcnow(),
-                        entity_id,
                     ),
                 )
             conn.commit()

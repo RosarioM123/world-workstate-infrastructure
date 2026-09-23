@@ -414,20 +414,142 @@ def get_entity(entity_id: str) -> dict | None:
         return dict(row) if row else None
 
 
-def get_ledger(entity_id: str | None = None, limit: int = 50) -> list[dict]:
+def register_entity(
+    entity_id: str,
+    capacity: float,
+    liquidity: float,
+    actor: str | None = None,
+) -> dict:
+    """Register a new entity and log its creation on the ledger.
+
+    The database starts with a single seeded node; this is how a second,
+    third, and further nodes join the world. Inputs are validated the same
+    way intents are (non-empty id, finite non-negative numbers, a
+    non-empty actor when given). Registration runs under BEGIN IMMEDIATE
+    so two concurrent registrations of the same id cannot both succeed.
+
+    The creation is appended to the hash-chained ledger as a COMMITTED
+    REGISTER_ENTITY row, so entity creation is auditable exactly like
+    every other state change. ``actor`` is a plain label, it confers no
+    authority.
+
+    Raises ValueError for malformed input. Raises ValueError when the
+    entity_id is already registered (the API maps that to HTTP 409).
+    """
+    if not isinstance(entity_id, str) or not entity_id:
+        raise ValueError("Invalid entity: entity_id must be a non-empty string.")
+    if len(entity_id) > 64:
+        raise ValueError("Invalid entity: entity_id must be at most 64 characters.")
+    for name, value in (("capacity", capacity), ("liquidity", liquidity)):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(  # noqa: TRY004
+                f"Invalid entity: {name} must be a number."
+            )
+        if not math.isfinite(value):
+            raise ValueError(f"Invalid entity: {name} must be finite.")
+        if value < 0:
+            raise ValueError(f"Invalid entity: {name} must be non-negative.")
+    if actor is not None and (not isinstance(actor, str) or not actor):
+        raise ValueError("Invalid entity: actor must be a non-empty string.")
+
+    capacity = float(capacity)
+    liquidity = float(liquidity)
+    conn = connect_db()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM entities WHERE entity_id = ?", (entity_id,))
+        if cursor.fetchone() is not None:
+            raise ValueError(f"Entity already exists: {entity_id!r} is registered.")
+
+        timestamp = _utcnow()
+        cursor.execute(
+            "INSERT INTO entities"
+            " (entity_id, capacity, available_liquidity, status, last_updated)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (entity_id, capacity, liquidity, "ACTIVE", timestamp),
+        )
+
+        payload = {
+            "action": "REGISTER_ENTITY",
+            "entity_id": entity_id,
+            "initial_capacity": capacity,
+            "initial_liquidity": liquidity,
+            "actor": actor,
+        }
+        payload_json = json.dumps(payload, sort_keys=True)
+        cursor.execute(
+            "SELECT record_hash FROM state_ledger ORDER BY transaction_id DESC LIMIT 1"
+        )
+        prev = cursor.fetchone()
+        previous_hash = prev[0] if prev else None
+        record_hash = _hash_record(
+            timestamp,
+            entity_id,
+            "REGISTER_ENTITY",
+            payload_json,
+            previous_hash,
+            "COMMITTED",
+        )
+        cursor.execute(
+            "INSERT INTO state_ledger"
+            " (timestamp, entity_id, action, payload, previous_hash,"
+            " record_hash, status)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                timestamp,
+                entity_id,
+                "REGISTER_ENTITY",
+                payload_json,
+                previous_hash,
+                record_hash,
+                "COMMITTED",
+            ),
+        )
+        transaction_id = cursor.lastrowid
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+    return {
+        "entity_id": entity_id,
+        "capacity": capacity,
+        "available_liquidity": liquidity,
+        "status": "ACTIVE",
+        "transaction_id": transaction_id,
+    }
+
+
+def get_ledger(
+    entity_id: str | None = None,
+    limit: int = 50,
+    cursor: int | None = None,
+) -> list[dict]:
+    """Read ledger rows newest-first.
+
+    ``cursor`` is an exclusive upper bound on transaction_id: only rows
+    older than the cursor are returned. It is the pagination primitive
+    behind ``GET /api/v1/ledger``.
+    """
+    query = "SELECT * FROM state_ledger"
+    params: list = []
+    clauses = []
+    if entity_id:
+        clauses.append("entity_id = ?")
+        params.append(entity_id)
+    if cursor is not None:
+        clauses.append("transaction_id < ?")
+        params.append(cursor)
+    if clauses:
+        query += " WHERE " + " AND ".join(clauses)
+    query += " ORDER BY transaction_id DESC LIMIT ?"
+    params.append(limit)
     with closing(connect_db()) as conn:
         conn.row_factory = sqlite3.Row
-        if entity_id:
-            rows = conn.execute(
-                "SELECT * FROM state_ledger WHERE entity_id = ? "
-                "ORDER BY transaction_id DESC LIMIT ?",
-                (entity_id, limit),
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                "SELECT * FROM state_ledger ORDER BY transaction_id DESC LIMIT ?",
-                (limit,),
-            ).fetchall()
+        rows = conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
 
@@ -471,23 +593,28 @@ def verify_chain() -> tuple[bool, int | None]:
     return True, None
 
 
-def rogue_agent_attack() -> list[dict]:
+def rogue_agent_attack(entity_id: str | None = None) -> list[dict]:
     """Adversarial self-test of the constraint engine.
 
     A rogue agent proposes illegal state changes (an impossible drain, an
     impossible withdrawal, and a spoofed entity). Every one must come back
     REJECTED by hard code, and every attempt is appended to the ledger for
     the audit trail. The engine never raises for policy violations.
+
+    ``entity_id`` selects the node the drain and withdrawal attacks are
+    pointed at; it defaults to the seeded node. The spoof attack always
+    targets a node that does not exist.
     """
+    target = entity_id if entity_id is not None else SEED_ENTITY_ID
     attacks = [
         IntentTransaction(
-            SEED_ENTITY_ID,
+            target,
             "ROGUE_DRAIN",
             requested_delta_capacity=-999999.0,
             requested_delta_cash=0.0,
         ),
         IntentTransaction(
-            SEED_ENTITY_ID,
+            target,
             "ROGUE_WITHDRAWAL",
             requested_delta_capacity=0.0,
             requested_delta_cash=-99999999.0,

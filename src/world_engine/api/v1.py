@@ -8,7 +8,7 @@ clients). Route handlers live here exactly once.
 import logging
 import sqlite3
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from world_engine.core.engine import (
@@ -16,6 +16,8 @@ from world_engine.core.engine import (
     IntentTransaction,
     connect_db,
     execute_deterministic_transition,
+    get_ledger,
+    register_entity,
     rogue_agent_attack,
 )
 
@@ -81,6 +83,57 @@ def post_intent(req: IntentRequest) -> dict:
 
 
 @router.post("/rogue-attack")
-def trigger_rogue_attack() -> dict[str, list[dict]]:
-    """Unleash the rogue agent. Every illegal intent must come back REJECTED."""
-    return {"attacks": rogue_agent_attack()}
+def trigger_rogue_attack(entity_id: str | None = None) -> dict[str, list[dict]]:
+    """Unleash the rogue agent. Every illegal intent must come back REJECTED.
+
+    ``entity_id`` optionally points the drain and withdrawal attacks at a
+    registered node instead of the seeded one.
+    """
+    return {"attacks": rogue_agent_attack(entity_id)}
+
+
+class EntityRequest(BaseModel):
+    entity_id: str = Field(max_length=64)
+    capacity: float = Field(ge=0)
+    liquidity: float = Field(ge=0)
+    # Multi-agent schema seam: recorded into the ledger payload, unenforced.
+    actor: str | None = Field(default=None, max_length=128)
+
+
+@router.post("/entities", status_code=201)
+def create_entity(req: EntityRequest) -> dict:
+    """Register a new node in the world. Duplicate ids come back 409."""
+    try:
+        return register_entity(
+            entity_id=req.entity_id,
+            capacity=req.capacity,
+            liquidity=req.liquidity,
+            actor=req.actor,
+        )
+    except ValueError as exc:
+        message = str(exc)
+        if message.startswith("Entity already exists"):
+            raise HTTPException(
+                status_code=409,
+                detail={"code": "entity_exists", "message": message},
+            )
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "invalid_entity", "message": message},
+        )
+
+
+@router.get("/ledger")
+def read_ledger(
+    entity_id: str | None = None,
+    limit: int = Query(default=50, ge=1, le=500),
+    cursor: int | None = Query(default=None, ge=1),
+) -> dict:
+    """Page through the tamper-evident ledger, newest first.
+
+    ``cursor`` is an exclusive upper bound on transaction_id: pass back
+    ``next_cursor`` to keep walking toward older rows.
+    """
+    rows = get_ledger(entity_id=entity_id, limit=limit, cursor=cursor)
+    next_cursor = rows[-1]["transaction_id"] if len(rows) == limit else None
+    return {"ledger": rows, "next_cursor": next_cursor}

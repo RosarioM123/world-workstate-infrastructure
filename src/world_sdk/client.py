@@ -70,6 +70,21 @@ class WorldClient:
         )
         return {"status": result["status"], "details": result["details"]}
 
+    def register_entity(
+        self,
+        entity_id: str,
+        capacity: float,
+        liquidity: float,
+        actor: str | None = None,
+    ) -> dict[str, Any]:
+        """Register a new entity in the local ledger.
+
+        Same contract as the server's entity registration: the creation
+        is validated like an intent and appended as a COMMITTED
+        REGISTER_ENTITY row, so it is auditable like every other change.
+        """
+        return self.ledger.register_entity(entity_id, capacity, liquidity, actor=actor)
+
     def state_at_block(self, height: int) -> dict[str, dict[str, Any]]:
         """Materialized state after replaying the ledger to a block height."""
         return self.ledger.replay_to(height)

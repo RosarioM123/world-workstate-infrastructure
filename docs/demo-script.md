@@ -31,5 +31,5 @@ Perform live. Spoken lines are quoted; bracketed lines are stage directions (not
 
 ## If the live demo breaks
 
-- Dashboard won't load: fall back to the terminal. `POST /api/intent` with curl for the ALLOCATE, `POST /api/rogue-attack` for the rejection, `GET /api/state` to show the ledger. Same story, no visuals lost.
+- Dashboard won't load: fall back to the terminal. `POST /api/v1/intent` with curl for the ALLOCATE, `POST /api/v1/rogue-attack` for the rejection, `GET /api/v1/state` to show the ledger. Same story, no visuals lost.
 - Keep your energy on the REJECTED beat — the attack staying in the ledger is the memorable moment. That's the line judges repeat back.

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * Fetches /api/state and renders the materialized entities plus the
+ * Fetches /api/v1/state and renders the materialized entities plus the
  * recent ledger. Renders nothing (beyond BackendStatus) when the
  * backend is unreachable — the page must stay useful offline.
  */
@@ -10,7 +10,7 @@ export default function StatePanel() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/state", { cache: "no-store" })
+    fetch("/api/v1/state", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
         if (!cancelled) setData(json);

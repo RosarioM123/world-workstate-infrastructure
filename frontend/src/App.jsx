@@ -45,14 +45,14 @@ function ApiDocs() {
       </p>
       <pre className="code">
 {`$ uvicorn app:app
-$ curl 127.0.0.1:8000/api/state
+$ curl 127.0.0.1:8000/api/v1/state
 
-$ curl -X POST 127.0.0.1:8000/api/intent \\
+$ curl -X POST 127.0.0.1:8000/api/v1/intent \\
     -H "Content-Type: application/json" \\
     -d '{"entity_id":"node_rotterdam_hub","action":"ALLOCATE",
-         "requested_delta_capacity":-50.0,"requested_delta_cash":0.0}'
+         "delta_capacity":-50.0,"delta_cash":0.0}'
 
-$ curl -X POST 127.0.0.1:8000/api/rogue-attack
+$ curl -X POST 127.0.0.1:8000/api/v1/rogue-attack
   # every verdict: REJECTED`}
       </pre>
     </section>

@@ -30,11 +30,16 @@ Single-pointer dashboard. Updated 2026-09-22.
 
 ## Health
 
-- Tests: 147 green. Coverage: 95.80% across `world_engine` + `world_sdk`
+- Tests: 172 green. Coverage: 94.97% across `world_engine` + `world_sdk`
   (gate 85%). `ruff check`, `ruff format --check`, `mypy` clean in CI
   (Python 3.11-3.13), now also covering `examples/` and `experiments/`.
 - Multi-agent schema seam (actor, kind, idempotency_key) shipped with
   commit-time dedup; empty keys rejected; dedup mappings rebuilt on
   ledger import; PEP 561 `py.typed` markers so downstream mypy works.
+- Multi-entity support: `POST /api/v1/entities` registration (409 on
+  duplicate), `GET /api/v1/ledger` with entity/limit/cursor pagination,
+  rogue-attack targetable at any node; SDK parity plus hypothesis
+  property tests asserting both backends agree on verdicts, state, and
+  chain validity.
   See docs/adr/0005-multi-agent-conflict-policy.md and
   docs/adr/0006-auth-rbac-shape.md.

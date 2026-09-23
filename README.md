@@ -118,7 +118,15 @@ curl 127.0.0.1:8000/api/v1/state
 
 curl -X POST 127.0.0.1:8000/api/v1/intent \
   -H "Content-Type: application/json" \
-  -d '{"entity_id":"node_rotterdam_hub","action":"ALLOCATE","requested_delta_capacity":-50.0,"requested_delta_cash":0.0}'
+  -d '{"entity_id":"node_rotterdam_hub","action":"ALLOCATE","delta_capacity":-50.0,"delta_cash":0.0}'
+
+# Register a second node, then page through the ledger:
+curl -X POST 127.0.0.1:8000/api/v1/entities \
+  -H "Content-Type: application/json" \
+  -d '{"entity_id":"node_singapore_hub","capacity":2000.0,"liquidity":100000.0}'
+
+curl "127.0.0.1:8000/api/v1/ledger?limit=10"
+# pass next_cursor back as ?cursor= to keep walking toward older rows
 ```
 
 Every response carries an `X-Request-ID` header, and every failure

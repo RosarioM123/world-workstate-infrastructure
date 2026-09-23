@@ -23,7 +23,9 @@ print(client.verify())      # (True, None): hash chain intact
   ledger. `intent()` runs the same constraint policy as the server (the
   policy function is imported, not copied, so verdicts cannot drift) and
   appends every attempt, COMMITTED or REJECTED. Only COMMITTED intents
-  mutate materialized state.
+  mutate materialized state. `register_entity()` adds a new node with
+  initial capacity/liquidity, validated like an intent and logged as a
+  COMMITTED `REGISTER_ENTITY` row, so entity creation is auditable too.
 - **Embedding sidecar** (`world_sdk.index.EmbeddingSidecar`): a sqlite3
   table mapping block height to vector blob, with pure-Python cosine
   search. Bring-your-own embeddings: the SDK never calls an embedding
