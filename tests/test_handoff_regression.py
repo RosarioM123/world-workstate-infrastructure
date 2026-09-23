@@ -38,7 +38,7 @@ Muse: Note: the stranger test decides scoring; slightly-off continuations are fa
 def _reconstruct_bundle(rows: list[dict]) -> dict:
     """Rebuild the handoff bundle from ledger rows alone, the way a fresh
     session would. Notes are stored as "KIND | speaker=NAME | text"."""
-    bundle = {
+    bundle: dict[str, list[str]] = {
         "decisions": [],
         "assumptions": [],
         "open_questions": [],
