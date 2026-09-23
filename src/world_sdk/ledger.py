@@ -250,8 +250,12 @@ class LocalLedger:
             raise ValueError(
                 "Invalid intent: kind must be 'INTERNAL_STATE' or 'EXTERNAL_EFFECT'."
             )
-        if idempotency_key is not None and not isinstance(idempotency_key, str):
-            raise ValueError("Invalid intent: idempotency_key must be a string.")
+        if idempotency_key is not None and (
+            not isinstance(idempotency_key, str) or not idempotency_key
+        ):
+            raise ValueError(
+                "Invalid intent: idempotency_key must be a non-empty string."
+            )
         delta_capacity, delta_cash = normalize_deltas(deltas)
 
         conn = self._connect()
@@ -537,7 +541,39 @@ class LocalLedger:
             )
 
         self._rebuild_entities()
+        self._rebuild_idempotency_keys()
         return len(inserted_ids)
+
+    def _rebuild_idempotency_keys(self) -> None:
+        """Rebuild the dedup table from the ledger payloads.
+
+        Used after imports so a synced ledger keeps deduplicating retries:
+        every row whose payload carries a non-empty ``idempotency_key``
+        maps back to its transaction, first occurrence wins. Rows written
+        before the schema seam (or with malformed payloads) carry no key
+        and are skipped.
+        """
+        with closing(self._connect()) as conn:
+            rows = conn.execute(
+                "SELECT transaction_id, payload FROM state_ledger "
+                "ORDER BY transaction_id"
+            ).fetchall()
+        mappings: list[tuple[str, int]] = []
+        for transaction_id, payload in rows:
+            try:
+                key = json.loads(payload).get("intent", {}).get("idempotency_key")
+            except (json.JSONDecodeError, AttributeError):
+                continue
+            if isinstance(key, str) and key:
+                mappings.append((key, int(transaction_id)))
+        with closing(self._connect()) as conn:
+            conn.execute("DELETE FROM idempotency_keys")
+            conn.executemany(
+                "INSERT OR IGNORE INTO idempotency_keys "
+                "(idempotency_key, transaction_id) VALUES (?, ?)",
+                mappings,
+            )
+            conn.commit()
 
     def _rebuild_entities(self) -> None:
         """Reset materialized state to the seed, then replay the chain.
