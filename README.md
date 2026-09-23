@@ -181,6 +181,37 @@ An invariant is `(old_state, new_state) -> None`; raise
 you write. Non-violation exceptions propagate uncaught and are *not*
 recorded — a crashing judge is a bug, not a verdict.
 
+### Agent handoff
+
+The first agent-facing API on the primitive — no LLM provider dependency,
+stdlib only. An agent writes its work state; a fresh agent recovers it
+from the world name alone:
+
+```python
+from world import AgentState, Decision, Evidence, load_state, save_state
+
+state = AgentState(
+    objective="Draft the Q3 foundry memo",
+    decisions=[Decision("Source yields from SEC filings only",
+                        rationale="Filings give quarterly granularity")],
+    evidence=[Evidence("Defect density improved 2x QoQ",
+                       source="10-Q Q2 2026")],
+    open_questions=["Foundry breakeven date?"],
+    next_actions=["Build the DCF", "Run the credit stress case"],
+)
+save_state("research-acme", state, actor="agent-a")  # -> version seq
+
+# later, a fresh session / process / model:
+recovered = load_state("research-acme")   # the identical AgentState
+```
+
+`save_state` stores under the reserved `"handoff"` key (other document
+keys are preserved); every save is a judged, hash-chained version.
+`load_state` accepts a world name or a `World`, plus `version=` /
+`checkpoint=` for historical handoffs, and raises `KeyError` if nothing
+was ever saved. Round-trip fidelity is pinned by `tests/test_handoff.py`,
+including a two-interpreter test proving no in-memory state leaks.
+
 ### CLI and HTTP
 
 The `world` command covers every operation (`init`, `update`, `state`,

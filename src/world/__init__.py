@@ -6,7 +6,18 @@ verdict (COMMITTED or REJECTED) appended to a hash-chained log.
 """
 
 from .core import ConflictError, InvariantViolation, World
+from .handoff import AgentState, Decision, Evidence, load_state, save_state
 
 __version__ = "0.1.0"
 
-__all__ = ["ConflictError", "InvariantViolation", "World", "__version__"]
+__all__ = [
+    "AgentState",
+    "ConflictError",
+    "Decision",
+    "Evidence",
+    "InvariantViolation",
+    "World",
+    "__version__",
+    "load_state",
+    "save_state",
+]
