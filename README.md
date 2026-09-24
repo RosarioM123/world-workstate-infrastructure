@@ -9,7 +9,7 @@ verdict — COMMITTED or REJECTED — is hash-chained evidence.
 [![CI](https://github.com/RosarioM123/world-workstate-infrastructure/actions/workflows/ci.yml/badge.svg)](https://github.com/RosarioM123/world-workstate-infrastructure/actions/workflows/ci.yml)
 ![Python 3.11 | 3.12 | 3.13](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)
 
-**Status:** v0.1.0 primitive. Working prototype, not deployed. 239 tests
+**Status:** v0.1.0 primitive. Working prototype, not deployed. 247 tests
 green in CI (pytest + ruff + mypy).
 
 ## Install
@@ -300,7 +300,7 @@ The primitive's own design rationale is
                         CLI, HTTP server (opt-in), transcript producer
 /src/world_engine     — legacy demo kernel (see above)
 /src/world_sdk        — legacy offline client SDK (docs/SDK.md)
-/tests                — 239 tests: primitive, kernel, SDK, API, security
+/tests                — 247 tests: primitive, kernel, SDK, API, security
 /docs/adr             — architecture decision records
 /docs                 — thesis, hypothesis, state model, experiments
 /experiments          — handoff experiment harness + tasks

@@ -72,7 +72,9 @@ def score_continuation(gt: dict, text: str) -> dict:
     ]
     repeat_hay = proposal_sentences(text)
     repeat_hits = [
-        i["id"] for i in gt["already_done"] if any_present(i["must_mention"], repeat_hay)
+        i["id"]
+        for i in gt["already_done"]
+        if any_present(i["must_mention"], repeat_hay)
     ]
 
     return {
@@ -80,7 +82,9 @@ def score_continuation(gt: dict, text: str) -> dict:
         "M3_decision_recovery": round(frac(decisions), 3),
         "M4_question_recovery": round(frac(questions), 3),
         "M5_contradiction_hits": contra_hits,
-        "M5_contradiction_rate_per_100w": round(len(contra_hits) / max(words, 1) * 100, 3),
+        "M5_contradiction_rate_per_100w": round(
+            len(contra_hits) / max(words, 1) * 100, 3
+        ),
         "M6_repeated_work_hits": repeat_hits,
         "M6_repeated_work_count": len(repeat_hits),
         "output_words": words,
@@ -121,9 +125,15 @@ def main() -> None:
     (out / "scores.json").write_text(json.dumps(rows, indent=2) + "\n")
 
     headers = [
-        "task", "condition", "M2_factual_accuracy_proxy", "M3_decision_recovery",
-        "M4_question_recovery", "M5_contradiction_rate_per_100w",
-        "M6_repeated_work_count", "prompt_words", "output_words",
+        "task",
+        "condition",
+        "M2_factual_accuracy_proxy",
+        "M3_decision_recovery",
+        "M4_question_recovery",
+        "M5_contradiction_rate_per_100w",
+        "M6_repeated_work_count",
+        "prompt_words",
+        "output_words",
     ]
     with open(out / "scores.csv", "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=headers, extrasaction="ignore")
@@ -133,8 +143,10 @@ def main() -> None:
     lines = [
         "# Deterministic scores",
         "",
-        ("| task | condition | M2 factual | M3 decisions | M4 questions | "
-         "M5 contra/100w | M6 repeated | in-words | out-words |"),
+        (
+            "| task | condition | M2 factual | M3 decisions | M4 questions | "
+            "M5 contra/100w | M6 repeated | in-words | out-words |"
+        ),
         "|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:

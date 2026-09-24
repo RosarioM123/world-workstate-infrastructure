@@ -87,3 +87,10 @@ line-length = 88
 [tool.mypy]
 python_version = "3.11"
 warn_unused_ignores = true
+
+# uvicorn is an optional server dependency, imported lazily inside
+# functions (cli.cmd_serve, api.main.serve). It has no type stubs;
+# silence the import error rather than adding a hard dependency.
+[[tool.mypy.overrides]]
+module = "uvicorn.*"
+ignore_missing_imports = true

@@ -56,9 +56,7 @@ def cmd_build_prompts(args: argparse.Namespace) -> None:
     for task_dir in _tasks(args.tasks):
         for condition in CONDITIONS:
             system, user = build_prompt(task_dir, condition)
-            (out / f"{task_dir.name}__{condition}.md").write_text(
-                f"{system}\n\n{user}"
-            )
+            (out / f"{task_dir.name}__{condition}.md").write_text(f"{system}\n\n{user}")
             print(f"wrote {task_dir.name}__{condition}.md")
 
 
@@ -76,10 +74,11 @@ def cmd_run(args: argparse.Namespace) -> None:
     out = Path(args.out)
     raw = out / "raw"
     raw.mkdir(parents=True, exist_ok=True)
-    manifest = {
+    items: list[dict[str, object]] = []
+    manifest: dict[str, object] = {
         "created": datetime.now(UTC).isoformat(),
         "adapter": args.adapter,
-        "items": [],
+        "items": items,
     }
     for task_dir in _tasks(args.tasks):
         for condition in CONDITIONS:
@@ -87,7 +86,7 @@ def cmd_run(args: argparse.Namespace) -> None:
             result = adapter.complete(system, user)
             name = f"{task_dir.name}__{condition}"
             (raw / f"{name}.md").write_text(result.text)
-            manifest["items"].append(
+            items.append(
                 {
                     "task": task_dir.name,
                     "condition": condition,
@@ -109,10 +108,11 @@ def cmd_manifest(args: argparse.Namespace) -> None:
     prompts = Path(args.prompts)
     raw = Path(args.raw)
     out = Path(args.out)
-    manifest = {
+    items: list[dict[str, object]] = []
+    manifest: dict[str, object] = {
         "created": datetime.now(UTC).isoformat(),
         "adapter": "manual",
-        "items": [],
+        "items": items,
     }
     for task_dir in _tasks(args.tasks):
         for condition in CONDITIONS:
@@ -125,7 +125,7 @@ def cmd_manifest(args: argparse.Namespace) -> None:
                 raise SystemExit(f"missing continuation: {raw_file}")
             prompt = prompt_file.read_text()
             text = raw_file.read_text()
-            manifest["items"].append(
+            items.append(
                 {
                     "task": task_dir.name,
                     "condition": condition,
@@ -139,7 +139,7 @@ def cmd_manifest(args: argparse.Namespace) -> None:
                 }
             )
     out.write_text(json.dumps(manifest, indent=2) + "\n")
-    print(f"manifest: {out} ({len(manifest['items'])} items)")
+    print(f"manifest: {out} ({len(items)} items)")
 
 
 def main() -> None:
