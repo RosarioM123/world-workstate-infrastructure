@@ -263,8 +263,6 @@ perfect run with none.
   transaction across documents.
 - **Local-first.** One SQLite file per world. No replication, no sync
   protocol — multi-machine sharing is out of scope for the primitive.
-- **Proprietary license.** Blocks credible external adoption until
-  resolved.
 
 ## Roadmap
 

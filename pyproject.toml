@@ -8,9 +8,10 @@ dynamic = ["version"]
 description = "WORLD: canonical, durable state for AI-agent work — a named JSON document with judged, hash-chained versions that survives handoffs between sessions, processes, and models."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "Proprietary" }
+license = { text = "MIT" }
 keywords = ["ai-agents", "state", "ledger", "handoff"]
 classifiers = [
+    "License :: OSI Approved :: MIT License",
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
