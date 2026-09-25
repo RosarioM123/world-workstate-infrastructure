@@ -152,6 +152,32 @@ stale, no refresh API.
 - **NaN, infinities, and non-JSON values are rejected** before anything
   is persisted.
 
+### Correctness contract
+
+The state model above is a contract the test suite enforces, not just
+documentation:
+
+- **Exactly-once proposal semantics.** Each proposal is judged, then
+  appended exactly once. Writers serialize on SQLite's write lock;
+  `expected_version` gives optimistic concurrency (`ConflictError` on a
+  stale read) and `idempotency_key` dedupes committed retries while
+  rejections are always recorded.
+- **The invariant engine is the correctness boundary.** Nothing is
+  persisted until the declared invariants pass. NaN, infinities, and
+  non-JSON values are rejected before anything is written.
+- **Tamper-evident audit trail.** Every version is SHA-256 hash-chained
+  over prev-hash, seq, timestamp, actor, note, status, and the canonical
+  state. `verify()` pinpoints the first bad row, and rejected proposals
+  are chained too, so the trail records what was blocked and why.
+- **Deterministic replay.** State rebuilds from the version log alone;
+  checkpoints restore as new versions, never rewrites. Any participant
+  replaying history arrives at the same state.
+
+Boundary, stated plainly: tamper-evident, not immutable, and the
+database cannot name the rule set that judged a historical version (see
+Current limitations). The 247-test suite exercises each guarantee above
+in CI.
+
 ## API
 
 Five operations. Full reference: `src/world/core.py` (typed, `py.typed`
@@ -231,6 +257,12 @@ The thesis is tested, not asserted. Both experiments hand the same Agent A
 research output to a successor Agent B in three conditions — structured
 WORLD state, conventional summary, raw transcript/journal — and blind-grade
 the continuations.
+
+Method detail (#002): conditions are blind-labeled X/Y/Z with filename
+and format echoes stripped, graded by an independent evaluator against a
+predeclared 14-metric answer key built from Agent A's decisions and
+assumptions before grading; the mapping is revealed only after scoring.
+The full design replicates on a second domain (Disney after Intel).
 
 - **#001** (2026-09-17, Block Inc.): WORLD state won on governance —
   5/5 decisions with rationales intact, 7/7 assumptions with confidence
