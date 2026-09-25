@@ -18,5 +18,11 @@ This is the WORLD half of the WORLD → REALITY story:
 Run:
 
 ```bash
-python examples/fleet_mission/mission.py
+python examples/fleet_mission/run_demo.py
 ```
+
+`run_demo.py` launches `planner.py` as a real OS subprocess (it defines
+the mission, checkpoints, and terminates), then launches `executor.py`
+once per step as a brand-new process with only the mission name — no
+shared memory, no transcript. The mission survives process death because
+it lives in WORLD, not in any process.
