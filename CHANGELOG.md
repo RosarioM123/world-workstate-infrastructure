@@ -36,6 +36,11 @@ Versions follow [Semantic Versioning](https://semver.org/).
   per request and bypass the limit. Opt in with
   `trust_forwarded_for=True` only behind a trusted reverse proxy, and the
   per-IP hit table is now bounded by periodic eviction of stale entries.
+- `World.state(version=N)` is now committed-only: a REJECTED proposal's
+  seq raises `KeyError` instead of returning the rejected document as if
+  it were history. Rejected attempts stay auditable through the new
+  `World.proposal(seq)`, also exposed as `GET /v1/proposals/{seq}` and the
+  `world proposal` CLI command.
 
 ## [0.1.0] - 2026-09-21
 

@@ -116,7 +116,11 @@ def test_rejected_attempt_is_recorded_as_evidence(tmp_path):
     statuses = [h["status"] for h in w.history()]
     assert statuses == ["COMMITTED", "REJECTED"]
     assert w.history()[1]["note"] == "oops | REJECTED: no_negative: balance = -5"
-    assert w.state(version=2) == {"balance": -5}  # attempted doc preserved
+    # The attempt is auditable via proposal(), but it was never a version:
+    # time travel is committed-only.
+    assert w.proposal(2)["state"] == {"balance": -5}
+    with pytest.raises(KeyError, match="REJECTED"):
+        w.state(version=2)
     assert w.verify() is True
 
 
@@ -290,3 +294,46 @@ def test_verify_detects_tampering(tmp_path):
     cx.commit()
     cx.close()
     assert w2.verify() is False
+
+
+def _world_with_rejection(tmp_path):
+    w = make_world(tmp_path, "timetravel", invariants=[no_negative("bal")])
+    w.update({"bal": 10}, actor="alice")  # seq 1 COMMITTED
+    with pytest.raises(InvariantViolation):
+        w.update({"bal": -1}, actor="bob", note="bad idea")  # seq 2 REJECTED
+    w.update({"bal": 20}, actor="alice")  # seq 3 COMMITTED
+    return w
+
+
+def test_state_version_is_committed_only(tmp_path):
+    w = _world_with_rejection(tmp_path)
+    assert w.version == 3
+    assert w.state() == {"bal": 20}
+    assert w.state(version=1) == {"bal": 10}
+    assert w.state(version=3) == {"bal": 20}
+    # A rejected proposal is not a historical version.
+    with pytest.raises(KeyError, match="REJECTED"):
+        w.state(version=2)
+    with pytest.raises(KeyError, match="unknown version"):
+        w.state(version=99)
+
+
+def test_proposal_audits_rejected_attempts(tmp_path):
+    w = _world_with_rejection(tmp_path)
+    p = w.proposal(2)
+    assert p["status"] == "REJECTED"
+    assert p["state"] == {"bal": -1}
+    assert p["actor"] == "bob"
+    assert "no_negative" in p["note"]
+    # Committed rows are auditable too.
+    p1 = w.proposal(1)
+    assert p1["status"] == "COMMITTED"
+    assert p1["state"] == {"bal": 10}
+    with pytest.raises(KeyError, match="unknown version"):
+        w.proposal(99)
+
+
+def test_checkpoint_time_travel_still_committed_only(tmp_path):
+    w = _world_with_rejection(tmp_path)
+    w.checkpoint("good")
+    assert w.state(checkpoint="good") == {"bal": 20}

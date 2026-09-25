@@ -188,10 +188,11 @@ shipped). Design rationale: `docs/adr/0008-world-primitive.md`.
 | create     | `World("my-project")`                                         | `world init my-project`                   |
 | update     | `work.update(doc, actor=, note=, expected_version=, idempotency_key=)` → seq | `world update my-project --file s.json` |
 | checkpoint | `work.checkpoint("v1")` → seq                                 | `world checkpoint my-project v1`          |
-| load       | `work.state()` / `state(version=)` / `state(checkpoint=)`     | `world state my-project`                  |
+| load       | `work.state()` / `state(version=)` / `state(checkpoint=)` (committed versions only) | `world state my-project`                  |
 | resume     | `work.resume("v1")` → seq                                     | `world resume my-project v1`              |
 
-Reads: `history(limit=)` (verdict log, oldest first), `verify()`
+Reads: `history(limit=)` (verdict log, oldest first), `proposal(seq)`
+(audit one proposal by seq, any status), `verify()`
 (hash-chain check), `version`, `checkpoints()`, `name`, `path`.
 Errors: `InvariantViolation` (carries `seq` and `reason` of the recorded
 rejection), `ConflictError`, `KeyError` (unknown version/checkpoint),

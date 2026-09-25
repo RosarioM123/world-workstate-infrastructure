@@ -95,6 +95,17 @@ def cmd_history(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_proposal(args: argparse.Namespace) -> int:
+    w = _world(args)
+    try:
+        proposal = w.proposal(args.seq)
+    except KeyError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    print(json.dumps(proposal, indent=2, sort_keys=True))
+    return 0
+
+
 def cmd_checkpoints(args: argparse.Namespace) -> int:
     w = _world(args)
     print(json.dumps(w.checkpoints(), indent=2))
@@ -199,6 +210,11 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("name")
     s.add_argument("--limit", type=int, default=None)
     s.set_defaults(func=cmd_history)
+
+    s = sub.add_parser("proposal", help="print one proposal row as JSON (any status)")
+    s.add_argument("name")
+    s.add_argument("seq", type=int)
+    s.set_defaults(func=cmd_proposal)
 
     s = sub.add_parser("checkpoints", help="list checkpoints as JSON")
     s.add_argument("name")

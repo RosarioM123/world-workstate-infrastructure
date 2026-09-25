@@ -168,7 +168,12 @@ class World:
     def state(
         self, *, version: int | None = None, checkpoint: str | None = None
     ) -> dict[str, Any]:
-        """Return the document: current, at a version, or at a checkpoint."""
+        """Return the document: current, at a committed version, or at a checkpoint.
+
+        Time travel is committed-only. Rejected proposals were never part
+        of the timeline, so ``state(version=N)`` for a REJECTED seq raises
+        ``KeyError``; audit rejected attempts with :meth:`proposal`.
+        """
         if version is not None and checkpoint is not None:
             raise ValueError("pass version or checkpoint, not both")
         with closing(self._connect()) as cx:
@@ -183,9 +188,19 @@ class World:
                 row = self._latest_committed(cx)
             else:
                 row = cx.execute(
-                    "SELECT state FROM versions WHERE seq = ?", (version,)
+                    "SELECT state FROM versions WHERE seq = ? AND status = 'COMMITTED'",
+                    (version,),
                 ).fetchone()
                 if row is None:
+                    rejected = cx.execute(
+                        "SELECT 1 FROM versions WHERE seq = ? AND status = 'REJECTED'",
+                        (version,),
+                    ).fetchone()
+                    if rejected is not None:
+                        raise KeyError(
+                            f"version {version} was REJECTED and is not part of"
+                            " version history; use proposal() to audit it"
+                        )
                     raise KeyError(f"unknown version: {version}")
             return json.loads(row["state"]) if row is not None else {}
 
@@ -381,6 +396,26 @@ class World:
             expected_version=expected_version,
             idempotency_key=idempotency_key,
         )
+
+    def proposal(self, seq: int) -> dict[str, Any]:
+        """Return one proposal row by seq, whatever its status.
+
+        This is the audit path for REJECTED proposals: the verdict log
+        records every attempt, and this returns the attempt's document,
+        actor, note, and status. Unlike :meth:`state`, it does not filter
+        by status, so it must never be used as time travel.
+        """
+        with closing(self._connect()) as cx:
+            row = cx.execute(
+                "SELECT seq, timestamp, actor, note, status, state FROM versions"
+                " WHERE seq = ?",
+                (seq,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"unknown version: {seq}")
+            out = dict(row)
+            out["state"] = json.loads(out["state"])
+            return out
 
     def history(self, limit: int | None = None) -> list[dict[str, Any]]:
         """The verdict log, oldest first (REJECTED attempts included)."""

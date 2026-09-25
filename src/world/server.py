@@ -206,6 +206,16 @@ def create_app(
     def get_history(limit: int | None = None) -> dict[str, Any]:
         return {"history": work.history(limit=limit)}
 
+    @app.get("/v1/proposals/{seq}")
+    def get_proposal(seq: int) -> JSONResponse:
+        try:
+            proposal = work.proposal(seq)
+        except KeyError as e:
+            return JSONResponse(
+                status_code=404, content={"error": "not_found", "detail": str(e)}
+            )
+        return JSONResponse(status_code=200, content={"proposal": proposal})
+
     @app.get("/v1/checkpoints")
     def get_checkpoints() -> dict[str, Any]:
         return {"checkpoints": work.checkpoints()}

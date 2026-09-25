@@ -236,3 +236,46 @@ def test_server_rate_limit_trust_forwarded_for_opt_in(store):
     # But the direct client's bucket is still exhausted.
     r = c.post("/v1/update", json={"state": {"a": 1}})
     assert r.status_code == 429
+
+
+def test_server_state_version_is_committed_only(store):
+    c = make_client(store, invariants=[no_negative("bal")])
+    assert c.post("/v1/update", json={"state": {"bal": 10}}).status_code == 200
+    r = c.post("/v1/update", json={"state": {"bal": -1}})
+    assert r.status_code == 422 and r.json()["status"] == "REJECTED"
+    assert c.post("/v1/update", json={"state": {"bal": 20}}).status_code == 200
+    # A rejected proposal is not a historical version.
+    r = c.get("/v1/state", params={"version": 2})
+    assert r.status_code == 404
+    assert r.json()["error"] == "not_found"
+    # Committed versions still time-travel.
+    assert c.get("/v1/state", params={"version": 1}).json()["state"] == {"bal": 10}
+    assert c.get("/v1/state", params={"version": 3}).json()["state"] == {"bal": 20}
+
+
+def test_server_proposal_audits_rejected_attempts(store):
+    c = make_client(store, invariants=[no_negative("bal")])
+    c.post("/v1/update", json={"state": {"bal": 10}, "actor": "alice"})
+    c.post("/v1/update", json={"state": {"bal": -1}, "actor": "bob"})
+    r = c.get("/v1/proposals/2")
+    assert r.status_code == 200
+    p = r.json()["proposal"]
+    assert p["status"] == "REJECTED"
+    assert p["state"] == {"bal": -1}
+    assert p["actor"] == "bob"
+    assert "no_negative" in p["note"]
+    r = c.get("/v1/proposals/1")
+    assert r.json()["proposal"]["status"] == "COMMITTED"
+    assert c.get("/v1/proposals/99").status_code == 404
+
+
+def test_cli_proposal_audits_any_seq(store, tmp_path, capsys):
+    f = tmp_path / "s.json"
+    f.write_text('{"bal": 10}')
+    cli(store, "init", "t")
+    cli(store, "update", "t", "--file", str(f))
+    capsys.readouterr()
+    assert cli(store, "proposal", "t", "1") == 0
+    p = json.loads(capsys.readouterr().out)
+    assert p["status"] == "COMMITTED" and p["state"] == {"bal": 10}
+    assert cli(store, "proposal", "t", "99") == 1
