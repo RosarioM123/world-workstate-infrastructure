@@ -208,6 +208,12 @@ class World:
         without appending. Every proposal is judged first, so a rejected
         attempt is always recorded even when its key was seen before — a
         repeated key can never mask a rejection from the audit trail.
+
+        The ``expected_version`` check is re-validated inside the write
+        transaction, so concurrent writers racing on the same expected
+        version serialize: exactly one commits and the rest raise
+        :class:`ConflictError`. Without ``expected_version`` the write is
+        last-writer-wins.
         """
         if not isinstance(state, dict):
             raise TypeError(f"state must be a dict, got {type(state).__name__}")
@@ -240,11 +246,22 @@ class World:
                 )
             else:
                 final_note = note
-            # Serialize writers: dedupe-check and append are one atomic step.
+            # Serialize writers: the version re-check, dedupe-check, and append
+            # are one atomic step. The expected_version check before the lock
+            # is a fast path only; this re-check is what makes optimistic
+            # concurrency atomic, closing the read-to-lock race window.
             # Idempotency dedupes committed updates only: every proposal is
             # judged first, so rejected attempts are always recorded.
             cx.execute("BEGIN IMMEDIATE")
             try:
+                if expected_version is not None:
+                    cur2 = self._latest_committed(cx)
+                    cur_seq2 = int(cur2["seq"]) if cur2 is not None else 0
+                    if expected_version != cur_seq2:
+                        raise ConflictError(
+                            f"expected version {expected_version},"
+                            f" current is {cur_seq2}"
+                        )
                 seq: int | None = None
                 if status == "COMMITTED" and idempotency_key is not None:
                     hit = cx.execute(
