@@ -29,6 +29,7 @@ def create_app(
     invariants: list[Invariant] | tuple[Invariant, ...] = (),
     api_key: str | None = None,
     write_limit_per_min: int = 60,
+    trust_forwarded_for: bool = False,
 ) -> FastAPI:
     work = World(name, dir=dir, invariants=invariants)
     app = FastAPI(title="world", version="0.2.0")
@@ -39,17 +40,35 @@ def create_app(
         log.warning("WORLD_API_KEY not set: write endpoints are unauthenticated")
 
     _hits: dict[str, deque[float]] = {}
+    _last_sweep = 0.0
 
     def _client_ip(request: Request) -> str:
-        fwd = request.headers.get("x-forwarded-for")
-        if fwd:
-            return fwd.split(",")[0].strip()
+        # X-Forwarded-For is client-controlled: honor it only behind a
+        # trusted reverse proxy that sets it. Otherwise any client can
+        # spoof a fresh IP per request and walk past the rate limit.
+        if trust_forwarded_for:
+            fwd = request.headers.get("x-forwarded-for")
+            if fwd:
+                return fwd.split(",")[0].strip()
         return request.client.host if request.client else "unknown"
+
+    def _sweep(now: float) -> None:
+        # Bound _hits by dropping IPs with no hits inside the current
+        # window. Runs at most once a minute so eviction never becomes a
+        # per-request cost.
+        nonlocal _last_sweep
+        if now - _last_sweep < 60:
+            return
+        _last_sweep = now
+        stale = [ip for ip, dq in _hits.items() if not dq or dq[-1] <= now - 60]
+        for ip in stale:
+            del _hits[ip]
 
     def _rate_limited(ip: str) -> bool:
         if write_limit_per_min <= 0:
             return False
         now = time.monotonic()
+        _sweep(now)
         dq = _hits.setdefault(ip, deque())
         while dq and dq[0] <= now - 60:
             dq.popleft()

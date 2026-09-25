@@ -26,6 +26,17 @@ Versions follow [Semantic Versioning](https://semver.org/).
   (`requirements.txt` removed); install with `pip install -e ".[test]"`.
 - CI test matrix is now Python 3.11, 3.12, and 3.13.
 
+### Fixed
+- `World.update` re-validates `expected_version` inside the write
+  transaction, closing a lost-update race where two writers that both
+  passed the pre-lock check could overwrite each other. Without
+  `expected_version` the write remains last-writer-wins (now documented).
+- The HTTP rate limiter no longer trusts `X-Forwarded-For` by default:
+  the header is client-controlled, so any client could spoof a fresh IP
+  per request and bypass the limit. Opt in with
+  `trust_forwarded_for=True` only behind a trusted reverse proxy, and the
+  per-IP hit table is now bounded by periodic eviction of stale entries.
+
 ## [0.1.0] - 2026-09-21
 
 ### Added

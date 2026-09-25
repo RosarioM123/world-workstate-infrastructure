@@ -204,3 +204,35 @@ def test_server_rate_limit(store):
     assert r.json()["error"] == "rate_limited"
     # Reads are not rate-limited.
     assert c.get("/v1/state").status_code == 200
+
+
+def test_server_rate_limit_ignores_spoofed_xff_by_default(store):
+    c = make_client(store, write_limit_per_min=2)
+    for _ in range(2):
+        assert c.post("/v1/update", json={"state": {"a": 1}}).status_code == 200
+    # X-Forwarded-For is client-controlled: spoofing a fresh IP must not
+    # grant a fresh bucket when the proxy trust opt-in is off.
+    r = c.post(
+        "/v1/update",
+        json={"state": {"a": 1}},
+        headers={"X-Forwarded-For": "9.9.9.9"},
+    )
+    assert r.status_code == 429
+    assert r.json()["error"] == "rate_limited"
+
+
+def test_server_rate_limit_trust_forwarded_for_opt_in(store):
+    c = make_client(store, write_limit_per_min=2, trust_forwarded_for=True)
+    for _ in range(2):
+        assert c.post("/v1/update", json={"state": {"a": 1}}).status_code == 200
+    # With the opt-in behind a trusted proxy, the forwarded IP gets its
+    # own bucket.
+    r = c.post(
+        "/v1/update",
+        json={"state": {"a": 1}},
+        headers={"X-Forwarded-For": "9.9.9.9"},
+    )
+    assert r.status_code == 200
+    # But the direct client's bucket is still exhausted.
+    r = c.post("/v1/update", json={"state": {"a": 1}})
+    assert r.status_code == 429
