@@ -23,17 +23,17 @@ from world import InvariantViolation, World
 from world.invariants import no_negative
 
 
-def _mission_world() -> World:
+def _mission_world(mission_name: str) -> World:
     """Every handle on the mission carries the invariants (they're code)."""
     return World(
-        "mission-alpha",
+        mission_name,
         invariants=[no_negative("battery_pct"), no_negative("steps_remaining")],
     )
 
 
-def plan_mission() -> World:
+def plan_mission(mission_name: str) -> World:
     """The planner: define the mission, checkpoint it, exit."""
-    mission = _mission_world()
+    mission = _mission_world(mission_name)
 
     mission.update(
         {
@@ -55,7 +55,7 @@ def plan_mission() -> World:
 def execute_mission(mission_name: str) -> None:
     """The executor: a separate process. Loads the mission, does one step."""
     # New handle, same world — this is the handoff.
-    mission = _mission_world()
+    mission = _mission_world(mission_name)
     state = mission.state()
     print(f"executor: loaded mission, status={state['status']!r}")
 
@@ -85,12 +85,12 @@ def execute_mission(mission_name: str) -> None:
 
 
 def main() -> None:
-    plan_mission()
+    plan_mission("mission-alpha")
     # The planner process "dies" here. The executor is a fresh start.
     execute_mission("mission-alpha")
     execute_mission("mission-alpha")
 
-    final = _mission_world()
+    final = _mission_world("mission-alpha")
     print(
         f"\nfinal: {final.state()['status']}, battery {final.state()['battery_pct']}%"
     )
