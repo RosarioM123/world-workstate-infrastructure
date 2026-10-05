@@ -37,7 +37,7 @@ server = [
 test = [
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
-    "hypothesis==6.168.0",
+    "hypothesis==6.168.3",
     "httpx==0.28.1",
     # fastapi mirrors the `server` extra: the server tests need it.
     "fastapi==0.141.1",
