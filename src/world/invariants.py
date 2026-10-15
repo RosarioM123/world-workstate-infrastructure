@@ -18,6 +18,7 @@ from typing import Any
 from .core import Invariant, InvariantViolation
 
 __all__ = [
+    "all_of",
     "finite_numbers",
     "immutable_fields",
     "monotonic",
@@ -227,5 +228,34 @@ def respect_locks(lock_key: str = "_locks") -> Invariant:
                     raise InvariantViolation(
                         f"respect_locks: {path} changed while locked"
                     )
+
+    return check
+
+
+def all_of(*invs: Invariant) -> Invariant:
+    """Conjunction: reject when any sub-invariant rejects, reporting every reason.
+
+    The engine short-circuits on the first rejecting invariant in the list,
+    so a plain list reports only one reason. ``all_of`` evaluates every
+    sub-invariant and raises a single :class:`InvariantViolation` joining
+    all reasons, so operators see every violated rule at once.
+
+    Verdict-equivalent to listing the sub-invariants separately: the
+    COMMITTED/REJECTED outcome is identical, only the reported reason is
+    richer (see ``docs/spec/invariant-composition.md``). ``all_of()`` with
+    no sub-invariants accepts everything. A crashing sub-invariant (any
+    exception other than ``InvariantViolation``) propagates, matching
+    engine behavior.
+    """
+
+    def check(old: dict[str, Any], new: dict[str, Any]) -> None:
+        reasons: list[str] = []
+        for inv in invs:
+            try:
+                inv(old, new)
+            except InvariantViolation as e:
+                reasons.append(e.reason)
+        if reasons:
+            raise InvariantViolation("; ".join(reasons))
 
     return check
