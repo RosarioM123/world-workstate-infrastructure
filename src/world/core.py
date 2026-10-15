@@ -13,6 +13,7 @@ stale and no refresh API.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import os
 import re
@@ -469,3 +470,63 @@ class World:
                     return False
                 prev_hash = r["hash"]
         return True
+
+    @staticmethod
+    def _tip_mac(key: bytes, name: str, seq: int, tip_hash: str) -> str:
+        return hmac.new(
+            key, f"{name}:{seq}:{tip_hash}".encode("utf-8"), hashlib.sha256
+        ).hexdigest()
+
+    def sign_tip(self, key: bytes | str) -> dict[str, Any]:
+        """Sign the chain tip with an HMAC key held outside the database.
+
+        Returns ``{"name", "seq", "hash", "sig"}``. Store it out-of-band
+        (a file, a log, another system): anyone holding it can later prove
+        the chain was rolled back or rewritten, which ``verify()`` alone
+        cannot detect on an unkeyed chain. The key is never written to
+        the database; anyone with the key can sign, so protect it like
+        a password. For public verifiability (anyone verifies, only the
+        signer signs), use ed25519 instead; HMAC is chosen here because
+        it is stdlib-only.
+        """
+        raw = key.encode("utf-8") if isinstance(key, str) else bytes(key)
+        with closing(self._connect()) as cx:
+            row = cx.execute(
+                "SELECT seq, hash FROM versions ORDER BY seq DESC LIMIT 1"
+            ).fetchone()
+            if row is None:
+                raise ValueError("cannot sign the tip of an empty world")
+            seq, tip_hash = int(row["seq"]), str(row["hash"])
+        return {
+            "name": self._name,
+            "seq": seq,
+            "hash": tip_hash,
+            "sig": self._tip_mac(raw, self._name, seq, tip_hash),
+        }
+
+    def verify_tip(self, key: bytes | str, signed_tip: dict[str, Any]) -> bool:
+        """Check a tip signature from :meth:`sign_tip` against this world.
+
+        Returns False when the signature is forged (wrong key or tampered
+        fields) or when the chain no longer contains that ``(seq, hash)``
+        pair, i.e. the history was rolled back or rewritten after signing.
+        """
+        raw = key.encode("utf-8") if isinstance(key, str) else bytes(key)
+        try:
+            name = str(signed_tip["name"])
+            seq = int(signed_tip["seq"])
+            tip_hash = str(signed_tip["hash"])
+            sig = str(signed_tip["sig"])
+        except (KeyError, TypeError, ValueError):
+            return False
+        if name != self._name:
+            return False
+        if not hmac.compare_digest(
+            self._tip_mac(raw, name, seq, tip_hash), sig
+        ):
+            return False
+        with closing(self._connect()) as cx:
+            row = cx.execute(
+                "SELECT hash FROM versions WHERE seq = ?", (seq,)
+            ).fetchone()
+        return row is not None and str(row["hash"]) == tip_hash
