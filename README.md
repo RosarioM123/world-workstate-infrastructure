@@ -190,6 +190,7 @@ shipped). Design rationale: `docs/adr/0008-world-primitive.md`.
 | checkpoint | `work.checkpoint("v1")` → seq                                 | `world checkpoint my-project v1`          |
 | load       | `work.state()` / `state(version=)` / `state(checkpoint=)` (committed versions only) | `world state my-project`                  |
 | resume     | `work.resume("v1")` → seq                                     | `world resume my-project v1`              |
+| blame      | `work.blame("budget.total", version=)` → row that last changed the field (committed only) | `world blame my-project budget.total` |
 
 Reads: `history(limit=)` (verdict log, oldest first), `proposal(seq)`
 (audit one proposal by seq, any status), `verify()`
