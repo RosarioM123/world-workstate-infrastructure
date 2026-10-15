@@ -205,7 +205,9 @@ An invariant is `(old_state, new_state) -> None`; raise
 `InvariantViolation` to reject. Shipped helpers in `world.invariants`:
 `no_negative(*paths)`, `finite_numbers(*paths)`, `require_keys(*paths)`,
 `respect_locks()`, `monotonic(*paths, strict=False)`,
-`immutable_fields(*paths)`, `type_stable(*paths)` — path patterns are
+`immutable_fields(*paths)`, `type_stable(*paths)`, plus the `all_of(*invs)`
+conjunction combinator (same verdict as listing them, but reports every
+violated reason instead of short-circuiting on the first) — path patterns are
 dot-separated with `*` wildcards (`"totals.*"`, `"tasks.0.status"`).
 Anything else is a plain function you write. Non-violation exceptions
 propagate uncaught and are *not* recorded — a crashing judge is a bug,
