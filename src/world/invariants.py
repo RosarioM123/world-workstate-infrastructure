@@ -24,6 +24,7 @@ __all__ = [
     "no_negative",
     "require_keys",
     "respect_locks",
+    "type_stable",
 ]
 
 
@@ -94,29 +95,60 @@ def monotonic(*paths: str, strict: bool = False) -> Invariant:
     """
 
     def check(old: dict[str, Any], new: dict[str, Any]) -> None:
-        for pattern in paths or ("*",):
-            for path, new_value in _resolve(new, pattern.split("."), ""):
-                if not _is_number(new_value):
-                    continue
-                old_value = _lookup(old, path)
-                if old_value is None or not _is_number(old_value):
-                    continue  # first write, or was not numeric: nothing to compare
-                if strict:
-                    ok = new_value > old_value
-                else:
-                    ok = new_value >= old_value
-                if not ok:
-                    raise InvariantViolation(
-                        f"monotonic: {path} went {old_value} -> {new_value}"
-                    )
+        for path, new_value in _targets(new, paths):
+            if not _is_number(new_value):
+                continue
+            hits = list(_resolve(old, path.split("."), ""))
+            if not hits:
+                continue  # first write always passes
+            old_value = hits[0][1]
+            if not _is_number(old_value):
+                continue  # was not numeric: nothing to compare
+            ok = new_value > old_value if strict else new_value >= old_value
+            if not ok:
+                raise InvariantViolation(
+                    f"monotonic: {path} went {old_value} -> {new_value}"
+                )
 
     return check
 
 
-def _lookup(doc: Any, path: str) -> Any:
-    """Return the value at a dotted path, or None when absent."""
-    hits = list(_resolve(doc, path.split("."), ""))
-    return hits[0][1] if hits else None
+def type_stable(*paths: str) -> Invariant:
+    """Reject a transition that changes the type of a set field.
+
+    The first write of a field fixes its type: ``int``/``float`` are
+    treated as one numeric kind (JSON has a single number type), and
+    ``bool`` is distinct from numbers. A field removed in the new state
+    is ignored; use :func:`immutable_fields` when removal must also fail.
+    """
+
+    def check(old: dict[str, Any], new: dict[str, Any]) -> None:
+        for path, new_value in _targets(new, paths):
+            hits = list(_resolve(old, path.split("."), ""))
+            if not hits:
+                continue  # first write fixes the type
+            old_value = hits[0][1]
+            if _kind(new_value) != _kind(old_value):
+                raise InvariantViolation(
+                    f"type_stable: {path} changed "
+                    f"{_kind(old_value)} -> {_kind(new_value)}"
+                )
+
+    return check
+
+
+def _kind(value: Any) -> str:
+    if isinstance(value, bool):
+        return "bool"
+    if isinstance(value, (int, float)):
+        return "number"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, list):
+        return "list"
+    if isinstance(value, dict):
+        return "dict"
+    return "null"
 
 
 def immutable_fields(*paths: str) -> Invariant:

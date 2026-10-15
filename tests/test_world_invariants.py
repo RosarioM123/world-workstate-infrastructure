@@ -7,6 +7,7 @@ from world.invariants import (
     finite_numbers,
     immutable_fields,
     monotonic,
+    type_stable,
     no_negative,
     require_keys,
     respect_locks,
@@ -139,3 +140,26 @@ def test_immutable_fields_wildcard_and_nested():
     inv({"meta": {"v": 1}}, {"meta": {"v": 1, "w": 2}})
     with pytest.raises(InvariantViolation):
         inv({"meta": {"v": 1}}, {"meta": {"v": 2}})
+
+
+def test_type_stable_rejects_type_changes():
+    inv = type_stable("count")
+    inv({}, {"count": 1})  # first write fixes the type
+    inv({"count": 1}, {"count": 2.5})  # int -> float: same JSON kind
+    with pytest.raises(InvariantViolation, match="type_stable: count changed"):
+        inv({"count": 1}, {"count": "many"})
+    with pytest.raises(InvariantViolation, match="type_stable"):
+        type_stable("flag")({"flag": True}, {"flag": 1})  # bool != number
+
+
+def test_type_stable_ignores_removed_and_unset():
+    inv = type_stable("a")
+    inv({"a": 1}, {"b": 2})  # removed: ignored (see immutable_fields)
+    inv({"a": [1]}, {"a": [1, 2]})  # same kind passes
+    with pytest.raises(InvariantViolation):
+        inv({"a": [1]}, {"a": {"0": 1}})
+
+
+def test_type_stable_no_paths_checks_all_leaves():
+    with pytest.raises(InvariantViolation):
+        type_stable()({"x": {"y": 1}}, {"x": {"y": "one"}})
