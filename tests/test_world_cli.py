@@ -73,3 +73,42 @@ def test_cli_export_roundtrip(store, tmp_path, capsys):
     capsys.readouterr()
     assert cli(store, "export", "e") == 0  # stdout form
     assert len(capsys.readouterr().out.strip().splitlines()) == 3
+
+
+def test_cli_import_rebuilds_committed_timeline(store, tmp_path, capsys):
+    w = World("src", dir=store)
+    w.update({"a": 1}, actor="ann", note="first")
+    w.update({"a": 2}, actor="bob", note="second")
+
+    dump = tmp_path / "dump.jsonl"
+    assert cli(store, "export", "src", "--file", str(dump)) == 0
+
+    capsys.readouterr()
+    assert cli(store, "import", "dst", "--file", str(dump)) == 0
+    assert "imported 2 versions, skipped 0 rejected" in capsys.readouterr().out
+
+    dst = World("dst", dir=store)
+    assert dst.state() == {"a": 2}
+    assert dst.state(version=1) == {"a": 1}
+    assert dst.verify()
+    assert "imported seq 1" in dst.proposal(1)["note"]
+
+
+def test_cli_import_skips_rejected(store, tmp_path, capsys):
+    from world import InvariantViolation
+
+    def reject_negative(old, new):
+        if new.get("a", 0) < 0:
+            raise InvariantViolation("no negatives")
+
+    w = World("src", dir=store)
+    w.update({"a": 1})
+    with pytest.raises(InvariantViolation):
+        World("src", dir=store, invariants=[reject_negative]).update({"a": -1})
+
+    dump = tmp_path / "dump.jsonl"
+    assert cli(store, "export", "src", "--file", str(dump)) == 0
+    capsys.readouterr()
+    assert cli(store, "import", "dst", "--file", str(dump)) == 0
+    assert "imported 1 versions, skipped 1 rejected" in capsys.readouterr().out
+    assert World("dst", dir=store).version == 1

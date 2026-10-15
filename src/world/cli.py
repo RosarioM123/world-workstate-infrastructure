@@ -168,6 +168,32 @@ def cmd_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_import(args: argparse.Namespace) -> int:
+    """Replay an export file's COMMITTED rows as new updates.
+
+    The import builds a fresh hash chain (new timestamps, new hashes);
+    use ``export`` + ``verify`` on the source for audit fidelity. Rejected
+    rows are skipped: they were never state, only evidence.
+    """
+    w = _world(args)
+    text = sys.stdin.read() if args.file == "-" else Path(args.file).read_text()
+    imported = skipped = 0
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if row.get("status") != "COMMITTED":
+            skipped += 1
+            continue
+        note = f"imported seq {row.get('seq')}"
+        if row.get("note"):
+            note += f": {row['note']}"
+        w.update(row["state"], actor=row.get("actor"), note=note)
+        imported += 1
+    print(f"imported {imported} versions, skipped {skipped} rejected")
+    return 0
+
+
 def cmd_import_transcript(args: argparse.Namespace) -> int:
     from .producers import import_transcript
 
@@ -281,6 +307,15 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("name")
     s.add_argument("--file", default="-", help="output file ('-' for stdout)")
     s.set_defaults(func=cmd_export)
+
+    s = sub.add_parser(
+        "import",
+        help="replay an export JSONL into a world (fresh hash chain; "
+        "rejected rows are skipped)",
+    )
+    s.add_argument("name")
+    s.add_argument("--file", required=True, help="export file ('-' for stdin)")
+    s.set_defaults(func=cmd_import)
 
     s = sub.add_parser(
         "import-transcript", help="fold a chat transcript into the document"
