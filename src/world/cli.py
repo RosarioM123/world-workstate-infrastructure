@@ -154,6 +154,20 @@ def cmd_diff(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_export(args: argparse.Namespace) -> int:
+    """Dump every proposal row as JSONL (committed and rejected)."""
+    w = _world(args)
+    lines = [
+        json.dumps(w.proposal(r["seq"]), sort_keys=True) for r in w.history()
+    ]
+    text = "\n".join(lines) + ("\n" if lines else "")
+    if args.file and args.file != "-":
+        Path(args.file).write_text(text)
+    else:
+        print(text, end="")
+    return 0
+
+
 def cmd_import_transcript(args: argparse.Namespace) -> int:
     from .producers import import_transcript
 
@@ -262,6 +276,11 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--from", dest="from_version", type=int, required=True)
     s.add_argument("--to", dest="to_version", type=int, default=None)
     s.set_defaults(func=cmd_diff)
+
+    s = sub.add_parser("export", help="dump every proposal row as JSONL")
+    s.add_argument("name")
+    s.add_argument("--file", default="-", help="output file ('-' for stdout)")
+    s.set_defaults(func=cmd_export)
 
     s = sub.add_parser(
         "import-transcript", help="fold a chat transcript into the document"

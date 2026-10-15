@@ -47,3 +47,29 @@ def test_cli_diff_no_changes(store, capsys):
     _update(store, "d", {"a": [1, 2]})
     assert cli(store, "diff", "d", "--from", "1", "--to", "1") == 0
     assert json.loads(capsys.readouterr().out) == []
+
+
+def test_cli_export_roundtrip(store, tmp_path, capsys):
+    from world import InvariantViolation
+
+    def reject_negative(old, new):
+        if new.get("a", 0) < 0:
+            raise InvariantViolation("no negatives")
+
+    w = World("e", dir=store)
+    w.update({"a": 1}, actor="ann", note="first")
+    with pytest.raises(InvariantViolation):
+        World("e", dir=store, invariants=[reject_negative]).update({"a": -1})
+    w.update({"a": 2}, actor="bob")
+
+    out_file = tmp_path / "dump.jsonl"
+    assert cli(store, "export", "e", "--file", str(out_file)) == 0
+    rows = [json.loads(line) for line in out_file.read_text().splitlines()]
+    assert [r["seq"] for r in rows] == [1, 2, 3]
+    assert [r["status"] for r in rows] == ["COMMITTED", "REJECTED", "COMMITTED"]
+    assert rows[0]["state"] == {"a": 1}
+    assert rows[0]["actor"] == "ann"
+
+    capsys.readouterr()
+    assert cli(store, "export", "e") == 0  # stdout form
+    assert len(capsys.readouterr().out.strip().splitlines()) == 3
