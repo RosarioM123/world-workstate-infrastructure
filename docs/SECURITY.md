@@ -1,4 +1,93 @@
-# WORLD Ledger: Threat Model
+# WORLD: Threat Model
+
+## Part A: the `src/world` primitive (current)
+
+This section covers the `World` primitive (`src/world/core.py`): versioned
+JSON documents, invariant-judged transitions, hash-chained rows, optimistic
+concurrency, checkpoints. Every claim below is pinned by an adversarial
+test in `tests/test_redteam.py`: `*_detected` tests prove the guarantee,
+`*_undetected_documents_limit` tests prove the limit (each asserts the
+attack *succeeds*; if a future change closes one, the test fails and
+forces this doc to be updated).
+
+### Attacker model
+
+- **A1: read access to the database file.** Sees everything. There is no
+  confidentiality: documents, notes, actors, and rejected attempts are
+  cleartext.
+- **A2: write access to the database file.** Can run arbitrary SQL,
+  bypassing the API entirely. This is the primary adversary below.
+- **A3: API-constrained writer.** Can only call the public surface
+  (`update`, `resume`, CLI, HTTP). Constrained by invariants and by the
+  commit protocol (verified separately in `docs/spec/protocol-verification.md`).
+- **A4: host compromise / clock control.** Out of scope for the chain to
+  defend: a compromised host owns the process, the file, and the
+  verifier. Timestamps come from the host clock and are not trusted time
+  (they are, however, covered by the row hash: backdating is *detected*).
+
+### What verify() detects (tested)
+
+`World.verify()` recomputes every hash link over all rows by seq. It
+returns False when the attacker:
+
+1. Edits any field of any row in place: state, status, note, actor, or
+   timestamp (`test_surgical_*_detected`, `test_timestamp_backdate_detected`).
+   Every one of these fields is covered by the row hash.
+2. Deletes a middle row (`test_middle_row_deletion_detected`): the next
+   row's `prev_hash` no longer matches.
+3. Reorders rows (`test_row_reorder_detected`): links no longer line up.
+
+An API-constrained attacker additionally cannot commit an
+invariant-violating document: the attempt is appended as REJECTED
+evidence and the version does not move
+(`test_api_cannot_commit_invariant_violation`). `resume()` of an old
+checkpoint appends a new version; it never rewrites the past
+(`test_resume_is_append_only`).
+
+### What verify() does NOT detect (tested limits)
+
+1. **Tail truncation (rollback).** Deleting the last N rows leaves a
+   shorter but internally consistent chain, and `verify()` returns True
+   (`test_tail_truncation_undetected_documents_limit`). The version
+   silently moves backward. Detection requires pinning the tip hash
+   out-of-band.
+2. **Full chain rewrite.** The hash is unkeyed (ADR 0002): an attacker
+   who recomputes every link with forged history produces a chain that
+   verifies cleanly (`test_full_rewrite_undetected_documents_limit`).
+   This is the fundamental limit. No better hash function fixes it;
+   only a key (signed checkpoints) or an external anchor does.
+3. **Checkpoint repointing.** The `checkpoints` table is not covered by
+   the hash chain, so `UPDATE checkpoints SET seq = ...` is invisible
+   to `verify()` (`test_checkpoint_repoint_undetected_documents_limit`).
+4. **Idempotency-table deletion.** Exactly-once per key depends on the
+   `idempotency` table, which is not tamper-evident. Deleting a key's
+   row lets a retry commit a second time; the chain still verifies
+   (`test_idempotency_deletion_enables_double_apply_documents_limit`).
+5. **Forks.** Copying the file and extending each copy differently
+   yields two chains that both verify; only tip-hash comparison reveals
+   the divergence (`test_fork_produces_two_valid_chains_documents_limit`).
+
+### Mitigation ranking
+
+1. **Signed checkpoints** (still the highest value): sign the tip hash
+   with a server-held key and publish out-of-band. Closes (1) and (2)
+   for anyone holding a signed tip; the rewrite then requires the
+   signing key, not just the file.
+2. **Checkpoint table inclusion**: fold checkpoint pins into the hashed
+   row (or a parallel chained table). Closes (3).
+3. **WORM / append-only storage** for ledger segments. Closes (1), (2),
+   (4) at the storage layer.
+4. **Per-actor identity** on the API (ADR 0006): `actor` is currently
+   self-asserted.
+
+---
+
+## Part B: legacy `world_engine` (pre-primitive engine)
+
+*The following predates the `src/world` primitive and describes the
+original `world_engine` ledger (`execute_deterministic_transition`,
+`state_ledger`, `verify_chain`). Kept for the record; Part A above is
+the current threat model.*
 
 This document states plainly what the hash-chained ledger guarantees,
 what it does not, and what would have to change for stronger claims.
