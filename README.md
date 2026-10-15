@@ -203,10 +203,29 @@ rejection), `ConflictError`, `KeyError` (unknown version/checkpoint),
 An invariant is `(old_state, new_state) -> None`; raise
 `InvariantViolation` to reject. Shipped helpers in `world.invariants`:
 `no_negative(*paths)`, `finite_numbers(*paths)`, `require_keys(*paths)`,
-`respect_locks()` — path patterns are dot-separated with `*` wildcards
-(`"totals.*"`, `"tasks.0.status"`). Anything else is a plain function
-you write. Non-violation exceptions propagate uncaught and are *not*
-recorded — a crashing judge is a bug, not a verdict.
+`respect_locks()`, `monotonic(*paths, strict=False)`,
+`immutable_fields(*paths)`, `type_stable(*paths)` — path patterns are
+dot-separated with `*` wildcards (`"totals.*"`, `"tasks.0.status"`).
+Anything else is a plain function you write. Non-violation exceptions
+propagate uncaught and are *not* recorded — a crashing judge is a bug,
+not a verdict.
+
+### Performance
+
+Measured with `python tools/bench_world.py` (10k versions, Linux x86_64,
+Python 3.12.3); full table in `docs/benchmarks/world-primitive.md`:
+
+| operation | throughput |
+|---|---:|
+| `update` (invariant judged) | ~1,339 ops/s |
+| `update` (`expected_version`) | ~692 ops/s |
+| `state()` reads | ~3,794 ops/s |
+| `verify()` full chain | ~200k rows/s |
+
+Every write opens a fresh connection, judges invariants, hashes the row,
+and commits inside `BEGIN IMMEDIATE`. No batching, no caching — handles
+are stateless by design. Timings are machine-dependent; re-run before
+quoting.
 
 ### Agent handoff
 
