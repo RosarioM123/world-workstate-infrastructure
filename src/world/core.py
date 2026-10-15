@@ -601,3 +601,90 @@ class World:
                 "SELECT hash FROM versions WHERE seq = ?", (seq,)
             ).fetchone()
         return row is not None and str(row["hash"]) == tip_hash
+
+    @staticmethod
+    def _merkle_parent(left: bytes, right: bytes) -> bytes:
+        # Domain-separated: internal nodes can never be confused with
+        # leaves (leaves are raw row hashes, never prefixed).
+        return hashlib.sha256(b"\x01" + left + right).digest()
+
+    def merkle_root(self) -> str:
+        """Merkle root over all row hashes, hex-encoded.
+
+        The leaves are the raw row hashes in seq order; odd levels
+        duplicate the last node (Bitcoin-style). Enables selective
+        disclosure: publish the root (or sign it via :meth:`sign_tip`
+        over a checkpoint), then prove any single row's inclusion with
+        :meth:`inclusion_proof` without revealing the other rows. See
+        ``docs/research/zk-audit-spike.md`` for why this, and not
+        zero-knowledge proofs, is the recommended audit-privacy
+        primitive here.
+        """
+        with closing(self._connect()) as cx:
+            leaves = [
+                bytes.fromhex(r["hash"])
+                for r in cx.execute("SELECT hash FROM versions ORDER BY seq")
+            ]
+        if not leaves:
+            return hashlib.sha256(b"world:empty-merkle-root").hexdigest()
+        level = leaves
+        while len(level) > 1:
+            if len(level) % 2 == 1:
+                level = level + [level[-1]]
+            level = [
+                self._merkle_parent(level[i], level[i + 1])
+                for i in range(0, len(level), 2)
+            ]
+        return level[0].hex()
+
+    def inclusion_proof(self, seq: int) -> dict[str, Any]:
+        """Prove row ``seq`` is in the log: leaf, sibling path, root.
+
+        The proof verifies standalone via :meth:`verify_inclusion`,
+        without database access: recompute the root from the leaf and
+        siblings and compare. ``KeyError`` for an unknown seq.
+        """
+        with closing(self._connect()) as cx:
+            rows = cx.execute(
+                "SELECT seq, hash FROM versions ORDER BY seq"
+            ).fetchall()
+        seqs = [int(r["seq"]) for r in rows]
+        if seq not in seqs:
+            raise KeyError(f"no row with seq {seq}")
+        idx = seqs.index(seq)
+        leaves = [bytes.fromhex(r["hash"]) for r in rows]
+        siblings: list[dict[str, Any]] = []
+        level = leaves
+        while len(level) > 1:
+            if len(level) % 2 == 1:
+                level = level + [level[-1]]
+            if idx % 2 == 0:
+                siblings.append({"hash": level[idx + 1].hex(), "left": False})
+            else:
+                siblings.append({"hash": level[idx - 1].hex(), "left": True})
+            level = [
+                self._merkle_parent(level[i], level[i + 1])
+                for i in range(0, len(level), 2)
+            ]
+            idx //= 2
+        return {
+            "seq": seq,
+            "leaf": leaves[seqs.index(seq)].hex(),
+            "siblings": siblings,
+            "root": level[0].hex(),
+        }
+
+    @staticmethod
+    def verify_inclusion(proof: dict[str, Any]) -> bool:
+        """Check a proof from :meth:`inclusion_proof` without the database."""
+        try:
+            cur = bytes.fromhex(str(proof["leaf"]))
+            for s in proof["siblings"]:
+                sib = bytes.fromhex(str(s["hash"]))
+                if s["left"]:
+                    cur = World._merkle_parent(sib, cur)
+                else:
+                    cur = World._merkle_parent(cur, sib)
+            return cur.hex() == str(proof["root"])
+        except (KeyError, TypeError, ValueError):
+            return False
