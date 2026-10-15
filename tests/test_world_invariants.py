@@ -5,6 +5,7 @@ import pytest
 from world import InvariantViolation
 from world.invariants import (
     finite_numbers,
+    immutable_fields,
     monotonic,
     no_negative,
     require_keys,
@@ -121,3 +122,20 @@ def test_monotonic_nested_and_wildcard():
     inv({"totals": {"q1": 10}}, {"totals": {"q1": 12}})
     with pytest.raises(InvariantViolation):
         inv({"totals": {"q1": 10}}, {"totals": {"q1": 9}})
+
+
+def test_immutable_fields_set_once_then_frozen():
+    inv = immutable_fields("id")
+    inv({}, {"id": "a1"})  # first set passes
+    inv({"id": "a1"}, {"id": "a1", "x": 1})  # unchanged passes
+    with pytest.raises(InvariantViolation, match="immutable_fields: id changed"):
+        inv({"id": "a1"}, {"id": "b2"})
+    with pytest.raises(InvariantViolation, match="immutable_fields: id removed"):
+        inv({"id": "a1"}, {"x": 1})
+
+
+def test_immutable_fields_wildcard_and_nested():
+    inv = immutable_fields("meta.*")
+    inv({"meta": {"v": 1}}, {"meta": {"v": 1, "w": 2}})
+    with pytest.raises(InvariantViolation):
+        inv({"meta": {"v": 1}}, {"meta": {"v": 2}})

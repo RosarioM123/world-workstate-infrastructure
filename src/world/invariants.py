@@ -19,6 +19,7 @@ from .core import Invariant, InvariantViolation
 
 __all__ = [
     "finite_numbers",
+    "immutable_fields",
     "monotonic",
     "no_negative",
     "require_keys",
@@ -116,6 +117,32 @@ def _lookup(doc: Any, path: str) -> Any:
     """Return the value at a dotted path, or None when absent."""
     hits = list(_resolve(doc, path.split("."), ""))
     return hits[0][1] if hits else None
+
+
+def immutable_fields(*paths: str) -> Invariant:
+    """Reject a transition that changes or removes a once-set field.
+
+    Unlike :func:`respect_locks` (dynamic: the lock list lives in the
+    document and is itself versioned), the immutable paths are declared
+    once at handle construction. A field that is absent in the old state
+    may be set exactly once; afterwards its value must be identical.
+    """
+
+    def check(old: dict[str, Any], new: dict[str, Any]) -> None:
+        for pattern in paths:
+            old_vals = dict(_resolve(old, pattern.split("."), ""))
+            new_vals = dict(_resolve(new, pattern.split("."), ""))
+            for path, old_value in old_vals.items():
+                if path not in new_vals:
+                    raise InvariantViolation(
+                        f"immutable_fields: {path} removed after being set"
+                    )
+                if new_vals[path] != old_value:
+                    raise InvariantViolation(
+                        f"immutable_fields: {path} changed after being set"
+                    )
+
+    return check
 
 
 def finite_numbers(*paths: str) -> Invariant:
