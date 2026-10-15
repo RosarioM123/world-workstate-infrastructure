@@ -152,6 +152,12 @@ def _diff_values(old: Any, new: Any, prefix: str, out: list[dict[str, Any]]) -> 
         out.append({"path": prefix, "change": "modified", "old": old, "new": new})
 
 
+def cmd_blame(args: argparse.Namespace) -> int:
+    w = _world(args)
+    print(json.dumps(w.blame(args.path, version=args.version), indent=2, sort_keys=True))
+    return 0
+
+
 def cmd_diff(args: argparse.Namespace) -> int:
     w = _world(args)
     old = w.state(version=args.from_version)
@@ -316,6 +322,13 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--from", dest="from_version", type=int, required=True)
     s.add_argument("--to", dest="to_version", type=int, default=None)
     s.set_defaults(func=cmd_diff)
+
+    s = sub.add_parser("blame", help="show who last changed a field as JSON")
+    s.add_argument("name")
+    s.add_argument("path", help="dot-separated field path, e.g. budget.total")
+    s.add_argument("--version", dest="version", type=int, default=None,
+                   help="blame as of this committed version (default: latest)")
+    s.set_defaults(func=cmd_blame)
 
     s = sub.add_parser("export", help="dump every proposal row as JSONL")
     s.add_argument("name")

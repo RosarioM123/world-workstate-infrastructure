@@ -90,6 +90,19 @@ def _canonical(state: dict[str, Any]) -> str:
     )
 
 
+_MISSING: Any = object()  # sentinel: path absent (distinct from JSON null)
+
+
+def _get_path(doc: Any, path: str) -> Any:
+    """Resolve a dot-separated path; ``_MISSING`` when absent."""
+    cur = doc
+    for part in path.split("."):
+        if not isinstance(cur, dict) or part not in cur:
+            return _MISSING
+        cur = cur[part]
+    return cur
+
+
 def _genesis_prev_hash(name: str) -> str:
     return hashlib.sha256(f"world-genesis:{name}".encode()).hexdigest()
 
@@ -445,6 +458,64 @@ class World:
             params = (limit,)
         with closing(self._connect()) as cx:
             return [dict(r) for r in cx.execute(query, params).fetchall()]
+
+    def blame(self, path: str, *, version: int | None = None) -> dict[str, Any] | None:
+        """Who last changed the value at ``path`` (dot-separated).
+
+        Walks committed versions back from ``version`` (default: latest),
+        comparing the value at ``path`` between consecutive versions, and
+        returns the row that changed it: ``seq``, ``timestamp``,
+        ``actor``, ``note``, ``change`` (``added``/``modified``/
+        ``removed``), ``old`` and ``new`` values. Returns None when the
+        path was never set. Rejected proposals never changed committed
+        state, so they are ignored; like :meth:`state`, ``version`` must
+        be a committed seq (``KeyError`` otherwise).
+        """
+        with closing(self._connect()) as cx:
+            if version is None:
+                latest = self._latest_committed(cx)
+                if latest is None:
+                    return None
+                version = int(latest["seq"])
+            else:
+                hit = cx.execute(
+                    "SELECT status FROM versions WHERE seq = ?", (version,)
+                ).fetchone()
+                if hit is None or hit["status"] != "COMMITTED":
+                    raise KeyError(f"no committed version {version}")
+            rows = cx.execute(
+                "SELECT seq, timestamp, actor, note, state FROM versions"
+                " WHERE status = 'COMMITTED' AND seq <= ?"
+                " ORDER BY seq DESC",
+                (version,),
+            ).fetchall()
+            if not rows:
+                return None
+            # Walk newest to oldest: the first version whose value differs
+            # from its predecessor is the one that last changed the path.
+            # A predecessor before the oldest version counts as absent, so
+            # a removal by the latest version is reported, not hidden.
+            vals = [_get_path(json.loads(r["state"]), path) for r in rows]
+            for i, r in enumerate(rows):
+                older_val = vals[i + 1] if i + 1 < len(vals) else _MISSING
+                if vals[i] != older_val:
+                    return {
+                        "path": path,
+                        "seq": int(r["seq"]),
+                        "timestamp": r["timestamp"],
+                        "actor": r["actor"],
+                        "note": r["note"],
+                        "change": (
+                            "added"
+                            if older_val is _MISSING
+                            else "removed"
+                            if vals[i] is _MISSING
+                            else "modified"
+                        ),
+                        "old": None if older_val is _MISSING else older_val,
+                        "new": None if vals[i] is _MISSING else vals[i],
+                    }
+            return None
 
     def verify(self) -> bool:
         """Walk the hash chain; True iff every row is intact and linked."""
