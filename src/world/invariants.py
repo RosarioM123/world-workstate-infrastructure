@@ -19,6 +19,7 @@ from .core import Invariant, InvariantViolation
 
 __all__ = [
     "finite_numbers",
+    "monotonic",
     "no_negative",
     "require_keys",
     "respect_locks",
@@ -80,6 +81,41 @@ def no_negative(*paths: str) -> Invariant:
                 raise InvariantViolation(f"no_negative: {path} = {value}")
 
     return check
+
+
+def monotonic(*paths: str, strict: bool = False) -> Invariant:
+    """Reject a transition that decreases a numeric field.
+
+    With ``strict=False`` (default) the value may stay equal; with
+    ``strict=True`` it must strictly increase. Missing old values are
+    treated as negative infinity (first write always passes); a field
+    removed in the new state is ignored.
+    """
+
+    def check(old: dict[str, Any], new: dict[str, Any]) -> None:
+        for pattern in paths or ("*",):
+            for path, new_value in _resolve(new, pattern.split("."), ""):
+                if not _is_number(new_value):
+                    continue
+                old_value = _lookup(old, path)
+                if old_value is None or not _is_number(old_value):
+                    continue  # first write, or was not numeric: nothing to compare
+                if strict:
+                    ok = new_value > old_value
+                else:
+                    ok = new_value >= old_value
+                if not ok:
+                    raise InvariantViolation(
+                        f"monotonic: {path} went {old_value} -> {new_value}"
+                    )
+
+    return check
+
+
+def _lookup(doc: Any, path: str) -> Any:
+    """Return the value at a dotted path, or None when absent."""
+    hits = list(_resolve(doc, path.split("."), ""))
+    return hits[0][1] if hits else None
 
 
 def finite_numbers(*paths: str) -> Invariant:

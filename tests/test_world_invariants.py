@@ -5,6 +5,7 @@ import pytest
 from world import InvariantViolation
 from world.invariants import (
     finite_numbers,
+    monotonic,
     no_negative,
     require_keys,
     respect_locks,
@@ -89,3 +90,34 @@ def test_respect_locks_unlock_is_a_versioned_update():
 def test_respect_locks_ignores_missing_key_and_non_list():
     respect_locks()({}, {"a": 1})
     respect_locks()({"_locks": "budget"}, {"budget": 2})
+
+
+def test_monotonic_allows_increase_and_equal():
+    inv = monotonic("counter")
+    inv({}, {"counter": 1})  # first write always passes
+    inv({"counter": 1}, {"counter": 1})
+    inv({"counter": 1}, {"counter": 2})
+
+
+def test_monotonic_rejects_decrease():
+    with pytest.raises(InvariantViolation, match="monotonic: counter"):
+        monotonic("counter")({"counter": 5}, {"counter": 4})
+
+
+def test_monotonic_strict_rejects_equal():
+    with pytest.raises(InvariantViolation):
+        monotonic("seq", strict=True)({"seq": 3}, {"seq": 3})
+    monotonic("seq", strict=True)({"seq": 3}, {"seq": 4})
+
+
+def test_monotonic_ignores_missing_new_and_non_numbers():
+    monotonic("counter")({"counter": 5}, {"other": 1})  # removed: ignored
+    monotonic("counter")({"counter": 5}, {"counter": "high"})  # not numeric: ignored
+    monotonic()({"a": 1}, {"a": 2, "b": 0})  # no paths: all leaves
+
+
+def test_monotonic_nested_and_wildcard():
+    inv = monotonic("totals.*")
+    inv({"totals": {"q1": 10}}, {"totals": {"q1": 12}})
+    with pytest.raises(InvariantViolation):
+        inv({"totals": {"q1": 10}}, {"totals": {"q1": 9}})
