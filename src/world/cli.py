@@ -64,6 +64,14 @@ def cmd_state(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_read(args: argparse.Namespace) -> int:
+    """Print {"version": v, "state": doc}: the OCC read half in one call."""
+    w = _world(args)
+    state, version = w.read()
+    print(json.dumps({"version": version, "state": state}, indent=2, sort_keys=True))
+    return 0
+
+
 def cmd_checkpoint(args: argparse.Namespace) -> int:
     w = _world(args)
     try:
@@ -266,6 +274,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--version", type=int, default=None)
     s.add_argument("--checkpoint", default=None)
     s.set_defaults(func=cmd_state)
+
+    s = sub.add_parser(
+        "read", help="print {version, state} atomically (OCC read half)"
+    )
+    s.add_argument("name")
+    s.set_defaults(func=cmd_read)
 
     s = sub.add_parser("checkpoint", help="pin the current version under a name")
     s.add_argument("name")

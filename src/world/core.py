@@ -204,6 +204,22 @@ class World:
                     raise KeyError(f"unknown version: {version}")
             return json.loads(row["state"]) if row is not None else {}
 
+    def read(self) -> tuple[dict[str, Any], int]:
+        """Return ``(document, version)`` atomically.
+
+        One connection, one SELECT of the latest COMMITTED row, so the
+        version always describes the returned document. This is the read
+        half of the optimistic-concurrency loop: pass the version as
+        ``expected_version`` to :meth:`update`; if another writer commits
+        in between, the update aborts with :class:`ConflictError` instead
+        of silently overwriting. On an empty world returns ``({}, 0)``.
+        """
+        with closing(self._connect()) as cx:
+            row = self._latest_committed(cx)
+            if row is None:
+                return {}, 0
+            return json.loads(row["state"]), int(row["seq"])
+
     def update(
         self,
         state: dict[str, Any],

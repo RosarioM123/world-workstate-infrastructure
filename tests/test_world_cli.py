@@ -112,3 +112,13 @@ def test_cli_import_skips_rejected(store, tmp_path, capsys):
     assert cli(store, "import", "dst", "--file", str(dump)) == 0
     assert "imported 1 versions, skipped 1 rejected" in capsys.readouterr().out
     assert World("dst", dir=store).version == 1
+
+
+def test_cli_read_returns_version_and_state(store, capsys):
+    w = World("r", dir=store)
+    assert cli(store, "read", "r") == 0
+    assert json.loads(capsys.readouterr().out) == {"version": 0, "state": {}}
+    w.update({"a": 1})
+    w.update({"a": 2})
+    assert cli(store, "read", "r") == 0
+    assert json.loads(capsys.readouterr().out) == {"version": 2, "state": {"a": 2}}
