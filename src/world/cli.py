@@ -121,6 +121,39 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 1
 
 
+def _diff_values(old: Any, new: Any, prefix: str, out: list[dict[str, Any]]) -> None:
+    if isinstance(old, dict) and isinstance(new, dict):
+        for key in sorted(set(old) | set(new)):
+            path = f"{prefix}.{key}" if prefix else str(key)
+            if key not in old:
+                out.append({"path": path, "change": "added", "old": None, "new": new[key]})
+            elif key not in new:
+                out.append({"path": path, "change": "removed", "old": old[key], "new": None})
+            else:
+                _diff_values(old[key], new[key], path, out)
+    elif isinstance(old, list) and isinstance(new, list):
+        for i in range(max(len(old), len(new))):
+            path = f"{prefix}.{i}" if prefix else str(i)
+            if i >= len(old):
+                out.append({"path": path, "change": "added", "old": None, "new": new[i]})
+            elif i >= len(new):
+                out.append({"path": path, "change": "removed", "old": old[i], "new": None})
+            else:
+                _diff_values(old[i], new[i], path, out)
+    elif old != new:
+        out.append({"path": prefix, "change": "modified", "old": old, "new": new})
+
+
+def cmd_diff(args: argparse.Namespace) -> int:
+    w = _world(args)
+    old = w.state(version=args.from_version)
+    new = w.state(version=args.to_version) if args.to_version is not None else w.state()
+    out: list[dict[str, Any]] = []
+    _diff_values(old, new, "", out)
+    print(json.dumps(out, indent=2, sort_keys=True))
+    return 0
+
+
 def cmd_import_transcript(args: argparse.Namespace) -> int:
     from .producers import import_transcript
 
@@ -223,6 +256,12 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("verify", help="check the hash chain")
     s.add_argument("name")
     s.set_defaults(func=cmd_verify)
+
+    s = sub.add_parser("diff", help="diff two versions as JSON")
+    s.add_argument("name")
+    s.add_argument("--from", dest="from_version", type=int, required=True)
+    s.add_argument("--to", dest="to_version", type=int, default=None)
+    s.set_defaults(func=cmd_diff)
 
     s = sub.add_parser(
         "import-transcript", help="fold a chat transcript into the document"
