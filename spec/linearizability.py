@@ -72,14 +72,18 @@ def _step(version: int, n: Optional[int], op: Op):
     raise AssertionError(f"unknown result {op.result!r}")
 
 
-def is_linearizable(history: list[Op]) -> bool:
+def is_linearizable(history: list[Op],
+                    initial_version: int = 0,
+                    initial_n: Optional[int] = None) -> bool:
     """Search for a linearization of ``history`` via backtracking.
 
     Complete for the given history: returns True iff some total order
     extending the real-time order validates every op under the spec.
-    Worst case exponential (linearizability is NP-complete); practical
-    for the bounded histories used in tests, with memoization of dead
-    ends and a response-order candidate heuristic.
+    ``initial_version`` / ``initial_n`` describe the abstract state before
+    the first op (default: empty world). Worst case exponential
+    (linearizability is NP-complete); practical for the bounded histories
+    used in tests, with memoization of dead ends and a response-order
+    candidate heuristic.
     """
     n = len(history)
     if n == 0:
@@ -109,4 +113,4 @@ def is_linearizable(history: list[Op]) -> bool:
         dead.add(key)
         return False
 
-    return rec(frozenset(), 0, None)
+    return rec(frozenset(), initial_version, initial_n)
