@@ -191,6 +191,7 @@ shipped). Design rationale: `docs/adr/0008-world-primitive.md`.
 | load       | `work.state()` / `state(version=)` / `state(checkpoint=)` (committed versions only) | `world state my-project`                  |
 | resume     | `work.resume("v1")` → seq                                     | `world resume my-project v1`              |
 | blame      | `work.blame("budget.total", version=)` → row that last changed the field (committed only) | `world blame my-project budget.total` |
+| selective disclosure | `work.merkle_root()`, `work.inclusion_proof(seq)`, `World.verify_inclusion(proof)` (DB-free) | — |
 
 Reads: `history(limit=)` (verdict log, oldest first), `proposal(seq)`
 (audit one proposal by seq, any status), `verify()`
