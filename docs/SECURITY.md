@@ -69,10 +69,23 @@ checkpoint appends a new version; it never rewrites the past
 
 ### Mitigation ranking
 
-1. **Signed checkpoints** (still the highest value): sign the tip hash
-   with a server-held key and publish out-of-band. Closes (1) and (2)
-   for anyone holding a signed tip; the rewrite then requires the
-   signing key, not just the file.
+1. **Signed checkpoints** — **BUILT 2026-10-15** (`World.sign_tip` /
+   `verify_tip`, HMAC-SHA256, stdlib-only; `tests/test_world_signing.py`).
+   A tip signature held out-of-band closes limits (1) and (2) above for
+   its holder: truncation and full rewrites are now detected
+   (`test_signed_tip_detects_rollback`,
+   `test_signed_tip_detects_rewrite`), while honest appends after
+   signing keep old tips valid. `verify()` itself is unchanged: the
+   unkeyed chain still cannot detect these on its own, which is why the
+   red-team `*_undetected` tests remain green as documented. ed25519 is
+   the upgrade path when public verifiability (anyone verifies, only
+   the signer signs) is needed; HMAC was chosen for stdlib purity.
+2. **Checkpoint table inclusion**: fold checkpoint pins into the hashed
+   row (or a parallel chained table). Closes (3). Still open.
+3. **WORM / append-only storage** for ledger segments. Closes (1), (2),
+   (4) at the storage layer. Still open.
+4. **Per-actor identity** on the API (ADR 0006): `actor` is currently
+   self-asserted. Still open.
 2. **Checkpoint table inclusion**: fold checkpoint pins into the hashed
    row (or a parallel chained table). Closes (3).
 3. **WORM / append-only storage** for ledger segments. Closes (1), (2),
