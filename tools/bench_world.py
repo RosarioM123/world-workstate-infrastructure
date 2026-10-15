@@ -88,6 +88,31 @@ def bench_history(world: World, limit: int) -> float:
     return elapsed
 
 
+def bench_rmw_old(world: World, n: int) -> float:
+    """Read-modify-write the old way: state() + version + update.
+
+    Three connection lifecycles per loop: the version read exists only
+    because state() does not return its version.
+    """
+    start = time.perf_counter()
+    for i in range(n):
+        doc = world.state()
+        ver = world.version
+        doc["n"] = i
+        world.update(doc, actor="bench", expected_version=ver)
+    return time.perf_counter() - start
+
+
+def bench_rmw_new(world: World, n: int) -> float:
+    """Read-modify-write with read(): one atomic (state, version) read."""
+    start = time.perf_counter()
+    for i in range(n):
+        doc, ver = world.read()
+        doc["n"] = i
+        world.update(doc, actor="bench", expected_version=ver)
+    return time.perf_counter() - start
+
+
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     parser = argparse.ArgumentParser(description="Benchmark the src/world primitive.")
@@ -116,6 +141,11 @@ def main() -> int:
     logger.info("scanning history(limit=%d) ...", total_versions)
     history_s = bench_history(world, total_versions)
 
+    logger.info("read-modify-write old style (state+version+update) ...")
+    rmw_old_s = bench_rmw_old(world, n)
+    logger.info("read-modify-write with read() ...")
+    rmw_new_s = bench_rmw_new(world, n)
+
     rows = [
         ("update (invariant judged)", n, append_s),
         ("update (expected_version)", n, append_ev_s),
@@ -123,6 +153,8 @@ def main() -> int:
         ("state(version=k) historical", n, hist_read_s),
         ("verify() full chain", total_versions, verify_s),
         ("history(limit=all)", total_versions, history_s),
+        ("rmw old (state+version+update)", n, rmw_old_s),
+        ("rmw new (read+update)", n, rmw_new_s),
     ]
     logger.info("")
     logger.info("| operation | ops | total | per-op | throughput |")
