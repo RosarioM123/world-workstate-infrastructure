@@ -687,17 +687,34 @@ class World:
             key, f"{name}:{seq}:{tip_hash}".encode("utf-8"), hashlib.sha256
         ).hexdigest()
 
-    def sign_tip(self, key: bytes | str) -> dict[str, Any]:
+    @staticmethod
+    def _key_fingerprint(key: bytes) -> str:
+        """Short public identifier for a signing key (not secret).
+
+        For Ed25519 this fingerprints the public key; for HMAC the secret
+        (only its holder can compute it). Used as the ``kid`` in signed
+        tips so verifiers holding several keys can tell which one signed.
+        """
+        return hashlib.sha256(bytes(key)).hexdigest()[:16]
+
+    def sign_tip(
+        self, key: bytes | str, kid: str | None = None
+    ) -> dict[str, Any]:
         """Sign the chain tip with an HMAC key held outside the database.
 
-        Returns ``{"name", "seq", "hash", "sig"}``. Store it out-of-band
-        (a file, a log, another system): anyone holding it can later prove
-        the chain was rolled back or rewritten, which ``verify()`` alone
-        cannot detect on an unkeyed chain. The key is never written to
-        the database; anyone with the key can sign, so protect it like
-        a password. For public verifiability (anyone verifies, only the
-        signer signs), use :meth:`sign_tip_ed25519` /
+        Returns ``{"name", "seq", "hash", "sig", "kid"}``. Store it
+        out-of-band (a file, a log, another system): anyone holding it can
+        later prove the chain was rolled back or rewritten, which
+        ``verify()`` alone cannot detect on an unkeyed chain. The key is
+        never written to the database; anyone with the key can sign, so
+        protect it like a password. For public verifiability (anyone
+        verifies, only the signer signs), use :meth:`sign_tip_ed25519` /
         :meth:`verify_tip_ed25519` instead.
+
+        ``kid`` labels the key; it defaults to the key fingerprint. It is
+        a routing hint, not a security boundary: the signature covers
+        ``(name, seq, hash)`` only, so old tips without ``kid`` still
+        verify. See :meth:`rotate_ed25519` for the rotation protocol.
         """
         raw = key.encode("utf-8") if isinstance(key, str) else bytes(key)
         with closing(self._connect()) as cx:
@@ -712,24 +729,41 @@ class World:
             "seq": seq,
             "hash": tip_hash,
             "sig": self._tip_mac(raw, self._name, seq, tip_hash),
+            "kid": kid if kid is not None else self._key_fingerprint(raw),
         }
 
-    def verify_tip(self, key: bytes | str, signed_tip: dict[str, Any]) -> bool:
+    def verify_tip(
+        self,
+        key: bytes | str,
+        signed_tip: dict[str, Any],
+        expected_kid: str | None = None,
+    ) -> bool:
         """Check a tip signature from :meth:`sign_tip` against this world.
 
         Returns False when the signature is forged (wrong key or tampered
-        fields) or when the chain no longer contains that ``(seq, hash)``
-        pair, i.e. the history was rolled back or rewritten after signing.
+        fields), when the tip's ``kid`` does not match the expected key
+        identity (the key fingerprint by default, or ``expected_kid`` when
+        the signer used a custom label), or when the chain no longer
+        contains that ``(seq, hash)`` pair, i.e. the history was rolled
+        back or rewritten after signing.
         """
+        if not isinstance(signed_tip, dict):
+            return False
         raw = key.encode("utf-8") if isinstance(key, str) else bytes(key)
         try:
             name = str(signed_tip["name"])
             seq = int(signed_tip["seq"])
             tip_hash = str(signed_tip["hash"])
             sig = str(signed_tip["sig"])
+            tip_kid = signed_tip.get("kid")
         except (KeyError, TypeError, ValueError):
             return False
         if name != self._name:
+            return False
+        want_kid = (
+            expected_kid if expected_kid is not None else self._key_fingerprint(raw)
+        )
+        if tip_kid is not None and tip_kid != want_kid:
             return False
         if not hmac.compare_digest(
             self._tip_mac(raw, name, seq, tip_hash), sig
@@ -745,17 +779,20 @@ class World:
     def _tip_message(name: str, seq: int, tip_hash: str) -> bytes:
         return f"{name}:{seq}:{tip_hash}".encode("utf-8")
 
-    def sign_tip_ed25519(self, private_key: bytes) -> dict[str, Any]:
+    def sign_tip_ed25519(
+        self, private_key: bytes, kid: str | None = None
+    ) -> dict[str, Any]:
         """Sign the chain tip with an Ed25519 private key.
 
         Same ``(name, seq, hash)`` message as :meth:`sign_tip`, but the
         signature is publicly verifiable: anyone holding the *public* key
         can check it, while only the private-key holder can sign. Returns
-        ``{"name", "seq", "hash", "sig", "alg": "ed25519"}`` with the
-        signature hex-encoded. The private key is never written to the
+        ``{"name", "seq", "hash", "sig", "alg": "ed25519", "kid"}`` with
+        the signature hex-encoded. The private key is never written to the
         database; distribute the public key out-of-band (it is public,
         so a README or DNS record will do). Key generation:
-        ``world.ed25519.create_keypair()``.
+        ``world.ed25519.create_keypair()``. ``kid`` defaults to the
+        public-key fingerprint; see :meth:`rotate_ed25519` for rotation.
         """
         if len(bytes(private_key)) != 32:
             raise ValueError("Ed25519 private key must be 32 bytes")
@@ -778,19 +815,25 @@ class World:
             "hash": tip_hash,
             "sig": sig.hex(),
             "alg": "ed25519",
+            "kid": kid if kid is not None else self._key_fingerprint(public_key),
         }
 
     def verify_tip_ed25519(
-        self, public_key: bytes, signed_tip: dict[str, Any]
+        self,
+        public_key: bytes,
+        signed_tip: dict[str, Any],
+        expected_kid: str | None = None,
     ) -> bool:
         """Verify an Ed25519 tip signature against this world.
 
         The public key must come from out-of-band distribution, never from
         the signed tip itself (otherwise an attacker rewrites the chain
         *and* re-signs with their own key). Returns False for forged
-        signatures, tampered fields, algorithm confusion (an HMAC tip
-        passed here is rejected), name mismatch, or a chain that no longer
-        contains the signed ``(seq, hash)`` pair.
+        signatures, tampered fields, a ``kid`` that does not match the
+        expected key identity (the public-key fingerprint by default, or
+        ``expected_kid`` for a custom label), algorithm confusion (an HMAC
+        tip passed here is rejected), name mismatch, or a chain that no
+        longer contains the signed ``(seq, hash)`` pair.
         """
         if not isinstance(signed_tip, dict):
             return False
@@ -801,13 +844,115 @@ class World:
             seq = int(signed_tip["seq"])
             tip_hash = str(signed_tip["hash"])
             sig = bytes.fromhex(str(signed_tip["sig"]))
+            tip_kid = signed_tip.get("kid")
         except (KeyError, TypeError, ValueError):
             return False
         if name != self._name:
             return False
+        pub = bytes(public_key)
+        want_kid = (
+            expected_kid if expected_kid is not None else self._key_fingerprint(pub)
+        )
+        if tip_kid is not None and tip_kid != want_kid:
+            return False
         if not _ed25519.checkvalid(
-            sig, self._tip_message(name, seq, tip_hash), bytes(public_key)
+            sig, self._tip_message(name, seq, tip_hash), pub
         ):
+            return False
+        with closing(self._connect()) as cx:
+            row = cx.execute(
+                "SELECT hash FROM versions WHERE seq = ?", (seq,)
+            ).fetchone()
+        return row is not None and str(row["hash"]) == tip_hash
+
+    def rotate_ed25519(
+        self,
+        old_private_key: bytes,
+        new_private_key: bytes,
+        *,
+        old_kid: str | None = None,
+        new_kid: str | None = None,
+    ) -> dict[str, Any]:
+        """Rotate the Ed25519 tip-signing key with a verifiable certificate.
+
+        The *old* private key signs a rotation statement binding the new
+        public key to the current chain tip, so anyone who trusted the old
+        public key can verify the succession without trusting the
+        operator's word. Returns ``{"name", "seq", "hash", "old_kid",
+        "new_kid", "new_pub", "sig", "alg": "ed25519-rotation"}``.
+
+        After rotation: keep signing new tips with the new key; old tips
+        still verify under the old public key (:meth:`verify_tip_ed25519`
+        is per-key). Publish the certificate alongside the new public key.
+        Rotation bounds *future* forgeries; it cannot un-compromise
+        signatures made before the old key leaked.
+        """
+        old_sk, new_sk = bytes(old_private_key), bytes(new_private_key)
+        if len(old_sk) != 32 or len(new_sk) != 32:
+            raise ValueError("Ed25519 private keys must be 32 bytes")
+        old_pub = _ed25519.publickey(old_sk)
+        new_pub = _ed25519.publickey(new_sk)
+        old_fp = old_kid if old_kid is not None else self._key_fingerprint(old_pub)
+        new_fp = new_kid if new_kid is not None else self._key_fingerprint(new_pub)
+        with closing(self._connect()) as cx:
+            row = cx.execute(
+                "SELECT seq, hash FROM versions ORDER BY seq DESC LIMIT 1"
+            ).fetchone()
+            if row is None:
+                raise ValueError("cannot rotate on an empty world")
+            seq, tip_hash = int(row["seq"]), str(row["hash"])
+        msg = (
+            f"rotate:{self._name}:{seq}:{tip_hash}:"
+            f"{old_fp}:{new_fp}:{new_pub.hex()}"
+        ).encode("utf-8")
+        sig = _ed25519.signature(msg, old_sk, old_pub)
+        return {
+            "name": self._name,
+            "seq": seq,
+            "hash": tip_hash,
+            "old_kid": old_fp,
+            "new_kid": new_fp,
+            "new_pub": new_pub.hex(),
+            "sig": sig.hex(),
+            "alg": "ed25519-rotation",
+        }
+
+    def verify_rotation_ed25519(
+        self, old_public_key: bytes, cert: dict[str, Any]
+    ) -> bool:
+        """Verify a rotation certificate from :meth:`rotate_ed25519`.
+
+        Checks the old key's signature over the rotation statement, that
+        the kids match the actual keys (no substitution), and that the
+        certified ``(seq, hash)`` is still the chain's history (a rotation
+        certified before a rollback does not validate a rewritten chain).
+        """
+        if not isinstance(cert, dict):
+            return False
+        try:
+            if cert.get("alg") != "ed25519-rotation":
+                return False
+            name = str(cert["name"])
+            seq = int(cert["seq"])
+            tip_hash = str(cert["hash"])
+            old_kid = str(cert["old_kid"])
+            new_kid = str(cert["new_kid"])
+            new_pub = bytes.fromhex(str(cert["new_pub"]))
+            sig = bytes.fromhex(str(cert["sig"]))
+        except (KeyError, TypeError, ValueError):
+            return False
+        if name != self._name:
+            return False
+        old_pub = bytes(old_public_key)
+        if old_kid != self._key_fingerprint(old_pub):
+            return False
+        if new_kid != self._key_fingerprint(new_pub):
+            return False
+        msg = (
+            f"rotate:{name}:{seq}:{tip_hash}:"
+            f"{old_kid}:{new_kid}:{new_pub.hex()}"
+        ).encode("utf-8")
+        if not _ed25519.checkvalid(sig, msg, old_pub):
             return False
         with closing(self._connect()) as cx:
             row = cx.execute(

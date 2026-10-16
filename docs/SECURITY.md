@@ -85,6 +85,22 @@ checkpoint appends a new version; it never rewrites the past
    section 7.1 vectors; `tests/test_world_signing_ed25519.py`, 13 tests).
    Anyone holding the *public* key verifies; only the private-key holder
    signs. Measured: ~147 signs/s, ~109 verifies/s (pure Python).
+   **Key rotation BUILT 2026-10-15**: signed tips carry a `kid` (key
+   id, defaulting to the SHA-256 fingerprint of the HMAC key or Ed25519
+   public key; a custom label is accepted and the verifier pins it with
+   `expected_kid`). `World.rotate_ed25519(old_sk, new_sk)` emits a
+   rotation certificate signed by the *old* key binding the new public
+   key to the current tip; `verify_rotation_ed25519(old_pk, cert)`
+   checks the old key's signature, kid/key consistency (no
+   substitution), and that the certified tip is still the chain's
+   history. Old tips keep verifying under the old public key after
+   rotation; new tips verify under the new one
+   (`tests/test_key_rotation.py`, 8 tests). Rotation bounds *future*
+   forgeries: it cannot un-compromise signatures made before the old
+   key leaked, and a rotation certified before a rollback does not
+   validate the rewritten chain. HMAC keys rotate by dual-signing the
+   tip with both keys during a transition window (protocol, no new
+   API: HMAC has no public key to bind).
 2. **Checkpoint table inclusion**: fold checkpoint pins into the hashed
    row (or a parallel chained table). Closes (3). Still open.
 3. **WORM / append-only storage** for ledger segments. Closes (1), (2),
