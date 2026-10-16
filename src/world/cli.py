@@ -53,6 +53,28 @@ def cmd_update(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_update_many(args: argparse.Namespace) -> int:
+    """Apply many updates from a JSONL file (one state per line)."""
+    w = _world(args)
+    text = sys.stdin.read() if args.file == "-" else Path(args.file).read_text()
+    states = [json.loads(line) for line in text.splitlines() if line.strip()]
+    try:
+        seqs = w.update_many(
+            states,
+            actor=args.actor,
+            note=args.note or "",
+            expected_version=args.expected_version,
+        )
+    except ConflictError as e:
+        print(f"conflict: {e}", file=sys.stderr)
+        return 1
+    except InvariantViolation as e:
+        print(f"rejected (seq {e.seq}): {e.reason}", file=sys.stderr)
+        return 1
+    print(json.dumps(seqs))
+    return 0
+
+
 def cmd_state(args: argparse.Namespace) -> int:
     w = _world(args)
     try:
@@ -274,6 +296,16 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--expected-version", type=int, default=None)
     s.add_argument("--idempotency-key", default=None)
     s.set_defaults(func=cmd_update)
+
+    s = sub.add_parser(
+        "update-many", help="apply many updates, one JSONL state per line"
+    )
+    s.add_argument("name")
+    s.add_argument("--file", required=True, help="JSONL file, '-' for stdin")
+    s.add_argument("--actor", default=None)
+    s.add_argument("--note", default="")
+    s.add_argument("--expected-version", type=int, default=None)
+    s.set_defaults(func=cmd_update_many)
 
     s = sub.add_parser("state", help="print the document as JSON")
     s.add_argument("name")

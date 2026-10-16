@@ -18,7 +18,7 @@ import json
 import os
 import re
 import sqlite3
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
@@ -268,7 +268,6 @@ class World:
             state_text = _canonical(state)
         except (TypeError, ValueError) as e:
             raise ValueError(f"state is not JSON-serializable: {e}") from e
-        timestamp = _utcnow()
         with closing(self._connect()) as cx:
             cur = self._latest_committed(cx)
             cur_seq = int(cur["seq"]) if cur is not None else 0
@@ -277,6 +276,11 @@ class World:
                 raise ConflictError(
                     f"expected version {expected_version}, current is {cur_seq}"
                 )
+            # Judgment stays lock-free: it is a pure function of (old,
+            # state), so holding the write lock while judging would only
+            # serialize writers for no correctness gain. (The deterministic
+            # simulator relies on this: its "judge" yield point fires
+            # outside the atomic section.)
             violation: InvariantViolation | None = None
             for inv in self._invariants:
                 try:
@@ -295,42 +299,21 @@ class World:
                 final_note = note
             # Serialize writers: the version re-check, dedupe-check, and append
             # are one atomic step. The expected_version check before the lock
-            # is a fast path only; this re-check is what makes optimistic
+            # is a fast path only; the re-check inside is what makes optimistic
             # concurrency atomic, closing the read-to-lock race window.
             # Idempotency dedupes committed updates only: every proposal is
             # judged first, so rejected attempts are always recorded.
             cx.execute("BEGIN IMMEDIATE")
             try:
-                if expected_version is not None:
-                    cur2 = self._latest_committed(cx)
-                    cur_seq2 = int(cur2["seq"]) if cur2 is not None else 0
-                    if expected_version != cur_seq2:
-                        raise ConflictError(
-                            f"expected version {expected_version},"
-                            f" current is {cur_seq2}"
-                        )
-                seq: int | None = None
-                if status == "COMMITTED" and idempotency_key is not None:
-                    hit = cx.execute(
-                        "SELECT seq FROM idempotency WHERE key = ?",
-                        (idempotency_key,),
-                    ).fetchone()
-                    if hit is not None:
-                        seq = int(hit["seq"])
-                if seq is None:
-                    seq = self._append(
-                        cx,
-                        timestamp=timestamp,
-                        actor=actor,
-                        note=final_note,
-                        state_text=state_text,
-                        status=status,
-                    )
-                    if idempotency_key is not None and status == "COMMITTED":
-                        cx.execute(
-                            "INSERT INTO idempotency(key, seq) VALUES (?, ?)",
-                            (idempotency_key, seq),
-                        )
+                seq, _ = self._append_guarded(
+                    cx,
+                    state_text=state_text,
+                    actor=actor,
+                    note=final_note,
+                    status=status,
+                    idempotency_key=idempotency_key,
+                    recheck_version=expected_version,
+                )
             except BaseException:
                 cx.rollback()
                 raise
@@ -339,6 +322,160 @@ class World:
         if violation is not None:
             raise InvariantViolation(violation.reason, seq=seq) from violation
         return seq
+
+    def update_many(
+        self,
+        states: Iterable[dict[str, Any]],
+        *,
+        actor: str | None = None,
+        note: str = "",
+        expected_version: int | None = None,
+        idempotency_keys: Iterable[str | None] | None = None,
+    ) -> list[int]:
+        """Apply many whole-document updates in a single transaction.
+
+        ``states`` are judged in order against the evolving document and each
+        verdict is appended, exactly as if :meth:`update` had been called
+        once per state with the same ``actor``/``note``: the observable log
+        is identical, only the per-update connection and transaction
+        overhead is amortized away. Returns the seq of each appended row.
+
+        ``expected_version`` guards the whole batch against the version at
+        batch start (one optimistic-concurrency check); a stale version
+        raises :class:`ConflictError` with nothing appended.
+        ``idempotency_keys`` is an optional parallel sequence; duplicates
+        (including keys committed earlier in the same batch) return the
+        original seq without appending.
+
+        All states are validated before the transaction opens, so a
+        malformed item aborts the batch with nothing appended. A rejected
+        item mid-batch appends its REJECTED row and raises
+        :class:`InvariantViolation` (with ``.seq`` set); earlier items in
+        the batch stay committed, matching sequential :meth:`update` calls.
+        """
+        items = list(states)
+        keys = list(idempotency_keys) if idempotency_keys is not None else [None] * len(items)
+        if len(keys) != len(items):
+            raise ValueError(
+                f"idempotency_keys length {len(keys)} != states length {len(items)}"
+            )
+        validated: list[tuple[dict[str, Any], str]] = []
+        for state in items:
+            if not isinstance(state, dict):
+                raise TypeError(
+                    f"state must be a dict, got {type(state).__name__}"
+                )
+            try:
+                validated.append((state, _canonical(state)))
+            except (TypeError, ValueError) as e:
+                raise ValueError(f"state is not JSON-serializable: {e}") from e
+        if not validated:
+            return []
+        seqs: list[int] = []
+        with closing(self._connect()) as cx:
+            # One transaction for the whole batch: this is the entire
+            # performance win. Judgment happens inside it (the batch holds
+            # the write lock throughout), which is why the deterministic
+            # simulator's "judgment is lock-free" assumption applies to
+            # update(), not to this path.
+            cx.execute("BEGIN IMMEDIATE")
+            rejected: tuple[str, int] | None = None
+            try:
+                cur = self._latest_committed(cx)
+                old: dict[str, Any] = (
+                    json.loads(cur["state"]) if cur is not None else {}
+                )
+                for (state, state_text), key in zip(validated, keys):
+                    violation: InvariantViolation | None = None
+                    for inv in self._invariants:
+                        try:
+                            inv(old, state)
+                        except InvariantViolation as e:
+                            violation = e
+                            break
+                    status = "REJECTED" if violation is not None else "COMMITTED"
+                    if violation is not None:
+                        final_note = (
+                            f"{note} | REJECTED: {violation.reason}"
+                            if note
+                            else f"REJECTED: {violation.reason}"
+                        )
+                    else:
+                        final_note = note
+                    seq, committed_new = self._append_guarded(
+                        cx,
+                        state_text=state_text,
+                        actor=actor,
+                        note=final_note,
+                        status=status,
+                        idempotency_key=key,
+                        recheck_version=expected_version if not seqs else None,
+                    )
+                    seqs.append(seq)
+                    if violation is not None:
+                        rejected = (violation.reason, seq)
+                        break
+                    # A dedup hit appends nothing, so the next judgment
+                    # uses the unchanged doc, exactly as a re-read would.
+                    if committed_new:
+                        old = state
+            except BaseException:
+                cx.rollback()
+                raise
+            else:
+                cx.commit()
+        if rejected is not None:
+            # The REJECTED row is evidence: it was committed with the
+            # batch above; now report it.
+            raise InvariantViolation(rejected[0], seq=rejected[1])
+        return seqs
+
+    def _append_guarded(
+        self,
+        cx: sqlite3.Connection,
+        *,
+        state_text: str,
+        actor: str | None,
+        note: str,
+        status: str,
+        idempotency_key: str | None,
+        recheck_version: int | None,
+    ) -> tuple[int, bool]:
+        """Re-check version, dedupe, and append one row in the caller's txn.
+
+        The caller must hold ``BEGIN IMMEDIATE``. Returns ``(seq,
+        committed_new)``: ``committed_new`` is False on an idempotent
+        dedup hit (no row appended). Raises :class:`ConflictError` on a
+        stale ``recheck_version``.
+        """
+        if recheck_version is not None:
+            cur = self._latest_committed(cx)
+            cur_seq = int(cur["seq"]) if cur is not None else 0
+            if recheck_version != cur_seq:
+                raise ConflictError(
+                    f"expected version {recheck_version}, current is {cur_seq}"
+                )
+        if status == "COMMITTED" and idempotency_key is not None:
+            hit = cx.execute(
+                "SELECT seq FROM idempotency WHERE key = ?",
+                (idempotency_key,),
+            ).fetchone()
+            if hit is not None:
+                return int(hit["seq"]), False
+        seq = self._append(
+            cx,
+            timestamp=_utcnow(),
+            actor=actor,
+            note=note,
+            state_text=state_text,
+            status=status,
+        )
+        if idempotency_key is not None and status == "COMMITTED":
+            cx.execute(
+                "INSERT INTO idempotency(key, seq) VALUES (?, ?)",
+                (idempotency_key, seq),
+            )
+        return seq, True
 
     def _append(
         self,

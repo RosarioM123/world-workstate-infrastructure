@@ -53,6 +53,17 @@ def bench_updates_expected_version(world: World, n: int) -> float:
     return time.perf_counter() - start
 
 
+def bench_update_many(world: World, n: int, batch: int = 500) -> float:
+    """Seconds for n updates via ``update_many`` in batches of ``batch``."""
+    start = time.perf_counter()
+    for base in range(0, n, batch):
+        world.update_many(
+            [{"n": i} for i in range(base, min(base + batch, n))],
+            actor="bench",
+        )
+    return time.perf_counter() - start
+
+
 def bench_state_latest(world: World, n: int) -> float:
     """Seconds for n ``state()`` reads of the latest version."""
     start = time.perf_counter()
@@ -146,9 +157,16 @@ def main() -> int:
     logger.info("read-modify-write with read() ...")
     rmw_new_s = bench_rmw_new(world, n)
 
+    logger.info("update_many (batches of 500, separate world) ...")
+    batch_world = World("bench-batch", dir=d, invariants=[_must_be_non_negative])
+    batch_s = bench_update_many(batch_world, n)
+    assert batch_world.version == n
+    assert batch_world.verify()
+
     rows = [
         ("update (invariant judged)", n, append_s),
         ("update (expected_version)", n, append_ev_s),
+        ("update_many (batch 500)", n, batch_s),
         ("state() latest", n, read_s),
         ("state(version=k) historical", n, hist_read_s),
         ("verify() full chain", total_versions, verify_s),

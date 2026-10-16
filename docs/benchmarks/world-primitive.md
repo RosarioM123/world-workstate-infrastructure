@@ -24,6 +24,21 @@ Workload: 10,000 sequential versions (5,000 plain updates + 5,000
 | verify() full chain | 10000 | 0.05s | 0.005 ms | 200081 ops/s |
 | history(limit=all) | 10000 | 0.02s | 0.002 ms | 459710 ops/s |
 
+## Batch updates (2026-10-15)
+
+`World.update_many` judges each state in order and appends every verdict
+in a single transaction, producing the identical log to sequential
+`update()` calls (differentially tested in `tests/test_world_batch.py`).
+Measured at 3000 updates in batches of 500, same machine:
+
+| operation | ops | total | per-op | throughput |
+| --- | ---: | ---: | ---: | ---: |
+| update (invariant judged) | 3000 | 1.90s | 0.635 ms | 1576 ops/s |
+| update_many (batch 500) | 3000 | 0.05s | 0.018 ms | 54975 ops/s |
+
+**34.9x throughput multiplier.** The per-update cost collapses to judgment
+plus SQL: one connection and one transaction replace 500 of each.
+
 ## Optimistic-concurrency read path (2026-10-15)
 
 The `update (expected_version)` row above is a harness artifact: the
