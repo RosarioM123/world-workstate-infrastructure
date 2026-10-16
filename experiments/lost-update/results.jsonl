@@ -1,40 +1,100 @@
-{"trial": 0, "condition": "A", "seed": 20261015, "v0": 1, "final": ["b-finding-t0", "a-finding-t0"], "lost_update": false, "conflicts": 0, "max_gap": 1.2644857313622482, "total_attempts": 2}
-{"trial": 1, "condition": "A", "seed": 20261017, "v0": 1, "final": ["a-finding-t1"], "lost_update": true, "conflicts": 0, "max_gap": 1.7561967132325624, "total_attempts": 2}
-{"trial": 2, "condition": "A", "seed": 20261019, "v0": 1, "final": ["b-finding-t2"], "lost_update": true, "conflicts": 0, "max_gap": 1.7620062706433708, "total_attempts": 2}
-{"trial": 3, "condition": "A", "seed": 20261021, "v0": 1, "final": ["a-finding-t3"], "lost_update": true, "conflicts": 0, "max_gap": 1.6719465545303145, "total_attempts": 2}
-{"trial": 4, "condition": "A", "seed": 20261023, "v0": 1, "final": ["b-finding-t4"], "lost_update": true, "conflicts": 0, "max_gap": 1.2656217191014973, "total_attempts": 2}
-{"trial": 5, "condition": "A", "seed": 20261025, "v0": 1, "final": ["a-finding-t5", "b-finding-t5"], "lost_update": false, "conflicts": 0, "max_gap": 2.572698425514168, "total_attempts": 2}
-{"trial": 6, "condition": "A", "seed": 20261027, "v0": 1, "final": ["a-finding-t6", "b-finding-t6"], "lost_update": false, "conflicts": 0, "max_gap": 1.1813927813475003, "total_attempts": 2}
-{"trial": 7, "condition": "A", "seed": 20261029, "v0": 1, "final": ["b-finding-t7"], "lost_update": true, "conflicts": 0, "max_gap": 3.4177303706063684, "total_attempts": 2}
-{"trial": 8, "condition": "A", "seed": 20261031, "v0": 1, "final": ["a-finding-t8", "b-finding-t8"], "lost_update": false, "conflicts": 0, "max_gap": 0.8833793915529472, "total_attempts": 2}
-{"trial": 9, "condition": "A", "seed": 20261033, "v0": 1, "final": ["b-finding-t9", "a-finding-t9"], "lost_update": false, "conflicts": 0, "max_gap": 2.8589705222866257, "total_attempts": 2}
-{"trial": 10, "condition": "A", "seed": 20261035, "v0": 1, "final": ["a-finding-t10"], "lost_update": true, "conflicts": 0, "max_gap": 2.5916752128727034, "total_attempts": 2}
-{"trial": 11, "condition": "A", "seed": 20261037, "v0": 1, "final": ["a-finding-t11"], "lost_update": true, "conflicts": 0, "max_gap": 3.4327048956524697, "total_attempts": 2}
-{"trial": 12, "condition": "A", "seed": 20261039, "v0": 1, "final": ["b-finding-t12"], "lost_update": true, "conflicts": 0, "max_gap": 2.568496085159752, "total_attempts": 2}
-{"trial": 13, "condition": "A", "seed": 20261041, "v0": 1, "final": ["a-finding-t13"], "lost_update": true, "conflicts": 0, "max_gap": 2.173261662033606, "total_attempts": 2}
-{"trial": 14, "condition": "A", "seed": 20261043, "v0": 1, "final": ["b-finding-t14"], "lost_update": true, "conflicts": 0, "max_gap": 1.298040275047559, "total_attempts": 2}
-{"trial": 15, "condition": "A", "seed": 20261045, "v0": 1, "final": ["a-finding-t15"], "lost_update": true, "conflicts": 0, "max_gap": 1.4604731343047679, "total_attempts": 2}
-{"trial": 16, "condition": "A", "seed": 20261047, "v0": 1, "final": ["b-finding-t16"], "lost_update": true, "conflicts": 0, "max_gap": 1.4279652927795945, "total_attempts": 2}
-{"trial": 17, "condition": "A", "seed": 20261049, "v0": 1, "final": ["b-finding-t17"], "lost_update": true, "conflicts": 0, "max_gap": 1.0901967116003128, "total_attempts": 2}
-{"trial": 18, "condition": "A", "seed": 20261051, "v0": 1, "final": ["a-finding-t18"], "lost_update": true, "conflicts": 0, "max_gap": 2.9073209733869527, "total_attempts": 2}
-{"trial": 19, "condition": "A", "seed": 20261053, "v0": 1, "final": ["b-finding-t19"], "lost_update": true, "conflicts": 0, "max_gap": 3.6418365079774064, "total_attempts": 2}
-{"trial": 0, "condition": "B", "seed": 20261016, "v0": 1, "final": ["a-finding-t0", "b-finding-t0"], "lost_update": false, "conflicts": 1, "max_gap": 1.675507638333389, "total_attempts": 3}
-{"trial": 1, "condition": "B", "seed": 20261018, "v0": 1, "final": ["b-finding-t1", "a-finding-t1"], "lost_update": false, "conflicts": 0, "max_gap": 1.2073893288615056, "total_attempts": 2}
-{"trial": 2, "condition": "B", "seed": 20261020, "v0": 1, "final": ["a-finding-t2", "b-finding-t2"], "lost_update": false, "conflicts": 1, "max_gap": 1.9491159450425783, "total_attempts": 3}
-{"trial": 3, "condition": "B", "seed": 20261022, "v0": 1, "final": ["a-finding-t3", "b-finding-t3"], "lost_update": false, "conflicts": 1, "max_gap": 1.9883547621794175, "total_attempts": 3}
-{"trial": 4, "condition": "B", "seed": 20261024, "v0": 1, "final": ["a-finding-t4", "b-finding-t4"], "lost_update": false, "conflicts": 1, "max_gap": 2.319975586958148, "total_attempts": 3}
-{"trial": 5, "condition": "B", "seed": 20261026, "v0": 1, "final": ["a-finding-t5", "b-finding-t5"], "lost_update": false, "conflicts": 1, "max_gap": 1.2625622737897033, "total_attempts": 3}
-{"trial": 6, "condition": "B", "seed": 20261028, "v0": 1, "final": ["b-finding-t6", "a-finding-t6"], "lost_update": false, "conflicts": 1, "max_gap": 1.352000948677929, "total_attempts": 3}
-{"trial": 7, "condition": "B", "seed": 20261030, "v0": 1, "final": ["b-finding-t7", "a-finding-t7"], "lost_update": false, "conflicts": 1, "max_gap": 2.8396066281066092, "total_attempts": 3}
-{"trial": 8, "condition": "B", "seed": 20261032, "v0": 1, "final": ["b-finding-t8", "a-finding-t8"], "lost_update": false, "conflicts": 1, "max_gap": 1.9325535153041529, "total_attempts": 3}
-{"trial": 9, "condition": "B", "seed": 20261034, "v0": 1, "final": ["a-finding-t9", "b-finding-t9"], "lost_update": false, "conflicts": 0, "max_gap": 0.6824751551364721, "total_attempts": 2}
-{"trial": 10, "condition": "B", "seed": 20261036, "v0": 1, "final": ["a-finding-t10", "b-finding-t10"], "lost_update": false, "conflicts": 0, "max_gap": 1.2656284403507945, "total_attempts": 2}
-{"trial": 11, "condition": "B", "seed": 20261038, "v0": 1, "final": ["a-finding-t11", "b-finding-t11"], "lost_update": false, "conflicts": 1, "max_gap": 2.0852361364666803, "total_attempts": 3}
-{"trial": 12, "condition": "B", "seed": 20261040, "v0": 1, "final": ["b-finding-t12", "a-finding-t12"], "lost_update": false, "conflicts": 1, "max_gap": 3.61933165706444, "total_attempts": 3}
-{"trial": 13, "condition": "B", "seed": 20261042, "v0": 1, "final": ["a-finding-t13", "b-finding-t13"], "lost_update": false, "conflicts": 1, "max_gap": 1.0016612720479499, "total_attempts": 3}
-{"trial": 14, "condition": "B", "seed": 20261044, "v0": 1, "final": ["b-finding-t14", "a-finding-t14"], "lost_update": false, "conflicts": 0, "max_gap": 0.9024376537531279, "total_attempts": 2}
-{"trial": 15, "condition": "B", "seed": 20261046, "v0": 1, "final": ["a-finding-t15", "b-finding-t15"], "lost_update": false, "conflicts": 0, "max_gap": 1.863208277923159, "total_attempts": 2}
-{"trial": 16, "condition": "B", "seed": 20261048, "v0": 1, "final": ["b-finding-t16", "a-finding-t16"], "lost_update": false, "conflicts": 1, "max_gap": 3.0607026165008966, "total_attempts": 3}
-{"trial": 17, "condition": "B", "seed": 20261050, "v0": 1, "final": ["a-finding-t17", "b-finding-t17"], "lost_update": false, "conflicts": 0, "max_gap": 0.7103059979176687, "total_attempts": 2}
-{"trial": 18, "condition": "B", "seed": 20261052, "v0": 1, "final": ["a-finding-t18", "b-finding-t18"], "lost_update": false, "conflicts": 1, "max_gap": 3.1517444947424695, "total_attempts": 3}
-{"trial": 19, "condition": "B", "seed": 20261054, "v0": 1, "final": ["a-finding-t19", "b-finding-t19"], "lost_update": false, "conflicts": 0, "max_gap": 0.9283310759235114, "total_attempts": 2}
+{"trial": 0, "condition": "A", "seed": 20261016, "v0": 1, "final": ["b-finding-t0"], "lost_update": true, "conflicts": 0, "max_gap": 1.675507638333389, "total_attempts": 2}
+{"trial": 1, "condition": "A", "seed": 20261018, "v0": 1, "final": ["b-finding-t1", "a-finding-t1"], "lost_update": false, "conflicts": 0, "max_gap": 1.2073893288615056, "total_attempts": 2}
+{"trial": 2, "condition": "A", "seed": 20261020, "v0": 1, "final": ["b-finding-t2"], "lost_update": true, "conflicts": 0, "max_gap": 1.9491159450425783, "total_attempts": 2}
+{"trial": 3, "condition": "A", "seed": 20261022, "v0": 1, "final": ["b-finding-t3"], "lost_update": true, "conflicts": 0, "max_gap": 1.9883547621794175, "total_attempts": 2}
+{"trial": 4, "condition": "A", "seed": 20261024, "v0": 1, "final": ["b-finding-t4"], "lost_update": true, "conflicts": 0, "max_gap": 2.319975586958148, "total_attempts": 2}
+{"trial": 5, "condition": "A", "seed": 20261026, "v0": 1, "final": ["b-finding-t5"], "lost_update": true, "conflicts": 0, "max_gap": 1.2625622737897033, "total_attempts": 2}
+{"trial": 6, "condition": "A", "seed": 20261028, "v0": 1, "final": ["a-finding-t6"], "lost_update": true, "conflicts": 0, "max_gap": 1.352000948677929, "total_attempts": 2}
+{"trial": 7, "condition": "A", "seed": 20261030, "v0": 1, "final": ["a-finding-t7"], "lost_update": true, "conflicts": 0, "max_gap": 2.8396066281066092, "total_attempts": 2}
+{"trial": 8, "condition": "A", "seed": 20261032, "v0": 1, "final": ["a-finding-t8"], "lost_update": true, "conflicts": 0, "max_gap": 1.9325535153041529, "total_attempts": 2}
+{"trial": 9, "condition": "A", "seed": 20261034, "v0": 1, "final": ["a-finding-t9", "b-finding-t9"], "lost_update": false, "conflicts": 0, "max_gap": 0.6824751551364721, "total_attempts": 2}
+{"trial": 10, "condition": "A", "seed": 20261036, "v0": 1, "final": ["a-finding-t10", "b-finding-t10"], "lost_update": false, "conflicts": 0, "max_gap": 1.2656284403507945, "total_attempts": 2}
+{"trial": 11, "condition": "A", "seed": 20261038, "v0": 1, "final": ["b-finding-t11"], "lost_update": true, "conflicts": 0, "max_gap": 2.0852361364666803, "total_attempts": 2}
+{"trial": 12, "condition": "A", "seed": 20261040, "v0": 1, "final": ["a-finding-t12"], "lost_update": true, "conflicts": 0, "max_gap": 3.61933165706444, "total_attempts": 2}
+{"trial": 13, "condition": "A", "seed": 20261042, "v0": 1, "final": ["b-finding-t13"], "lost_update": true, "conflicts": 0, "max_gap": 1.0016612720479499, "total_attempts": 2}
+{"trial": 14, "condition": "A", "seed": 20261044, "v0": 1, "final": ["b-finding-t14", "a-finding-t14"], "lost_update": false, "conflicts": 0, "max_gap": 0.9024376537531279, "total_attempts": 2}
+{"trial": 15, "condition": "A", "seed": 20261046, "v0": 1, "final": ["a-finding-t15", "b-finding-t15"], "lost_update": false, "conflicts": 0, "max_gap": 1.863208277923159, "total_attempts": 2}
+{"trial": 16, "condition": "A", "seed": 20261048, "v0": 1, "final": ["a-finding-t16"], "lost_update": true, "conflicts": 0, "max_gap": 3.0607026165008966, "total_attempts": 2}
+{"trial": 17, "condition": "A", "seed": 20261050, "v0": 1, "final": ["a-finding-t17", "b-finding-t17"], "lost_update": false, "conflicts": 0, "max_gap": 0.7103059979176687, "total_attempts": 2}
+{"trial": 18, "condition": "A", "seed": 20261052, "v0": 1, "final": ["b-finding-t18"], "lost_update": true, "conflicts": 0, "max_gap": 3.1517444947424695, "total_attempts": 2}
+{"trial": 19, "condition": "A", "seed": 20261054, "v0": 1, "final": ["a-finding-t19", "b-finding-t19"], "lost_update": false, "conflicts": 0, "max_gap": 0.9283310759235114, "total_attempts": 2}
+{"trial": 20, "condition": "A", "seed": 20261056, "v0": 1, "final": ["a-finding-t20"], "lost_update": true, "conflicts": 0, "max_gap": 1.483482281613392, "total_attempts": 2}
+{"trial": 21, "condition": "A", "seed": 20261058, "v0": 1, "final": ["b-finding-t21"], "lost_update": true, "conflicts": 0, "max_gap": 1.6900924802475603, "total_attempts": 2}
+{"trial": 22, "condition": "A", "seed": 20261060, "v0": 1, "final": ["a-finding-t22"], "lost_update": true, "conflicts": 0, "max_gap": 4.323383485574134, "total_attempts": 2}
+{"trial": 23, "condition": "A", "seed": 20261062, "v0": 1, "final": ["a-finding-t23"], "lost_update": true, "conflicts": 0, "max_gap": 1.1282439530686332, "total_attempts": 2}
+{"trial": 24, "condition": "A", "seed": 20261064, "v0": 1, "final": ["a-finding-t24", "b-finding-t24"], "lost_update": false, "conflicts": 0, "max_gap": 1.2427321223622205, "total_attempts": 2}
+{"trial": 25, "condition": "A", "seed": 20261066, "v0": 1, "final": ["b-finding-t25"], "lost_update": true, "conflicts": 0, "max_gap": 0.9504898353063891, "total_attempts": 2}
+{"trial": 26, "condition": "A", "seed": 20261068, "v0": 1, "final": ["b-finding-t26", "a-finding-t26"], "lost_update": false, "conflicts": 0, "max_gap": 0.5957133068041239, "total_attempts": 2}
+{"trial": 27, "condition": "A", "seed": 20261070, "v0": 1, "final": ["b-finding-t27"], "lost_update": true, "conflicts": 0, "max_gap": 4.00499602439169, "total_attempts": 2}
+{"trial": 28, "condition": "A", "seed": 20261072, "v0": 1, "final": ["b-finding-t28", "a-finding-t28"], "lost_update": false, "conflicts": 0, "max_gap": 1.6497993272131755, "total_attempts": 2}
+{"trial": 29, "condition": "A", "seed": 20261074, "v0": 1, "final": ["a-finding-t29"], "lost_update": true, "conflicts": 0, "max_gap": 1.1901272818159971, "total_attempts": 2}
+{"trial": 30, "condition": "A", "seed": 20261076, "v0": 1, "final": ["b-finding-t30"], "lost_update": true, "conflicts": 0, "max_gap": 5.39780941536953, "total_attempts": 2}
+{"trial": 31, "condition": "A", "seed": 20261078, "v0": 1, "final": ["a-finding-t31"], "lost_update": true, "conflicts": 0, "max_gap": 0.8700987224559874, "total_attempts": 2}
+{"trial": 32, "condition": "A", "seed": 20261080, "v0": 1, "final": ["b-finding-t32"], "lost_update": true, "conflicts": 0, "max_gap": 2.6526543850213886, "total_attempts": 2}
+{"trial": 33, "condition": "A", "seed": 20261082, "v0": 1, "final": ["a-finding-t33", "b-finding-t33"], "lost_update": false, "conflicts": 0, "max_gap": 4.410839397187965, "total_attempts": 2}
+{"trial": 34, "condition": "A", "seed": 20261084, "v0": 1, "final": ["a-finding-t34"], "lost_update": true, "conflicts": 0, "max_gap": 3.803048306772642, "total_attempts": 2}
+{"trial": 35, "condition": "A", "seed": 20261086, "v0": 1, "final": ["a-finding-t35", "b-finding-t35"], "lost_update": false, "conflicts": 0, "max_gap": 1.8256502825094767, "total_attempts": 2}
+{"trial": 36, "condition": "A", "seed": 20261088, "v0": 1, "final": ["b-finding-t36", "a-finding-t36"], "lost_update": false, "conflicts": 0, "max_gap": 1.5498829361536086, "total_attempts": 2}
+{"trial": 37, "condition": "A", "seed": 20261090, "v0": 1, "final": ["a-finding-t37"], "lost_update": true, "conflicts": 0, "max_gap": 2.9940732590796832, "total_attempts": 2}
+{"trial": 38, "condition": "A", "seed": 20261092, "v0": 1, "final": ["b-finding-t38"], "lost_update": true, "conflicts": 0, "max_gap": 2.9659339820299424, "total_attempts": 2}
+{"trial": 39, "condition": "A", "seed": 20261094, "v0": 1, "final": ["a-finding-t39"], "lost_update": true, "conflicts": 0, "max_gap": 4.809366534007784, "total_attempts": 2}
+{"trial": 40, "condition": "A", "seed": 20261096, "v0": 1, "final": ["a-finding-t40"], "lost_update": true, "conflicts": 0, "max_gap": 0.8321314111038972, "total_attempts": 2}
+{"trial": 41, "condition": "A", "seed": 20261098, "v0": 1, "final": ["a-finding-t41"], "lost_update": true, "conflicts": 0, "max_gap": 2.3655559627354106, "total_attempts": 2}
+{"trial": 42, "condition": "A", "seed": 20261100, "v0": 1, "final": ["b-finding-t42"], "lost_update": true, "conflicts": 0, "max_gap": 1.9777056611866082, "total_attempts": 2}
+{"trial": 43, "condition": "A", "seed": 20261102, "v0": 1, "final": ["a-finding-t43", "b-finding-t43"], "lost_update": false, "conflicts": 0, "max_gap": 1.9995699149539967, "total_attempts": 2}
+{"trial": 44, "condition": "A", "seed": 20261104, "v0": 1, "final": ["b-finding-t44", "a-finding-t44"], "lost_update": false, "conflicts": 0, "max_gap": 3.423732252139187, "total_attempts": 2}
+{"trial": 45, "condition": "A", "seed": 20261106, "v0": 1, "final": ["b-finding-t45", "a-finding-t45"], "lost_update": false, "conflicts": 0, "max_gap": 0.8744501979732431, "total_attempts": 2}
+{"trial": 46, "condition": "A", "seed": 20261108, "v0": 1, "final": ["b-finding-t46", "a-finding-t46"], "lost_update": false, "conflicts": 0, "max_gap": 1.3867916517288965, "total_attempts": 2}
+{"trial": 47, "condition": "A", "seed": 20261110, "v0": 1, "final": ["b-finding-t47"], "lost_update": true, "conflicts": 0, "max_gap": 5.249917752796134, "total_attempts": 2}
+{"trial": 48, "condition": "A", "seed": 20261112, "v0": 1, "final": ["b-finding-t48"], "lost_update": true, "conflicts": 0, "max_gap": 0.7055959107182976, "total_attempts": 2}
+{"trial": 49, "condition": "A", "seed": 20261114, "v0": 1, "final": ["a-finding-t49"], "lost_update": true, "conflicts": 0, "max_gap": 3.404510789324353, "total_attempts": 2}
+{"trial": 0, "condition": "B", "seed": 20261017, "v0": 1, "final": ["b-finding-t0", "a-finding-t0"], "lost_update": false, "conflicts": 1, "max_gap": 1.7561967132325624, "total_attempts": 3}
+{"trial": 1, "condition": "B", "seed": 20261019, "v0": 1, "final": ["a-finding-t1", "b-finding-t1"], "lost_update": false, "conflicts": 1, "max_gap": 1.7620062706433708, "total_attempts": 3}
+{"trial": 2, "condition": "B", "seed": 20261021, "v0": 1, "final": ["b-finding-t2", "a-finding-t2"], "lost_update": false, "conflicts": 1, "max_gap": 1.6719465545303145, "total_attempts": 3}
+{"trial": 3, "condition": "B", "seed": 20261023, "v0": 1, "final": ["a-finding-t3", "b-finding-t3"], "lost_update": false, "conflicts": 1, "max_gap": 1.2656217191014973, "total_attempts": 3}
+{"trial": 4, "condition": "B", "seed": 20261025, "v0": 1, "final": ["a-finding-t4", "b-finding-t4"], "lost_update": false, "conflicts": 0, "max_gap": 2.572698425514168, "total_attempts": 2}
+{"trial": 5, "condition": "B", "seed": 20261027, "v0": 1, "final": ["a-finding-t5", "b-finding-t5"], "lost_update": false, "conflicts": 0, "max_gap": 1.1813927813475003, "total_attempts": 2}
+{"trial": 6, "condition": "B", "seed": 20261029, "v0": 1, "final": ["a-finding-t6", "b-finding-t6"], "lost_update": false, "conflicts": 1, "max_gap": 3.4177303706063684, "total_attempts": 3}
+{"trial": 7, "condition": "B", "seed": 20261031, "v0": 1, "final": ["a-finding-t7", "b-finding-t7"], "lost_update": false, "conflicts": 0, "max_gap": 0.8833793915529472, "total_attempts": 2}
+{"trial": 8, "condition": "B", "seed": 20261033, "v0": 1, "final": ["b-finding-t8", "a-finding-t8"], "lost_update": false, "conflicts": 0, "max_gap": 2.8589705222866257, "total_attempts": 2}
+{"trial": 9, "condition": "B", "seed": 20261035, "v0": 1, "final": ["b-finding-t9", "a-finding-t9"], "lost_update": false, "conflicts": 1, "max_gap": 2.5916752128727034, "total_attempts": 3}
+{"trial": 10, "condition": "B", "seed": 20261037, "v0": 1, "final": ["b-finding-t10", "a-finding-t10"], "lost_update": false, "conflicts": 1, "max_gap": 3.4327048956524697, "total_attempts": 3}
+{"trial": 11, "condition": "B", "seed": 20261039, "v0": 1, "final": ["a-finding-t11", "b-finding-t11"], "lost_update": false, "conflicts": 1, "max_gap": 2.568496085159752, "total_attempts": 3}
+{"trial": 12, "condition": "B", "seed": 20261041, "v0": 1, "final": ["b-finding-t12", "a-finding-t12"], "lost_update": false, "conflicts": 1, "max_gap": 2.173261662033606, "total_attempts": 3}
+{"trial": 13, "condition": "B", "seed": 20261043, "v0": 1, "final": ["a-finding-t13", "b-finding-t13"], "lost_update": false, "conflicts": 1, "max_gap": 1.298040275047559, "total_attempts": 3}
+{"trial": 14, "condition": "B", "seed": 20261045, "v0": 1, "final": ["b-finding-t14", "a-finding-t14"], "lost_update": false, "conflicts": 1, "max_gap": 1.4604731343047679, "total_attempts": 3}
+{"trial": 15, "condition": "B", "seed": 20261047, "v0": 1, "final": ["a-finding-t15", "b-finding-t15"], "lost_update": false, "conflicts": 1, "max_gap": 1.4279652927795945, "total_attempts": 3}
+{"trial": 16, "condition": "B", "seed": 20261049, "v0": 1, "final": ["a-finding-t16", "b-finding-t16"], "lost_update": false, "conflicts": 1, "max_gap": 1.0901967116003128, "total_attempts": 3}
+{"trial": 17, "condition": "B", "seed": 20261051, "v0": 1, "final": ["b-finding-t17", "a-finding-t17"], "lost_update": false, "conflicts": 1, "max_gap": 2.9073209733869527, "total_attempts": 3}
+{"trial": 18, "condition": "B", "seed": 20261053, "v0": 1, "final": ["a-finding-t18", "b-finding-t18"], "lost_update": false, "conflicts": 1, "max_gap": 3.6418365079774064, "total_attempts": 3}
+{"trial": 19, "condition": "B", "seed": 20261055, "v0": 1, "final": ["a-finding-t19", "b-finding-t19"], "lost_update": false, "conflicts": 1, "max_gap": 2.460116058764322, "total_attempts": 3}
+{"trial": 20, "condition": "B", "seed": 20261057, "v0": 1, "final": ["b-finding-t20", "a-finding-t20"], "lost_update": false, "conflicts": 1, "max_gap": 2.2228094832525658, "total_attempts": 3}
+{"trial": 21, "condition": "B", "seed": 20261059, "v0": 1, "final": ["a-finding-t21", "b-finding-t21"], "lost_update": false, "conflicts": 1, "max_gap": 1.8488115477020337, "total_attempts": 3}
+{"trial": 22, "condition": "B", "seed": 20261061, "v0": 1, "final": ["b-finding-t22", "a-finding-t22"], "lost_update": false, "conflicts": 1, "max_gap": 2.172377674163552, "total_attempts": 3}
+{"trial": 23, "condition": "B", "seed": 20261063, "v0": 1, "final": ["b-finding-t23", "a-finding-t23"], "lost_update": false, "conflicts": 1, "max_gap": 1.4066882404258376, "total_attempts": 3}
+{"trial": 24, "condition": "B", "seed": 20261065, "v0": 1, "final": ["b-finding-t24", "a-finding-t24"], "lost_update": false, "conflicts": 1, "max_gap": 1.5675239953373468, "total_attempts": 3}
+{"trial": 25, "condition": "B", "seed": 20261067, "v0": 1, "final": ["a-finding-t25", "b-finding-t25"], "lost_update": false, "conflicts": 1, "max_gap": 1.2598123669220729, "total_attempts": 3}
+{"trial": 26, "condition": "B", "seed": 20261069, "v0": 1, "final": ["b-finding-t26", "a-finding-t26"], "lost_update": false, "conflicts": 0, "max_gap": 1.1257619186899783, "total_attempts": 2}
+{"trial": 27, "condition": "B", "seed": 20261071, "v0": 1, "final": ["a-finding-t27", "b-finding-t27"], "lost_update": false, "conflicts": 1, "max_gap": 1.3178333392782589, "total_attempts": 3}
+{"trial": 28, "condition": "B", "seed": 20261073, "v0": 1, "final": ["a-finding-t28", "b-finding-t28"], "lost_update": false, "conflicts": 1, "max_gap": 4.972354624639941, "total_attempts": 3}
+{"trial": 29, "condition": "B", "seed": 20261075, "v0": 1, "final": ["a-finding-t29", "b-finding-t29"], "lost_update": false, "conflicts": 0, "max_gap": 0.467818684659287, "total_attempts": 2}
+{"trial": 30, "condition": "B", "seed": 20261077, "v0": 1, "final": ["a-finding-t30", "b-finding-t30"], "lost_update": false, "conflicts": 1, "max_gap": 2.3612939716122043, "total_attempts": 3}
+{"trial": 31, "condition": "B", "seed": 20261079, "v0": 1, "final": ["a-finding-t31", "b-finding-t31"], "lost_update": false, "conflicts": 1, "max_gap": 3.535904560419106, "total_attempts": 3}
+{"trial": 32, "condition": "B", "seed": 20261081, "v0": 1, "final": ["b-finding-t32", "a-finding-t32"], "lost_update": false, "conflicts": 1, "max_gap": 2.1568891321313712, "total_attempts": 3}
+{"trial": 33, "condition": "B", "seed": 20261083, "v0": 1, "final": ["a-finding-t33", "b-finding-t33"], "lost_update": false, "conflicts": 1, "max_gap": 2.3871964334878175, "total_attempts": 3}
+{"trial": 34, "condition": "B", "seed": 20261085, "v0": 1, "final": ["a-finding-t34", "b-finding-t34"], "lost_update": false, "conflicts": 1, "max_gap": 2.4487226418644656, "total_attempts": 3}
+{"trial": 35, "condition": "B", "seed": 20261087, "v0": 1, "final": ["b-finding-t35", "a-finding-t35"], "lost_update": false, "conflicts": 1, "max_gap": 1.777552827335475, "total_attempts": 3}
+{"trial": 36, "condition": "B", "seed": 20261089, "v0": 1, "final": ["b-finding-t36", "a-finding-t36"], "lost_update": false, "conflicts": 1, "max_gap": 1.5138092105080854, "total_attempts": 3}
+{"trial": 37, "condition": "B", "seed": 20261091, "v0": 1, "final": ["a-finding-t37", "b-finding-t37"], "lost_update": false, "conflicts": 1, "max_gap": 0.8447050293554965, "total_attempts": 3}
+{"trial": 38, "condition": "B", "seed": 20261093, "v0": 1, "final": ["a-finding-t38", "b-finding-t38"], "lost_update": false, "conflicts": 1, "max_gap": 2.027418089878626, "total_attempts": 3}
+{"trial": 39, "condition": "B", "seed": 20261095, "v0": 1, "final": ["b-finding-t39", "a-finding-t39"], "lost_update": false, "conflicts": 1, "max_gap": 3.531727531197557, "total_attempts": 3}
+{"trial": 40, "condition": "B", "seed": 20261097, "v0": 1, "final": ["a-finding-t40", "b-finding-t40"], "lost_update": false, "conflicts": 1, "max_gap": 5.668533921286523, "total_attempts": 3}
+{"trial": 41, "condition": "B", "seed": 20261099, "v0": 1, "final": ["a-finding-t41", "b-finding-t41"], "lost_update": false, "conflicts": 1, "max_gap": 4.509125568373057, "total_attempts": 3}
+{"trial": 42, "condition": "B", "seed": 20261101, "v0": 1, "final": ["b-finding-t42", "a-finding-t42"], "lost_update": false, "conflicts": 0, "max_gap": 0.7906343339425603, "total_attempts": 2}
+{"trial": 43, "condition": "B", "seed": 20261103, "v0": 1, "final": ["a-finding-t43", "b-finding-t43"], "lost_update": false, "conflicts": 1, "max_gap": 1.5800253683212604, "total_attempts": 3}
+{"trial": 44, "condition": "B", "seed": 20261105, "v0": 1, "final": ["a-finding-t44", "b-finding-t44"], "lost_update": false, "conflicts": 0, "max_gap": 0.37095373839053253, "total_attempts": 2}
+{"trial": 45, "condition": "B", "seed": 20261107, "v0": 1, "final": ["a-finding-t45", "b-finding-t45"], "lost_update": false, "conflicts": 1, "max_gap": 1.853403579855852, "total_attempts": 3}
+{"trial": 46, "condition": "B", "seed": 20261109, "v0": 1, "final": ["b-finding-t46", "a-finding-t46"], "lost_update": false, "conflicts": 1, "max_gap": 1.5383219013535925, "total_attempts": 3}
+{"trial": 47, "condition": "B", "seed": 20261111, "v0": 1, "final": ["a-finding-t47", "b-finding-t47"], "lost_update": false, "conflicts": 0, "max_gap": 0.8518235938608798, "total_attempts": 2}
+{"trial": 48, "condition": "B", "seed": 20261113, "v0": 1, "final": ["a-finding-t48", "b-finding-t48"], "lost_update": false, "conflicts": 0, "max_gap": 0.8587362674863448, "total_attempts": 2}
+{"trial": 49, "condition": "B", "seed": 20261115, "v0": 1, "final": ["b-finding-t49", "a-finding-t49"], "lost_update": false, "conflicts": 1, "max_gap": 3.082536464065786, "total_attempts": 3}
