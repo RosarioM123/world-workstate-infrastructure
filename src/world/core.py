@@ -17,6 +17,7 @@ import hmac
 import json
 import os
 import re
+import secrets
 import sqlite3
 from collections.abc import Callable, Iterable
 from contextlib import closing
@@ -25,6 +26,20 @@ from pathlib import Path
 from typing import Any
 
 from . import ed25519 as _ed25519
+from . import fieldcrypto as _fieldcrypto
+
+
+class RedactedError(ValueError):
+    """The field's encryption key was destroyed via :meth:`World.redact`.
+
+    The ciphertext is still in the chain, but it is cryptographically
+    unrecoverable. Carries ``key_id`` and ``field``.
+    """
+
+    def __init__(self, message: str, *, key_id: str, field: str) -> None:
+        super().__init__(message)
+        self.key_id = key_id
+        self.field = field
 
 __all__ = [
     "ConflictError",
@@ -61,6 +76,20 @@ CREATE TABLE IF NOT EXISTS checkpoints (
 CREATE TABLE IF NOT EXISTS idempotency (
     key TEXT PRIMARY KEY,
     seq INTEGER NOT NULL REFERENCES versions(seq)
+);
+CREATE TABLE IF NOT EXISTS field_keys (
+    -- Escrow for per-field encryption keys (see encrypt_fields). This
+    -- table is key material, not ledger data: it is NOT hash-chained
+    -- (like idempotency, and like signing keys held out-of-band).
+    -- Deleting a row crypto-shreds the field: the ciphertext stays in
+    -- the chain (verify() unaffected) but becomes unrecoverable.
+    key_id      TEXT PRIMARY KEY,
+    seq         INTEGER,  -- version whose envelope references it (NULL
+                          -- when the proposal was rejected)
+    field       TEXT NOT NULL,  -- dot-separated path in the state
+    wrapped_key TEXT NOT NULL,  -- data key wrapped with the master key
+    key_fp      TEXT NOT NULL,  -- SHA-256 fingerprint of the data key
+    created_at  TEXT NOT NULL
 );
 """
 
@@ -959,6 +988,303 @@ class World:
                 "SELECT hash FROM versions WHERE seq = ?", (seq,)
             ).fetchone()
         return row is not None and str(row["hash"]) == tip_hash
+
+    # ------------------------------------------------------------------
+    # Per-field encryption and cryptographic redaction.
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _enc_aad(name: str, field: str, key_id: str) -> bytes:
+        return f"{name}:{field}:{key_id}".encode("utf-8")
+
+    def encrypt_fields(
+        self,
+        master_key: bytes,
+        state: dict[str, Any],
+        fields: Iterable[str],
+    ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        """Encrypt fields of a state; returns ``(new_state, key_records)``.
+
+        Each named field (dot-separated path, e.g. ``"payment.card"``)
+        is replaced by an authenticated-encryption envelope; the row
+        hash is computed over the ciphertext, so :meth:`verify` works
+        without the key and encryption composes with tamper-evidence.
+        Absent fields are skipped.
+
+        Every field gets a fresh random 32-byte data key, wrapped with
+        ``master_key``; the wrapped keys come back as ``key_records``
+        for :meth:`store_field_keys`. Persist them (see
+        :meth:`update_encrypted`), or the envelopes can never be
+        decrypted. ``master_key`` must be at least 16 bytes; it is never
+        written to the database.
+        """
+        import copy
+
+        master = bytes(master_key)
+        if len(master) < 16:
+            raise ValueError("master key must be at least 16 bytes")
+        new_state = copy.deepcopy(state)
+        records: list[dict[str, Any]] = []
+        for field in fields:
+            value = _get_path(new_state, field)
+            if value is _MISSING or _fieldcrypto.is_envelope(value):
+                continue
+            data_key = secrets.token_bytes(32)
+            key_id = secrets.token_hex(8)
+            aad = self._enc_aad(self._name, field, key_id)
+            env = _fieldcrypto.encrypt(
+                data_key, _fieldcrypto.encode_value(value), aad
+            )
+            env["key_id"] = key_id
+            env["key_fp"] = _fieldcrypto.key_fingerprint(data_key)
+            wrapped = _fieldcrypto.encrypt(
+                master, data_key, f"wrap:{key_id}".encode("utf-8")
+            )
+            # Swap the plaintext for the envelope at the dot path.
+            parts = field.split(".")
+            node = new_state
+            for part in parts[:-1]:
+                node = node[part]
+            node[parts[-1]] = env
+            records.append(
+                {
+                    "key_id": key_id,
+                    "seq": None,
+                    "field": field,
+                    "wrapped_key": json.dumps(wrapped),
+                    "key_fp": _fieldcrypto.key_fingerprint(data_key),
+                    "created_at": _utcnow(),
+                }
+            )
+        return new_state, records
+
+    def store_field_keys(
+        self, key_records: Iterable[dict[str, Any]], seq: int | None = None
+    ) -> None:
+        """Persist wrapped field keys from :meth:`encrypt_fields`.
+
+        ``seq`` tags the rows with the version whose envelopes reference
+        them (left NULL for rejected proposals, whose evidence rows stay
+        decryptable).
+        """
+        rows = [
+            (
+                r["key_id"],
+                seq if seq is not None else r.get("seq"),
+                r["field"],
+                r["wrapped_key"],
+                r["key_fp"],
+                r["created_at"],
+            )
+            for r in key_records
+        ]
+        if not rows:
+            return
+        with closing(self._connect()) as cx:
+            cx.executemany(
+                "INSERT OR REPLACE INTO field_keys"
+                " (key_id, seq, field, wrapped_key, key_fp, created_at)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
+                rows,
+            )
+            cx.commit()
+
+    def update_encrypted(
+        self,
+        master_key: bytes,
+        state: dict[str, Any],
+        fields: Iterable[str],
+        **kw: Any,
+    ) -> int:
+        """Encrypt ``fields`` then :meth:`update`; returns the new seq.
+
+        Key records are escrowed *before* the update so that even a
+        REJECTED proposal's envelopes stay decryptable (the attempt is
+        evidence). ``idempotency_key`` is refused: an idempotent replay
+        would orphan the fresh key records, so combine the two
+        explicitly via :meth:`encrypt_fields` instead.
+        """
+        if kw.get("idempotency_key") is not None:
+            raise ValueError(
+                "update_encrypted refuses idempotency_key: encrypt the state"
+                " with encrypt_fields and manage the replay explicitly"
+            )
+        new_state, records = self.encrypt_fields(master_key, state, fields)
+        self.store_field_keys(records)
+        seq = self.update(new_state, **kw)
+        with closing(self._connect()) as cx:
+            cx.executemany(
+                "UPDATE field_keys SET seq = ? WHERE key_id = ?",
+                [(seq, r["key_id"]) for r in records],
+            )
+            cx.commit()
+        return seq
+
+    def _field_data_key(
+        self, master_key: bytes, key_id: str
+    ) -> tuple[bytes, dict[str, Any]]:
+        """Unwrap a field key; raises RedactedError/DecryptionError."""
+        with closing(self._connect()) as cx:
+            row = cx.execute(
+                "SELECT field, wrapped_key FROM field_keys WHERE key_id = ?",
+                (key_id,),
+            ).fetchone()
+        if row is None:
+            raise RedactedError(
+                f"no decryption key for {key_id}"
+                " (never escrowed, or already redacted)",
+                key_id=key_id,
+                field="",
+            )
+        try:
+            data_key = _fieldcrypto.decrypt(
+                bytes(master_key),
+                json.loads(str(row["wrapped_key"])),
+                f"wrap:{key_id}".encode("utf-8"),
+            )
+        except _fieldcrypto.DecryptionError as e:
+            raise _fieldcrypto.DecryptionError(
+                f"cannot unwrap field key {key_id}: {e}"
+            ) from e
+        return data_key, {"field": str(row["field"])}
+
+    def decrypt_fields(
+        self, master_key: bytes, state: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Restore encrypted fields; raises RedactedError/DecryptionError.
+
+        A wrong master key fails the envelope authentication (no silent
+        garbage). A shredded key raises :class:`RedactedError` carrying
+        the ``key_id`` and ``field``.
+        """
+        import copy
+
+        out = copy.deepcopy(state)
+
+        def walk(node: Any, path: str) -> None:
+            if isinstance(node, dict):
+                for k, v in list(node.items()):
+                    p = f"{path}.{k}" if path else str(k)
+                    if _fieldcrypto.is_envelope(v):
+                        key_id = str(v.get("key_id", ""))
+                        try:
+                            data_key, _ = self._field_data_key(
+                                master_key, key_id
+                            )
+                        except RedactedError as e:
+                            raise RedactedError(
+                                str(e), key_id=key_id, field=p
+                            ) from e
+                        aad = self._enc_aad(self._name, p, key_id)
+                        try:
+                            raw = _fieldcrypto.decrypt(data_key, v, aad)
+                        except _fieldcrypto.DecryptionError as e:
+                            raise _fieldcrypto.DecryptionError(
+                                f"field {p!r}: {e}"
+                            ) from e
+                        node[k] = _fieldcrypto.decode_value(raw)
+                    else:
+                        walk(v, p)
+            elif isinstance(node, list):
+                for i, v in enumerate(node):
+                    walk(v, f"{path}[{i}]")
+
+        walk(out, "")
+        return out
+
+    def _envelope_at(self, seq: int, field: str) -> tuple[dict, str]:
+        try:
+            state = self.state(version=seq)
+        except KeyError:
+            raise ValueError(f"no committed version {seq}") from None
+        value = _get_path(state, field)
+        if not _fieldcrypto.is_envelope(value):
+            raise ValueError(
+                f"field {field!r} is not encrypted at version {seq}"
+            )
+        return value, str(value.get("key_id", ""))
+
+    def redact(
+        self, seq: int, field: str, master_key: bytes
+    ) -> dict[str, Any]:
+        """Crypto-shred one encrypted field: destroy its data key.
+
+        The ciphertext stays in the chain, so :meth:`verify` keeps
+        passing: erasure needs no history rewrite. Afterwards even the
+        master key cannot decrypt the field. The unwrapping step
+        authorizes the redaction: a wrong master key raises
+        :class:`DecryptionError` and nothing is deleted.
+
+        Returns a receipt ``{"seq", "field", "key_id", "key_fp",
+        "redacted_at"}``. Anyone with the receipt and DB access can
+        verify the redaction: the envelope's key fingerprint matches the
+        receipt and no key row exists for the ``key_id``.
+        """
+        _, key_id = self._envelope_at(seq, field)
+        with closing(self._connect()) as cx:
+            row = cx.execute(
+                "SELECT wrapped_key, key_fp FROM field_keys WHERE key_id = ?",
+                (key_id,),
+            ).fetchone()
+        if row is None:
+            raise RedactedError(
+                f"field {field!r} at version {seq} is already redacted",
+                key_id=key_id,
+                field=field,
+            )
+        # Authorization: only the master-key holder can shred.
+        try:
+            _fieldcrypto.decrypt(
+                bytes(master_key),
+                json.loads(str(row["wrapped_key"])),
+                f"wrap:{key_id}".encode("utf-8"),
+            )
+        except _fieldcrypto.DecryptionError as e:
+            raise _fieldcrypto.DecryptionError(
+                f"redaction refused (wrong master key): {e}"
+            ) from e
+        with closing(self._connect()) as cx:
+            cx.execute("DELETE FROM field_keys WHERE key_id = ?", (key_id,))
+            cx.commit()
+        return {
+            "seq": seq,
+            "field": field,
+            "key_id": key_id,
+            "key_fp": str(row["key_fp"]),
+            "redacted_at": _utcnow(),
+        }
+
+    def redact_field(
+        self, field: str, master_key: bytes
+    ) -> list[dict[str, Any]]:
+        """Redact ``field`` at every version where it is encrypted.
+
+        Returns one receipt per shredded key. Already-redacted versions
+        are skipped.
+        """
+        receipts: list[dict[str, Any]] = []
+        for seq in range(1, self.version + 1):
+            try:
+                self._envelope_at(seq, field)
+            except ValueError:
+                continue  # not encrypted here (or not committed)
+            try:
+                receipts.append(self.redact(seq, field, master_key))
+            except RedactedError:
+                continue  # already shredded
+        return receipts
+
+    def redaction_status(self, seq: int, field: str) -> str:
+        """``"active"`` | ``"redacted"`` | ``"not-encrypted"``."""
+        try:
+            _, key_id = self._envelope_at(seq, field)
+        except ValueError:
+            return "not-encrypted"
+        with closing(self._connect()) as cx:
+            row = cx.execute(
+                "SELECT 1 FROM field_keys WHERE key_id = ?", (key_id,)
+            ).fetchone()
+        return "active" if row else "redacted"
 
     @staticmethod
     def _merkle_parent(left: bytes, right: bytes) -> bytes:

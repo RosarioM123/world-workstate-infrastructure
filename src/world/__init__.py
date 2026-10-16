@@ -5,8 +5,8 @@ document whose every change is judged by optional invariants, with every
 verdict (COMMITTED or REJECTED) appended to a hash-chained log.
 """
 
-from . import ed25519
-from .core import ConflictError, InvariantViolation, World
+from . import ed25519, fieldcrypto
+from .core import ConflictError, InvariantViolation, RedactedError, World
 from .handoff import AgentState, Decision, Evidence, load_state, save_state
 
 __version__ = "0.1.0"
@@ -17,9 +17,11 @@ __all__ = [
     "Decision",
     "Evidence",
     "InvariantViolation",
+    "RedactedError",
     "World",
     "__version__",
     "ed25519",
+    "fieldcrypto",
     "load_state",
     "save_state",
 ]
