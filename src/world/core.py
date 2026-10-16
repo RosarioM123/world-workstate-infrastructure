@@ -24,6 +24,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from . import ed25519 as _ed25519
+
 __all__ = [
     "ConflictError",
     "Invariant",
@@ -557,8 +559,8 @@ class World:
         cannot detect on an unkeyed chain. The key is never written to
         the database; anyone with the key can sign, so protect it like
         a password. For public verifiability (anyone verifies, only the
-        signer signs), use ed25519 instead; HMAC is chosen here because
-        it is stdlib-only.
+        signer signs), use :meth:`sign_tip_ed25519` /
+        :meth:`verify_tip_ed25519` instead.
         """
         raw = key.encode("utf-8") if isinstance(key, str) else bytes(key)
         with closing(self._connect()) as cx:
@@ -594,6 +596,80 @@ class World:
             return False
         if not hmac.compare_digest(
             self._tip_mac(raw, name, seq, tip_hash), sig
+        ):
+            return False
+        with closing(self._connect()) as cx:
+            row = cx.execute(
+                "SELECT hash FROM versions WHERE seq = ?", (seq,)
+            ).fetchone()
+        return row is not None and str(row["hash"]) == tip_hash
+
+    @staticmethod
+    def _tip_message(name: str, seq: int, tip_hash: str) -> bytes:
+        return f"{name}:{seq}:{tip_hash}".encode("utf-8")
+
+    def sign_tip_ed25519(self, private_key: bytes) -> dict[str, Any]:
+        """Sign the chain tip with an Ed25519 private key.
+
+        Same ``(name, seq, hash)`` message as :meth:`sign_tip`, but the
+        signature is publicly verifiable: anyone holding the *public* key
+        can check it, while only the private-key holder can sign. Returns
+        ``{"name", "seq", "hash", "sig", "alg": "ed25519"}`` with the
+        signature hex-encoded. The private key is never written to the
+        database; distribute the public key out-of-band (it is public,
+        so a README or DNS record will do). Key generation:
+        ``world.ed25519.create_keypair()``.
+        """
+        if len(bytes(private_key)) != 32:
+            raise ValueError("Ed25519 private key must be 32 bytes")
+        with closing(self._connect()) as cx:
+            row = cx.execute(
+                "SELECT seq, hash FROM versions ORDER BY seq DESC LIMIT 1"
+            ).fetchone()
+            if row is None:
+                raise ValueError("cannot sign the tip of an empty world")
+            seq, tip_hash = int(row["seq"]), str(row["hash"])
+        public_key = _ed25519.publickey(bytes(private_key))
+        sig = _ed25519.signature(
+            self._tip_message(self._name, seq, tip_hash),
+            bytes(private_key),
+            public_key,
+        )
+        return {
+            "name": self._name,
+            "seq": seq,
+            "hash": tip_hash,
+            "sig": sig.hex(),
+            "alg": "ed25519",
+        }
+
+    def verify_tip_ed25519(
+        self, public_key: bytes, signed_tip: dict[str, Any]
+    ) -> bool:
+        """Verify an Ed25519 tip signature against this world.
+
+        The public key must come from out-of-band distribution, never from
+        the signed tip itself (otherwise an attacker rewrites the chain
+        *and* re-signs with their own key). Returns False for forged
+        signatures, tampered fields, algorithm confusion (an HMAC tip
+        passed here is rejected), name mismatch, or a chain that no longer
+        contains the signed ``(seq, hash)`` pair.
+        """
+        if not isinstance(signed_tip, dict):
+            return False
+        try:
+            if signed_tip.get("alg") != "ed25519":
+                return False
+            name = str(signed_tip["name"])
+            seq = int(signed_tip["seq"])
+            tip_hash = str(signed_tip["hash"])
+            sig = bytes.fromhex(str(signed_tip["sig"]))
+        except (KeyError, TypeError, ValueError):
+            return False
+        if name != self._name:
+            return False
+        if not _ed25519.checkvalid(
+            sig, self._tip_message(name, seq, tip_hash), bytes(public_key)
         ):
             return False
         with closing(self._connect()) as cx:

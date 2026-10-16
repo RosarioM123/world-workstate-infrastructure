@@ -77,9 +77,14 @@ checkpoint appends a new version; it never rewrites the past
    `test_signed_tip_detects_rewrite`), while honest appends after
    signing keep old tips valid. `verify()` itself is unchanged: the
    unkeyed chain still cannot detect these on its own, which is why the
-   red-team `*_undetected` tests remain green as documented. ed25519 is
-   the upgrade path when public verifiability (anyone verifies, only
-   the signer signs) is needed; HMAC was chosen for stdlib purity.
+   red-team `*_undetected` tests remain green as documented.
+   **Public-verifiability upgrade BUILT 2026-10-15**:
+   `World.sign_tip_ed25519` / `verify_tip_ed25519` (Ed25519 over the same
+   `(name, seq, hash)` message; vendored pure-Python backend in
+   `src/world/ed25519.py`, stdlib-only, validated against RFC 8032
+   section 7.1 vectors; `tests/test_world_signing_ed25519.py`, 13 tests).
+   Anyone holding the *public* key verifies; only the private-key holder
+   signs. Measured: ~147 signs/s, ~109 verifies/s (pure Python).
 2. **Checkpoint table inclusion**: fold checkpoint pins into the hashed
    row (or a parallel chained table). Closes (3). Still open.
 3. **WORM / append-only storage** for ledger segments. Closes (1), (2),
