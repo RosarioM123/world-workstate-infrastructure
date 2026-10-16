@@ -8,6 +8,8 @@ node_modules/
 out/
 dist/
 build/
+bin/
+obj/
 
 # Environment / secrets — never commit these
 .env
