@@ -31,7 +31,7 @@ Repository = "https://github.com/RosarioM123/world-workstate-infrastructure.git"
 
 [project.optional-dependencies]
 server = [
-    "fastapi==0.141.1",
+    "fastapi==0.143.3",
     "uvicorn==0.53.0",
 ]
 test = [
@@ -40,7 +40,7 @@ test = [
     "hypothesis==6.168.0",
     "httpx==0.28.1",
     # fastapi mirrors the `server` extra: the server tests need it.
-    "fastapi==0.141.1",
+    "fastapi==0.143.3",
 ]
 
 # src layout: the kernel lives in src/world_engine/ (core/engine.py,
