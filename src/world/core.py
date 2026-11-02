@@ -41,6 +41,7 @@ class RedactedError(ValueError):
         self.key_id = key_id
         self.field = field
 
+
 __all__ = [
     "ConflictError",
     "Invariant",
@@ -383,7 +384,11 @@ class World:
         the batch stay committed, matching sequential :meth:`update` calls.
         """
         items = list(states)
-        keys = list(idempotency_keys) if idempotency_keys is not None else [None] * len(items)
+        keys = (
+            list(idempotency_keys)
+            if idempotency_keys is not None
+            else [None] * len(items)
+        )
         if len(keys) != len(items):
             raise ValueError(
                 f"idempotency_keys length {len(keys)} != states length {len(items)}"
@@ -391,9 +396,7 @@ class World:
         validated: list[tuple[dict[str, Any], str]] = []
         for state in items:
             if not isinstance(state, dict):
-                raise TypeError(
-                    f"state must be a dict, got {type(state).__name__}"
-                )
+                raise TypeError(f"state must be a dict, got {type(state).__name__}")
             try:
                 validated.append((state, _canonical(state)))
             except (TypeError, ValueError) as e:
@@ -713,7 +716,7 @@ class World:
     @staticmethod
     def _tip_mac(key: bytes, name: str, seq: int, tip_hash: str) -> str:
         return hmac.new(
-            key, f"{name}:{seq}:{tip_hash}".encode("utf-8"), hashlib.sha256
+            key, f"{name}:{seq}:{tip_hash}".encode(), hashlib.sha256
         ).hexdigest()
 
     @staticmethod
@@ -726,9 +729,7 @@ class World:
         """
         return hashlib.sha256(bytes(key)).hexdigest()[:16]
 
-    def sign_tip(
-        self, key: bytes | str, kid: str | None = None
-    ) -> dict[str, Any]:
+    def sign_tip(self, key: bytes | str, kid: str | None = None) -> dict[str, Any]:
         """Sign the chain tip with an HMAC key held outside the database.
 
         Returns ``{"name", "seq", "hash", "sig", "kid"}``. Store it
@@ -794,9 +795,7 @@ class World:
         )
         if tip_kid is not None and tip_kid != want_kid:
             return False
-        if not hmac.compare_digest(
-            self._tip_mac(raw, name, seq, tip_hash), sig
-        ):
+        if not hmac.compare_digest(self._tip_mac(raw, name, seq, tip_hash), sig):
             return False
         with closing(self._connect()) as cx:
             row = cx.execute(
@@ -806,7 +805,7 @@ class World:
 
     @staticmethod
     def _tip_message(name: str, seq: int, tip_hash: str) -> bytes:
-        return f"{name}:{seq}:{tip_hash}".encode("utf-8")
+        return f"{name}:{seq}:{tip_hash}".encode()
 
     def sign_tip_ed25519(
         self, private_key: bytes, kid: str | None = None
@@ -884,9 +883,7 @@ class World:
         )
         if tip_kid is not None and tip_kid != want_kid:
             return False
-        if not _ed25519.checkvalid(
-            sig, self._tip_message(name, seq, tip_hash), pub
-        ):
+        if not _ed25519.checkvalid(sig, self._tip_message(name, seq, tip_hash), pub):
             return False
         with closing(self._connect()) as cx:
             row = cx.execute(
@@ -931,9 +928,8 @@ class World:
                 raise ValueError("cannot rotate on an empty world")
             seq, tip_hash = int(row["seq"]), str(row["hash"])
         msg = (
-            f"rotate:{self._name}:{seq}:{tip_hash}:"
-            f"{old_fp}:{new_fp}:{new_pub.hex()}"
-        ).encode("utf-8")
+            f"rotate:{self._name}:{seq}:{tip_hash}:{old_fp}:{new_fp}:{new_pub.hex()}"
+        ).encode()
         sig = _ed25519.signature(msg, old_sk, old_pub)
         return {
             "name": self._name,
@@ -978,9 +974,8 @@ class World:
         if new_kid != self._key_fingerprint(new_pub):
             return False
         msg = (
-            f"rotate:{name}:{seq}:{tip_hash}:"
-            f"{old_kid}:{new_kid}:{new_pub.hex()}"
-        ).encode("utf-8")
+            f"rotate:{name}:{seq}:{tip_hash}:{old_kid}:{new_kid}:{new_pub.hex()}"
+        ).encode()
         if not _ed25519.checkvalid(sig, msg, old_pub):
             return False
         with closing(self._connect()) as cx:
@@ -995,7 +990,7 @@ class World:
 
     @staticmethod
     def _enc_aad(name: str, field: str, key_id: str) -> bytes:
-        return f"{name}:{field}:{key_id}".encode("utf-8")
+        return f"{name}:{field}:{key_id}".encode()
 
     def encrypt_fields(
         self,
@@ -1032,14 +1027,10 @@ class World:
             data_key = secrets.token_bytes(32)
             key_id = secrets.token_hex(8)
             aad = self._enc_aad(self._name, field, key_id)
-            env = _fieldcrypto.encrypt(
-                data_key, _fieldcrypto.encode_value(value), aad
-            )
+            env = _fieldcrypto.encrypt(data_key, _fieldcrypto.encode_value(value), aad)
             env["key_id"] = key_id
             env["key_fp"] = _fieldcrypto.key_fingerprint(data_key)
-            wrapped = _fieldcrypto.encrypt(
-                master, data_key, f"wrap:{key_id}".encode("utf-8")
-            )
+            wrapped = _fieldcrypto.encrypt(master, data_key, f"wrap:{key_id}".encode())
             # Swap the plaintext for the envelope at the dot path.
             parts = field.split(".")
             node = new_state
@@ -1131,8 +1122,7 @@ class World:
             ).fetchone()
         if row is None:
             raise RedactedError(
-                f"no decryption key for {key_id}"
-                " (never escrowed, or already redacted)",
+                f"no decryption key for {key_id} (never escrowed, or already redacted)",
                 key_id=key_id,
                 field="",
             )
@@ -1140,7 +1130,7 @@ class World:
             data_key = _fieldcrypto.decrypt(
                 bytes(master_key),
                 json.loads(str(row["wrapped_key"])),
-                f"wrap:{key_id}".encode("utf-8"),
+                f"wrap:{key_id}".encode(),
             )
         except _fieldcrypto.DecryptionError as e:
             raise _fieldcrypto.DecryptionError(
@@ -1168,13 +1158,9 @@ class World:
                     if _fieldcrypto.is_envelope(v):
                         key_id = str(v.get("key_id", ""))
                         try:
-                            data_key, _ = self._field_data_key(
-                                master_key, key_id
-                            )
+                            data_key, _ = self._field_data_key(master_key, key_id)
                         except RedactedError as e:
-                            raise RedactedError(
-                                str(e), key_id=key_id, field=p
-                            ) from e
+                            raise RedactedError(str(e), key_id=key_id, field=p) from e
                         aad = self._enc_aad(self._name, p, key_id)
                         try:
                             raw = _fieldcrypto.decrypt(data_key, v, aad)
@@ -1199,14 +1185,10 @@ class World:
             raise ValueError(f"no committed version {seq}") from None
         value = _get_path(state, field)
         if not _fieldcrypto.is_envelope(value):
-            raise ValueError(
-                f"field {field!r} is not encrypted at version {seq}"
-            )
+            raise ValueError(f"field {field!r} is not encrypted at version {seq}")
         return value, str(value.get("key_id", ""))
 
-    def redact(
-        self, seq: int, field: str, master_key: bytes
-    ) -> dict[str, Any]:
+    def redact(self, seq: int, field: str, master_key: bytes) -> dict[str, Any]:
         """Crypto-shred one encrypted field: destroy its data key.
 
         The ciphertext stays in the chain, so :meth:`verify` keeps
@@ -1237,7 +1219,7 @@ class World:
             _fieldcrypto.decrypt(
                 bytes(master_key),
                 json.loads(str(row["wrapped_key"])),
-                f"wrap:{key_id}".encode("utf-8"),
+                f"wrap:{key_id}".encode(),
             )
         except _fieldcrypto.DecryptionError as e:
             raise _fieldcrypto.DecryptionError(
@@ -1254,9 +1236,7 @@ class World:
             "redacted_at": _utcnow(),
         }
 
-    def redact_field(
-        self, field: str, master_key: bytes
-    ) -> list[dict[str, Any]]:
+    def redact_field(self, field: str, master_key: bytes) -> list[dict[str, Any]]:
         """Redact ``field`` at every version where it is encrypted.
 
         Returns one receipt per shredded key. Already-redacted versions
@@ -1329,9 +1309,7 @@ class World:
         siblings and compare. ``KeyError`` for an unknown seq.
         """
         with closing(self._connect()) as cx:
-            rows = cx.execute(
-                "SELECT seq, hash FROM versions ORDER BY seq"
-            ).fetchall()
+            rows = cx.execute("SELECT seq, hash FROM versions ORDER BY seq").fetchall()
         seqs = [int(r["seq"]) for r in rows]
         if seq not in seqs:
             raise KeyError(f"no row with seq {seq}")

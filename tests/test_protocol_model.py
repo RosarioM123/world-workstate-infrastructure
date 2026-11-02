@@ -11,12 +11,12 @@ re-validation removed, the checker must find the P4 violation, proving
 the verification has teeth.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "spec"))
 
-from model_check import Config, check  # noqa: E402
+from model_check import Config, check
 
 
 def test_protocol_two_writers_full_domains():

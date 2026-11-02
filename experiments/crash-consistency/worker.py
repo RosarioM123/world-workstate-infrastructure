@@ -14,12 +14,16 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
-from world.core import World  # noqa: E402
+from world.core import World
 
 
 def main() -> int:
     d, name, iters, payload_kb = (
-        sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]))
+        sys.argv[1],
+        sys.argv[2],
+        int(sys.argv[3]),
+        int(sys.argv[4]),
+    )
     w = World(name, dir=d)
     pad = "x" * (payload_kb * 1024)
     for i in range(iters):

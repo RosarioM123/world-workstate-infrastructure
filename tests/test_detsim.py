@@ -4,15 +4,13 @@ import os
 import random
 import sys
 
-import pytest
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "spec"))
 
-from detsim import Simulation  # noqa: E402
-from linearizability import Op, is_linearizable  # noqa: E402
+from detsim import Simulation
+from linearizability import Op, is_linearizable
 
-from world import ConflictError, InvariantViolation, World  # noqa: E402
-from world.invariants import monotonic  # noqa: E402
+from world import ConflictError, InvariantViolation, World
+from world.invariants import monotonic
 
 
 def _client_full(sim, w, cid, rounds, seed):
@@ -63,14 +61,13 @@ def _run(seed, tmpdir, nclients=4, rounds=6, script=None):
 
 def _history(sim):
     return [
-        Op(o["invoke"], o["resp"], o["expected"], o["k"], o["result"])
-        for o in sim.ops
+        Op(o["invoke"], o["resp"], o["expected"], o["k"], o["result"]) for o in sim.ops
     ]
 
 
 def _overlapped(history) -> bool:
     for i, a in enumerate(history):
-        for b in history[i + 1:]:
+        for b in history[i + 1 :]:
             if a.invoke < b.invoke < a.resp or b.invoke < a.invoke < b.resp:
                 return True
     return False
@@ -81,10 +78,11 @@ def test_detsim_deterministic(tmp_path):
     sim1, _ = _run(20261015, tmp_path / "a")
     sim2, _ = _run(20261015, tmp_path / "b")
     assert sim1.sched.log == sim2.sched.log
-    assert [(o["invoke"], o["resp"], o["expected"], o["k"], o["result"])
-            for o in sim1.ops] == [
-               (o["invoke"], o["resp"], o["expected"], o["k"], o["result"])
-               for o in sim2.ops]
+    assert [
+        (o["invoke"], o["resp"], o["expected"], o["k"], o["result"]) for o in sim1.ops
+    ] == [
+        (o["invoke"], o["resp"], o["expected"], o["k"], o["result"]) for o in sim2.ops
+    ]
 
 
 def test_detsim_interleavings_valid(tmp_path):

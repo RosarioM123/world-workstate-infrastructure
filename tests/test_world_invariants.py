@@ -7,10 +7,10 @@ from world.invariants import (
     finite_numbers,
     immutable_fields,
     monotonic,
-    type_stable,
     no_negative,
     require_keys,
     respect_locks,
+    type_stable,
 )
 
 

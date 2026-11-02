@@ -39,7 +39,7 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
-from world.core import World  # noqa: E402
+from world.core import World
 
 WORKER = os.path.join(os.path.dirname(__file__), "worker.py")
 
@@ -49,7 +49,9 @@ def run_round(seed: int, payload_kb: int = 256, delay: tuple = (0.15, 0.5)) -> d
     d = tempfile.mkdtemp(prefix="crash-")
     proc = subprocess.Popen(
         [sys.executable, WORKER, d, "victim", "100000", str(payload_kb)],
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
     )
     assert proc.stdout is not None
 
@@ -85,7 +87,8 @@ def run_round(seed: int, payload_kb: int = 256, delay: tuple = (0.15, 0.5)) -> d
     out = "".join(lines)
     assert proc.returncode == -signal.SIGKILL, proc.returncode
 
-    started, done = set(), set()
+    started: set[int] = set()
+    done: set[int] = set()
     for line in out.splitlines():
         parts = line.split()
         if len(parts) == 2 and parts[0] in ("start", "done"):
@@ -105,7 +108,9 @@ def run_round(seed: int, payload_kb: int = 256, delay: tuple = (0.15, 0.5)) -> d
     committed = [r[0] for r in rows if r[2] == "COMMITTED"]
     assert w.version == (max(committed) if committed else 0)
     return {
-        "seed": seed, "rows": len(rows), "version": w.version,
+        "seed": seed,
+        "rows": len(rows),
+        "version": w.version,
         "mid_transaction_kill": mid_transaction,
     }
 
@@ -119,11 +124,16 @@ def main() -> int:
     for r in range(args.rounds):
         res = run_round(args.seed + r)
         results.append(res)
-        print(f"round {r}: rows={res['rows']} version={res['version']} "
-              f"mid_transaction_kill={res['mid_transaction_kill']}", flush=True)
+        print(
+            f"round {r}: rows={res['rows']} version={res['version']} "
+            f"mid_transaction_kill={res['mid_transaction_kill']}",
+            flush=True,
+        )
     mid = sum(r["mid_transaction_kill"] for r in results)
-    print(f"\n{args.rounds} SIGKILL rounds: 0 failures; "
-          f"{mid}/{args.rounds} kills landed mid-transaction")
+    print(
+        f"\n{args.rounds} SIGKILL rounds: 0 failures; "
+        f"{mid}/{args.rounds} kills landed mid-transaction"
+    )
     return 0
 
 

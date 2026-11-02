@@ -29,8 +29,9 @@ from world.invariants import monotonic
 
 pytest.importorskip("hypothesis")
 
-from hypothesis import assume, settings, strategies as st  # noqa: E402
-from hypothesis.stateful import (  # noqa: E402
+from hypothesis import assume, settings
+from hypothesis import strategies as st
+from hypothesis.stateful import (
     RuleBasedStateMachine,
     invariant,
     rule,
@@ -128,9 +129,7 @@ class WorldMachine(RuleBasedStateMachine):
             got = ("conflict",)
         except InvariantViolation as e:
             got = ("rejected", e.seq)
-        want = self.model.update(
-            state, expected_version=ev, idempotency_key=key
-        )
+        want = self.model.update(state, expected_version=ev, idempotency_key=key)
         assert got == want, f"SUT {got} != model {want} for {state=} {ev=} {key=}"
         assert self.world.version == self.model.version
         assert self.world.read() == (self.model.doc, self.model.version)

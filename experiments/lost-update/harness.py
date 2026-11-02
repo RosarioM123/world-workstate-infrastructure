@@ -24,7 +24,7 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
-from world.core import ConflictError, World  # noqa: E402
+from world.core import ConflictError, World
 
 RESULTS = os.path.join(os.path.dirname(__file__), "results.jsonl")
 
@@ -62,16 +62,23 @@ def run_trial(trial: int, condition: str, seed: int) -> dict:
                 else:
                     # B: optimistic concurrency; retry on conflict.
                     use_ver = ver if attempts == 1 else local.version
-                    use_doc = new_doc if attempts == 1 else {
-                        "findings": local.state()["findings"] + [finding]}
+                    use_doc = (
+                        new_doc
+                        if attempts == 1
+                        else {"findings": local.state()["findings"] + [finding]}
+                    )
                     local.update(use_doc, expected_version=use_ver)
                 break
             except ConflictError:
                 conflicted = True
                 if attempts >= 3:
                     break
-        outcomes[name] = {"attempts": attempts, "conflicted": conflicted,
-                          "finding": finding, "gap": gap}
+        outcomes[name] = {
+            "attempts": attempts,
+            "conflicted": conflicted,
+            "finding": finding,
+            "gap": gap,
+        }
 
     threads = [threading.Thread(target=agent, args=(n,)) for n in ("a", "b")]
     for t in threads:
@@ -83,8 +90,11 @@ def run_trial(trial: int, condition: str, seed: int) -> dict:
     present = {o["finding"] for o in outcomes.values()}
     lost = len(set(final) & present) < 2
     return {
-        "trial": trial, "condition": condition, "seed": seed,
-        "v0": v0, "final": final,
+        "trial": trial,
+        "condition": condition,
+        "seed": seed,
+        "v0": v0,
+        "final": final,
         "lost_update": lost,
         "conflicts": sum(1 for o in outcomes.values() if o["conflicted"]),
         "max_gap": max(o["gap"] for o in outcomes.values()),
@@ -113,13 +123,14 @@ def main() -> int:
         for t in range(args.trials):
             row = run_trial(t, cond, args.seed + t * 2 + (cond == "B"))
             rows.append(row)
-            print(f"condition {cond} trial {t}: lost={row['lost_update']} "
-                  f"conflicts={row['conflicts']} gap={row['max_gap']:.2f}s",
-                  flush=True)
+            print(
+                f"condition {cond} trial {t}: lost={row['lost_update']} "
+                f"conflicts={row['conflicts']} gap={row['max_gap']:.2f}s",
+                flush=True,
+            )
 
     with open(RESULTS, "w") as fh:
-        for r in rows:
-            fh.write(json.dumps(r) + "\n")
+        fh.writelines(json.dumps(r) + "\n" for r in rows)
 
     for cond in ("A", "B"):
         sub = [r for r in rows if r["condition"] == cond]
@@ -127,10 +138,12 @@ def main() -> int:
         lost = sum(r["lost_update"] for r in sub)
         conf = sum(1 for r in sub if r["conflicts"] > 0)
         lo, hi = wilson(lost, n)
-        print(f"\nCondition {cond} (n={n}): lost-update rate "
-              f"{lost}/{n} = {lost / n:.2f} (95% CI {lo:.2f}-{hi:.2f}); "
-              f"trials with conflicts: {conf}/{n}; "
-              f"mean max gap: {sum(r['max_gap'] for r in sub) / n:.2f}s")
+        print(
+            f"\nCondition {cond} (n={n}): lost-update rate "
+            f"{lost}/{n} = {lost / n:.2f} (95% CI {lo:.2f}-{hi:.2f}); "
+            f"trials with conflicts: {conf}/{n}; "
+            f"mean max gap: {sum(r['max_gap'] for r in sub) / n:.2f}s"
+        )
     print(f"\nraw trial rows: {RESULTS}")
     return 0
 

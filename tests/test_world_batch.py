@@ -13,10 +13,7 @@ from world.invariants import monotonic
 
 
 def _history_no_ts(w):
-    return [
-        {k: v for k, v in row.items() if k != "timestamp"}
-        for row in w.history()
-    ]
+    return [{k: v for k, v in row.items() if k != "timestamp"} for row in w.history()]
 
 
 def _sequential(dir, states, *, invariants=(), actor="a", note="n", keys=None):
@@ -56,15 +53,11 @@ def test_update_many_matches_sequential(tmp_path):
             str(d2), states, invariants=[monotonic("n")], keys=keys
         )
         if seq_rejected is None:
-            seqs = wb.update_many(
-                states, actor="a", note="n", idempotency_keys=keys
-            )
+            seqs = wb.update_many(states, actor="a", note="n", idempotency_keys=keys)
             assert seqs == seq_seqs
         else:
             with pytest.raises(InvariantViolation) as ei:
-                wb.update_many(
-                    states, actor="a", note="n", idempotency_keys=keys
-                )
+                wb.update_many(states, actor="a", note="n", idempotency_keys=keys)
             assert ei.value.seq == seq_rejected
         assert wb.version == ws.version
         assert wb.read() == ws.read()

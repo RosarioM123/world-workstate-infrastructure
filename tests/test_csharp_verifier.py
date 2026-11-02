@@ -16,7 +16,10 @@ from world import World
 from world.invariants import monotonic
 
 PROJ = os.path.join(
-    os.path.dirname(__file__), "..", "tools", "ChainVerifyWorld",
+    os.path.dirname(__file__),
+    "..",
+    "tools",
+    "ChainVerifyWorld",
     "ChainVerifyWorld.csproj",
 )
 DOTNET = os.path.expanduser("~/.dotnet/dotnet")
@@ -29,11 +32,14 @@ pytestmark = pytest.mark.skipif(
 
 def _run_csharp(db_path, name):
     dotnet = shutil.which("dotnet") or DOTNET
-    env = dict(os.environ, DOTNET_CLI_TELEMETRY_OPTOUT="1",
-               DOTNET_NOLOGO="1")
+    env = dict(os.environ, DOTNET_CLI_TELEMETRY_OPTOUT="1", DOTNET_NOLOGO="1")
     return subprocess.run(
         [dotnet, "run", "--project", PROJ, "--", db_path, name],
-        capture_output=True, text=True, timeout=600, env=env,
+        capture_output=True,
+        text=True,
+        timeout=600,
+        env=env,
+        check=False,
     )
 
 
@@ -43,8 +49,11 @@ def _world(tmp_path):
     for i in range(25):
         n += 1 if i % 4 else -1
         try:
-            w.update({"n": n, "i": i}, actor="a" if i % 2 else None,
-                     note=f"n{i}" if i % 3 else "")
+            w.update(
+                {"n": n, "i": i},
+                actor="a" if i % 2 else None,
+                note=f"n{i}" if i % 3 else "",
+            )
         except Exception:
             pass
     assert w.verify()
@@ -62,8 +71,7 @@ def test_csharp_rejects_tampered_chain(tmp_path):
     w = _world(tmp_path)
     cx = sqlite3.connect(w.path)
     try:
-        cx.execute("UPDATE versions SET state = ? WHERE seq = 10",
-                   ('{"n": 9999}',))
+        cx.execute("UPDATE versions SET state = ? WHERE seq = 10", ('{"n": 9999}',))
         cx.commit()
     finally:
         cx.close()

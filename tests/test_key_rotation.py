@@ -80,7 +80,7 @@ def test_rotation_certificate_roundtrip(tmp_path):
     new_sk, new_pk = ed25519.create_keypair()
     cert = w.rotate_ed25519(old_sk, new_sk)
     assert cert["alg"] == "ed25519-rotation"
-    assert cert["old_kid"] == World._key_fingerprint(old_pub := old_pk)
+    assert cert["old_kid"] == World._key_fingerprint(old_pk)
     assert cert["new_kid"] == World._key_fingerprint(new_pk)
     assert cert["new_pub"] == new_pk.hex()
     assert w.verify_rotation_ed25519(old_pk, cert)
@@ -89,7 +89,7 @@ def test_rotation_certificate_roundtrip(tmp_path):
 def test_rotation_certificate_tamper_resistance(tmp_path):
     w = _world(tmp_path)
     old_sk, old_pk = ed25519.create_keypair()
-    new_sk, new_pk = ed25519.create_keypair()
+    new_sk, _new_pk = ed25519.create_keypair()
     _, attacker_pk = ed25519.create_keypair()
     cert = w.rotate_ed25519(old_sk, new_sk)
     # Attacker substitutes their own key.
