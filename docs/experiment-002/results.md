@@ -1,6 +1,6 @@
 # Experiment #002: Results (Day 7, 2026-09-23)
 
-**Repo:** `RosarioM123/world` · **Experiment:** structured work-state vs summary vs raw journal for cross-agent handoffs
+**Repo:** `RosarioM123/world-workstate-infrastructure` · **Experiment:** structured work-state vs summary vs raw journal for cross-agent handoffs
 **Runs:** main run on Intel (INTC), 2026-09-17 to 2026-09-21; replication on Disney (DIS), 2026-09-22
 **Design:** 7-day protocol, blind grading against a predeclared answer key, 14 individual metrics, no premature score collapse
 
