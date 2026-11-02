@@ -353,6 +353,10 @@ experiments hand the same Agent A research output to a successor Agent
 B in three conditions (structured WORLD state, conventional summary,
 raw transcript/journal) and blind-grade the continuations.
 
+Every quantitative claim in this section carries an evidence status
+(VERIFIED, DOCUMENTED, or NEEDS VALIDATION) in the classification
+table in `research/RESEARCH_OVERVIEW.md`.
+
 Method detail (#002): conditions are blind-labeled X/Y/Z with filename
 and format echoes stripped, graded by an independent evaluator against
 a predeclared 14-metric answer key built from Agent A's decisions and
