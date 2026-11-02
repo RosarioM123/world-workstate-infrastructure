@@ -1,7 +1,15 @@
 """Crash-consistency driver: SIGKILL a writer mid-transaction, then verify.
 
-Each round spawns experiments/crash-consistency/worker.py, kills it with
-SIGKILL after a random delay, then asserts the database is intact:
+Each round spawns experiments/crash-consistency/worker.py, waits for
+the worker's first committed update (its first "done" marker), kills
+it with SIGKILL after a random delay, then asserts the database is
+intact. The wait matters: the kill delay is measured from the first
+commit, not from process spawn, because worker startup latency
+(interpreter start, schema setup, the first fsync-bound commit) is
+environment-dependent and is not what is being tested. Before this
+wait existed, the same seeds failed deterministically on a real disk
+while passing on tmpfs, with no durability violation in either case;
+see experiments/crash-consistency/FINDINGS-2026-11-02.md.
 
 - the world opens cleanly (WAL recovery),
 - verify() is True (no torn writes, chain intact),
@@ -26,6 +34,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
@@ -43,9 +52,37 @@ def run_round(seed: int, payload_kb: int = 256, delay: tuple = (0.15, 0.5)) -> d
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
     )
     assert proc.stdout is not None
+
+    # Collect the worker's markers on a reader thread and wait for the
+    # first "done" line: proof that at least one update has committed.
+    # Only then does the random kill delay start, so the kill races the
+    # worker's transactions, never its startup.
+    lines: list[str] = []
+    first_commit = threading.Event()
+
+    def _collect() -> None:
+        assert proc.stdout is not None
+        for line in proc.stdout:
+            lines.append(line)
+            parts = line.split()
+            if len(parts) == 2 and parts[0] == "done":
+                first_commit.set()
+
+    reader = threading.Thread(target=_collect, daemon=True)
+    reader.start()
+    deadline = time.monotonic() + 60.0
+    while not first_commit.wait(timeout=0.05):
+        if proc.poll() is not None or time.monotonic() > deadline:
+            break
+    assert first_commit.is_set(), (
+        "worker never committed its first update; output so far:\n" + "".join(lines)
+    )
+
     time.sleep(rng.uniform(*delay))
     proc.kill()  # SIGKILL: no cleanup, no flush, no mercy
-    out, _ = proc.communicate()
+    proc.wait()
+    reader.join(timeout=10)
+    out = "".join(lines)
     assert proc.returncode == -signal.SIGKILL, proc.returncode
 
     started, done = set(), set()
