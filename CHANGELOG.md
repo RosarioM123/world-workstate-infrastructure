@@ -20,11 +20,63 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - `docs/demo-script.md`: the 2-minute demo script.
 - `docs/VISION.md`: the one-page thesis.
 - `CONTRIBUTING.md`, issue and pull request templates, Dependabot.
+- Multi-entity support for the ledger service: entity registration
+  and a paginated ledger query API.
+- Multi-agent intent schema: `actor`, `kind`, and `idempotency_key`
+  fields on intents.
+- The `src/world` primitive: a named, durable JSON document whose
+  proposed updates are judged by declared invariants and recorded,
+  COMMITTED or REJECTED, in a SHA-256 hash-chained SQLite log, with
+  `expected_version` optimistic concurrency.
+- Agent handoff interface: typed `AgentState` with `save_state` and
+  `load_state`.
+- Fleet mission example (`examples/`): WORLD as the shared mission
+  layer across processes.
+- Invariant helpers `monotonic`, `immutable_fields`, and
+  `type_stable`, plus invariant composition with `all_of` and
+  documented composition semantics (`docs/spec/`).
+- `world diff`, `world export`, and `world import` CLI commands.
+- `World.read()` for one-round-trip optimistic concurrency, and
+  `World.update_many` batch updates in a single transaction.
+- `World.blame`: per-field provenance for the current document.
+- HMAC-signed chain tips, Ed25519 signed checkpoints, and a key
+  rotation ceremony for tip signing.
+- Merkle inclusion proofs for selective disclosure of individual
+  versions. A ZK audit spike was evaluated and not adopted.
+- Per-field encryption with cryptographic redaction: crypto-shredding
+  a field keeps `verify()` green.
+- Mechanized verification of the commit protocol: explicit-state
+  model checker (`spec/model_check.py`, 1,220,255 explored states,
+  properties P1 to P6), a TLA+ transcription, and the writeup in
+  `docs/spec/protocol-verification.md`.
+- Red-team test suite (database-write attacker vs `verify()`),
+  Hypothesis stateful testing against a reference model, `verify()`
+  mutation fuzzing, a linearizability checker for `World.update`,
+  deterministic simulation testing, and a crash-consistency
+  fault-injection harness (`experiments/crash-consistency/`).
+- Preregistered lost-update experiment (`experiments/lost-update/`):
+  scripted agents lost 33 of 50 updates with no control and 0 of 50
+  with `expected_version` plus retry.
+- Soak test at 1.06M chained rows (`experiments/soak/`).
+- Independent C# chain verifier for the primitive
+  (`tools/ChainVerifyWorld/`), sharing no code with the Python
+  implementation.
+- Primitive benchmarks (`tools/bench_world.py`,
+  `tools/bench_contention.py`) with dated records in
+  `docs/benchmarks/`.
+- Research documentation: rewritten README research framing,
+  `research/RESEARCH_OVERVIEW.md`, `research/HYPOTHESIS.md`,
+  `research/LIMITATIONS.md`, `research/RELATED_WORK.md`, and a
+  refreshed `STATUS.md`.
 
 ### Changed
 - Python dependencies are now declared only in `pyproject.toml`
   (`requirements.txt` removed); install with `pip install -e ".[test]"`.
 - CI test matrix is now Python 3.11, 3.12, and 3.13.
+- License switched to MIT.
+- `docs/SECURITY.md` expanded with a tested threat model for the
+  `src/world` primitive, and updated again when signed checkpoints
+  closed its top two stated limits.
 
 ### Fixed
 - `World.update` re-validates `expected_version` inside the write
@@ -41,6 +93,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
   it were history. Rejected attempts stay auditable through the new
   `World.proposal(seq)`, also exposed as `GET /v1/proposals/{seq}` and the
   `world proposal` CLI command.
+- `fleet_mission` example: `execute_mission` now uses its
+  `mission_name` parameter.
+- Crash-consistency harness: the SIGKILL now waits for the worker's
+  first committed update instead of racing worker startup. The old
+  timing made the test fail deterministically on a real disk with no
+  durability violation; investigation and evidence in
+  `experiments/crash-consistency/FINDINGS-2026-11-02.md`.
 
 ## [0.1.0] - 2026-09-21
 
