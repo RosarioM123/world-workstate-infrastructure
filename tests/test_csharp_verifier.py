@@ -12,7 +12,7 @@ import subprocess
 
 import pytest
 
-from world import World
+from world import InvariantViolation, World
 from world.invariants import monotonic
 
 PROJ = os.path.join(
@@ -54,7 +54,7 @@ def _world(tmp_path):
                 actor="a" if i % 2 else None,
                 note=f"n{i}" if i % 3 else "",
             )
-        except Exception:
+        except InvariantViolation:
             pass
     assert w.verify()
     return w
