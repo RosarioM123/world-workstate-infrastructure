@@ -56,8 +56,11 @@ def _docs(rng):
     for _ in range(25):
         yield (
             {"n": rng.randint(0, 10), "m": rng.randint(0, 10), "id": 1},
-            {"n": rng.randint(-2, 10), "m": rng.randint(-2, 10),
-             **({"id": 1} if rng.random() < 0.7 else {})},
+            {
+                "n": rng.randint(-2, 10),
+                "m": rng.randint(-2, 10),
+                **({"id": 1} if rng.random() < 0.7 else {}),
+            },
         )
 
 

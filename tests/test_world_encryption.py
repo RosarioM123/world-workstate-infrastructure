@@ -50,9 +50,9 @@ def test_unreadable_without_key(tmp_path):
     assert env["__enc"] == "world-enc-v1"
     # No key: the envelope is opaque base64; the secret is not recoverable
     # from the database bytes.
-    blob = bytes.fromhex(
-        _sql(w, "SELECT hex(state) FROM versions")[0][0]
-    ).decode("utf-8", "replace")
+    blob = bytes.fromhex(_sql(w, "SELECT hex(state) FROM versions")[0][0]).decode(
+        "utf-8", "replace"
+    )
     assert "s3cr3t" not in blob
 
 
@@ -119,8 +119,9 @@ def test_redaction_makes_field_unrecoverable(tmp_path):
     # Receipt is verifiable: the envelope's key fingerprint matches, and
     # no key row remains.
     assert receipt["key_fp"] == stored["ssn"]["key_fp"]
-    rows = _sql(w, "SELECT key_id FROM field_keys WHERE key_id = ?",
-                (receipt["key_id"],))
+    rows = _sql(
+        w, "SELECT key_id FROM field_keys WHERE key_id = ?", (receipt["key_id"],)
+    )
     assert rows == []
 
 

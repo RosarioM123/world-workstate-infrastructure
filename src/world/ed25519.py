@@ -15,7 +15,7 @@ from __future__ import annotations
 import hashlib
 import os
 
-__all__ = ["create_keypair", "publickey", "signature", "checkvalid", "SCALAR_BYTES"]
+__all__ = ["SCALAR_BYTES", "checkvalid", "create_keypair", "publickey", "signature"]
 
 SCALAR_BYTES = 32
 

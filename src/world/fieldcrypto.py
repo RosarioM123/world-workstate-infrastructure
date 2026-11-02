@@ -70,7 +70,9 @@ def encrypt(master_key: bytes, plaintext: bytes, aad: bytes) -> dict:
     k_enc = _subkey(master, b"world-enc-v1")
     k_mac = _subkey(master, b"world-mac-v1")
     nonce = secrets.token_bytes(NONCE_BYTES)
-    ct = bytes(a ^ b for a, b in zip(plaintext, _keystream(k_enc, nonce, len(plaintext))))
+    ct = bytes(
+        a ^ b for a, b in zip(plaintext, _keystream(k_enc, nonce, len(plaintext)))
+    )
     tag = hmac.new(k_mac, nonce + ct + bytes(aad), hashlib.sha256).digest()
     return {
         "__enc": "world-enc-v1",

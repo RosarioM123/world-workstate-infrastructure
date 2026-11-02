@@ -35,4 +35,4 @@ def test_soak_no_latency_drift(tmp_path):
     # No meaningful drift: last chunk p99 within 5x of the first chunk's.
     assert p99s[-1] < 5 * p99s[0], f"p99 drift: {p99s}"
     # And an absolute sanity cap (pure overhead, no chain-length effect).
-    assert p99s[-1] < 0.050, f"p99 too high: {p99s[-1]*1000:.1f} ms"
+    assert p99s[-1] < 0.050, f"p99 too high: {p99s[-1] * 1000:.1f} ms"

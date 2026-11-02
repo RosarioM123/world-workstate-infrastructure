@@ -33,7 +33,12 @@ def test_blame_added_removed_nested(tmp_path):
     w.update({"other": True})  # removes cfg.x
     # As of latest, the last change to cfg.x was its removal.
     gone = w.blame("cfg.x")
-    assert (gone["seq"], gone["change"], gone["old"], gone["new"]) == (3, "removed", 2, None)
+    assert (gone["seq"], gone["change"], gone["old"], gone["new"]) == (
+        3,
+        "removed",
+        2,
+        None,
+    )
     # As of v2 it was a modification; as of v1 an addition.
     mod = w.blame("cfg.x", version=2)
     assert (mod["seq"], mod["change"], mod["old"], mod["new"]) == (2, "modified", 1, 2)

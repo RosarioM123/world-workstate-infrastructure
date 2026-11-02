@@ -18,14 +18,15 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "spec"))
 
-from linearizability import Op, is_linearizable  # noqa: E402
+from linearizability import Op, is_linearizable
 
-from world import ConflictError, InvariantViolation, World  # noqa: E402
-from world.invariants import monotonic  # noqa: E402
+from world import ConflictError, InvariantViolation, World
+from world.invariants import monotonic
 
 
-def _run_history(seed: int, tmpdir: str, threads: int = 4,
-                 ops_per_thread: int = 6) -> list[Op]:
+def _run_history(
+    seed: int, tmpdir: str, threads: int = 4, ops_per_thread: int = 6
+) -> list[Op]:
     w = World("lin", dir=tmpdir, invariants=[monotonic("n")])
     counter = itertools.count()
     clock = threading.Lock()
@@ -76,8 +77,9 @@ def _run_history(seed: int, tmpdir: str, threads: int = 4,
 def test_concurrent_histories_are_linearizable(tmp_path):
     seen = set()
     for trial in range(5):
-        hist = _run_history(20261015 + trial, str(tmp_path / f"t{trial}"),
-                            threads=6, ops_per_thread=8)
+        hist = _run_history(
+            20261015 + trial, str(tmp_path / f"t{trial}"), threads=6, ops_per_thread=8
+        )
         assert hist, "workload produced no ops"
         kinds = {op.result[0] for op in hist}
         seen |= kinds
@@ -105,16 +107,17 @@ def test_mutation_ok_to_conflict_rejected(tmp_path):
     # Flipping a committed (unguarded) op to "conflict" is impossible:
     # conflicts require a non-None expected_version.
     for seed in range(20):
-        hist = _run_history(999000 + seed, str(tmp_path / f"m{seed}"),
-                            threads=4, ops_per_thread=6)
+        hist = _run_history(
+            999000 + seed, str(tmp_path / f"m{seed}"), threads=4, ops_per_thread=6
+        )
         assert is_linearizable(hist)
         for idx, op in enumerate(hist):
             if op.result[0] == "ok" and op.expected is None:
                 bad = list(hist)
-                bad[idx] = Op(op.invoke, op.resp, op.expected, op.k,
-                              ("conflict",))
-                assert not is_linearizable(bad), \
+                bad[idx] = Op(op.invoke, op.resp, op.expected, op.k, ("conflict",))
+                assert not is_linearizable(bad), (
                     "checker accepted an impossible conflict"
+                )
                 return
     pytest.fail("workload never produced an unguarded commit")
 

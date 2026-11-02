@@ -38,8 +38,12 @@ def test_verify_tip_rejects_wrong_key_and_tampering(tmp_path):
     w.update({"n": 1})
     signed = w.sign_tip(KEY)
     assert not w.verify_tip(b"wrong-key", signed)
-    for field, bad in [("seq", 999), ("hash", "0" * 64),
-                       ("sig", "0" * 64), ("name", "other")]:
+    for field, bad in [
+        ("seq", 999),
+        ("hash", "0" * 64),
+        ("sig", "0" * 64),
+        ("name", "other"),
+    ]:
         mutated = dict(signed, **{field: bad})
         assert not w.verify_tip(KEY, mutated), field
     assert not w.verify_tip(KEY, {"bogus": 1})
@@ -88,8 +92,15 @@ def test_signed_tip_detects_rewrite(tmp_path):
         prev = _genesis_prev_hash("vault")
         for seq, ts, actor, note, _state, status in rows:
             forged = '{"n": 0}'
-            h = _row_hash(prev_hash=prev, seq=seq, timestamp=ts, actor=actor,
-                          note=note, status=status, state_text=forged)
+            h = _row_hash(
+                prev_hash=prev,
+                seq=seq,
+                timestamp=ts,
+                actor=actor,
+                note=note,
+                status=status,
+                state_text=forged,
+            )
             cx.execute(
                 "UPDATE versions SET state=?, prev_hash=?, hash=? WHERE seq=?",
                 (forged, prev, h, seq),

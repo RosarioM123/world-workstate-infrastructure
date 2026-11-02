@@ -66,8 +66,12 @@ def _flip_text(value, rng):
 
 def _mutate(w, rng):
     """Apply one random in-place mutation. Returns (column, operator)."""
-    rows = [r[0] for r in sqlite3.connect(w.path).execute(
-        "SELECT seq FROM versions ORDER BY seq").fetchall()]
+    rows = [
+        r[0]
+        for r in sqlite3.connect(w.path)
+        .execute("SELECT seq FROM versions ORDER BY seq")
+        .fetchall()
+    ]
     seq = rng.choice(rows)
     col = rng.choice(TEXT_COLS + ["seq"])
     if col == "seq":
@@ -77,8 +81,11 @@ def _mutate(w, rng):
         _sql(w, "UPDATE versions SET seq = ? WHERE seq = ?", (new_seq, seq))
         return ("seq", "renumber")
     if col == "status":
-        cur = sqlite3.connect(w.path).execute(
-            "SELECT status FROM versions WHERE seq = ?", (seq,)).fetchone()[0]
+        cur = (
+            sqlite3.connect(w.path)
+            .execute("SELECT status FROM versions WHERE seq = ?", (seq,))
+            .fetchone()[0]
+        )
         new = "REJECTED" if cur == "COMMITTED" else "COMMITTED"
         _sql(w, "UPDATE versions SET status = ? WHERE seq = ?", (new, seq))
         return ("status", "flip")
@@ -86,15 +93,24 @@ def _mutate(w, rng):
         # Swap with another row's value, or corrupt the hex. For prev_hash,
         # the predecessor's hash is the *correct* value, so swapping it in
         # would be a no-op, not an attack: exclude it.
-        cands = [s for s in rows if s != seq and not (col == "prev_hash" and s == seq - 1)]
+        cands = [
+            s for s in rows if s != seq and not (col == "prev_hash" and s == seq - 1)
+        ]
         other = rng.choice(cands)
         if rng.random() < 0.5:
-            _sql(w, f"UPDATE versions SET {col} = "
-                    "(SELECT hash FROM versions WHERE seq = ?) "
-                    "WHERE seq = ?", (other, seq))
+            _sql(
+                w,
+                f"UPDATE versions SET {col} = "
+                "(SELECT hash FROM versions WHERE seq = ?) "
+                "WHERE seq = ?",
+                (other, seq),
+            )
             return (col, "cross-row-swap")
-    cur = sqlite3.connect(w.path).execute(
-        f"SELECT {col} FROM versions WHERE seq = ?", (seq,)).fetchone()[0]
+    cur = (
+        sqlite3.connect(w.path)
+        .execute(f"SELECT {col} FROM versions WHERE seq = ?", (seq,))
+        .fetchone()[0]
+    )
     new = _flip_text(cur if isinstance(cur, str) else "", rng)
     _sql(w, f"UPDATE versions SET {col} = ? WHERE seq = ?", (new, seq))
     return (col, "byte-flip")
@@ -115,5 +131,7 @@ def test_verify_detects_random_mutations(tmp_path):
     # Every hashed column was attacked many times; all attacks detected.
     missing = [c for c in TEXT_COLS + ["seq"] if coverage.get(c, 0) < 10]
     assert not missing, f"columns with <10 attacks: {missing}"
-    print(f"\nverify() fuzz: {N_TRIALS} mutations, "
-          f"{N_TRIALS} detected (100%), coverage: {coverage}")
+    print(
+        f"\nverify() fuzz: {N_TRIALS} mutations, "
+        f"{N_TRIALS} detected (100%), coverage: {coverage}"
+    )

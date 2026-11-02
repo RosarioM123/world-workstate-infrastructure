@@ -66,8 +66,11 @@ def _rows(w):
 
 
 def test_surgical_state_edit_detected(attacked):
-    _sql(attacked, "UPDATE versions SET state = ? WHERE seq = 2",
-         (json.dumps({"balance": 999999}),))
+    _sql(
+        attacked,
+        "UPDATE versions SET state = ? WHERE seq = 2",
+        (json.dumps({"balance": 999999}),),
+    )
     assert not attacked.verify()
 
 
@@ -87,8 +90,11 @@ def test_surgical_actor_spoof_detected(attacked):
 
 
 def test_timestamp_backdate_detected(attacked):
-    _sql(attacked, "UPDATE versions SET timestamp = ? WHERE seq = 2",
-         ("2000-01-01T00:00:00+00:00",))
+    _sql(
+        attacked,
+        "UPDATE versions SET timestamp = ? WHERE seq = 2",
+        ("2000-01-01T00:00:00+00:00",),
+    )
     assert not attacked.verify()
 
 
@@ -130,8 +136,13 @@ def test_full_rewrite_undetected_documents_limit(attacked):
     for seq, ts, actor, note, state_text, status, _ph, _h in rows:
         forged_state = json.dumps({"balance": 0})  # drain every version
         new_hash = _row_hash(
-            prev_hash=prev, seq=seq, timestamp=ts, actor=actor,
-            note=note, status=status, state_text=forged_state,
+            prev_hash=prev,
+            seq=seq,
+            timestamp=ts,
+            actor=actor,
+            note=note,
+            status=status,
+            state_text=forged_state,
         )
         _sql(
             attacked,

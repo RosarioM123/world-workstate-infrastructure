@@ -25,7 +25,7 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
-from world import World  # noqa: E402
+from world import World
 
 RESULTS = os.path.join(os.path.dirname(__file__), "results.json")
 
@@ -56,7 +56,7 @@ def main() -> int:
     w = World("soak", dir=d)
     out: dict = {
         "machine": f"{platform.system()} / {platform.machine()} / "
-                   f"python {platform.python_version()}",
+        f"python {platform.python_version()}",
         "rows": args.rows,
         "singles": args.singles,
     }
@@ -64,7 +64,9 @@ def main() -> int:
     # Phase 1: bulk build.
     t0 = time.perf_counter()
     for base in range(0, args.rows, args.batch):
-        w.update_many([{"n": i} for i in range(base, min(base + args.batch, args.rows))])
+        w.update_many(
+            [{"n": i} for i in range(base, min(base + args.batch, args.rows))]
+        )
     out["phase1_bulk_s"] = time.perf_counter() - t0
     out["phase1_ops_per_s"] = args.rows / out["phase1_bulk_s"]
     assert w.version == args.rows
@@ -80,11 +82,13 @@ def main() -> int:
             w.update({"n": n0 + c * args.chunk + i})
             lat.append(time.perf_counter() - t1)
         lat.sort()
-        chunks.append({
-            "chunk": c,
-            "p50_ms": percentile(lat, 0.50) * 1000,
-            "p99_ms": percentile(lat, 0.99) * 1000,
-        })
+        chunks.append(
+            {
+                "chunk": c,
+                "p50_ms": percentile(lat, 0.50) * 1000,
+                "p99_ms": percentile(lat, 0.99) * 1000,
+            }
+        )
     out["phase2_singles_s"] = time.perf_counter() - t0
     out["phase2_ops_per_s"] = args.singles / out["phase2_singles_s"]
     out["chunks"] = chunks
@@ -117,15 +121,23 @@ def main() -> int:
         json.dump(out, fh, indent=2)
 
     print(f"rows={out['final_version']:,} verify={ok}")
-    print(f"phase1 bulk: {out['phase1_ops_per_s']:.0f} ops/s "
-          f"({out['phase1_bulk_s']:.1f}s for {args.rows:,})")
-    print(f"phase2 singles: {out['phase2_ops_per_s']:.0f} ops/s "
-          f"({out['phase2_singles_s']:.1f}s for {args.singles:,})")
-    print(f"p99 first chunk: {out['p99_first_chunk_ms']:.2f} ms, "
-          f"last chunk: {out['p99_last_chunk_ms']:.2f} ms, "
-          f"drift ratio: {out['p99_drift_ratio']:.2f}x")
-    print(f"phase3 verify: {out['phase3_rows_per_s']:.0f} rows/s "
-          f"({out['phase3_verify_s']:.1f}s)")
+    print(
+        f"phase1 bulk: {out['phase1_ops_per_s']:.0f} ops/s "
+        f"({out['phase1_bulk_s']:.1f}s for {args.rows:,})"
+    )
+    print(
+        f"phase2 singles: {out['phase2_ops_per_s']:.0f} ops/s "
+        f"({out['phase2_singles_s']:.1f}s for {args.singles:,})"
+    )
+    print(
+        f"p99 first chunk: {out['p99_first_chunk_ms']:.2f} ms, "
+        f"last chunk: {out['p99_last_chunk_ms']:.2f} ms, "
+        f"drift ratio: {out['p99_drift_ratio']:.2f}x"
+    )
+    print(
+        f"phase3 verify: {out['phase3_rows_per_s']:.0f} rows/s "
+        f"({out['phase3_verify_s']:.1f}s)"
+    )
     print(f"db size: {out['db_mb']:.1f} MB, max RSS: {out['max_rss_mb']:.0f} MB")
     print(f"raw: {RESULTS}")
     return 0

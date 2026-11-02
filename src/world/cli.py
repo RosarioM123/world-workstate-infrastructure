@@ -156,18 +156,26 @@ def _diff_values(old: Any, new: Any, prefix: str, out: list[dict[str, Any]]) -> 
         for key in sorted(set(old) | set(new)):
             path = f"{prefix}.{key}" if prefix else str(key)
             if key not in old:
-                out.append({"path": path, "change": "added", "old": None, "new": new[key]})
+                out.append(
+                    {"path": path, "change": "added", "old": None, "new": new[key]}
+                )
             elif key not in new:
-                out.append({"path": path, "change": "removed", "old": old[key], "new": None})
+                out.append(
+                    {"path": path, "change": "removed", "old": old[key], "new": None}
+                )
             else:
                 _diff_values(old[key], new[key], path, out)
     elif isinstance(old, list) and isinstance(new, list):
         for i in range(max(len(old), len(new))):
             path = f"{prefix}.{i}" if prefix else str(i)
             if i >= len(old):
-                out.append({"path": path, "change": "added", "old": None, "new": new[i]})
+                out.append(
+                    {"path": path, "change": "added", "old": None, "new": new[i]}
+                )
             elif i >= len(new):
-                out.append({"path": path, "change": "removed", "old": old[i], "new": None})
+                out.append(
+                    {"path": path, "change": "removed", "old": old[i], "new": None}
+                )
             else:
                 _diff_values(old[i], new[i], path, out)
     elif old != new:
@@ -176,7 +184,9 @@ def _diff_values(old: Any, new: Any, prefix: str, out: list[dict[str, Any]]) -> 
 
 def cmd_blame(args: argparse.Namespace) -> int:
     w = _world(args)
-    print(json.dumps(w.blame(args.path, version=args.version), indent=2, sort_keys=True))
+    print(
+        json.dumps(w.blame(args.path, version=args.version), indent=2, sort_keys=True)
+    )
     return 0
 
 
@@ -193,9 +203,7 @@ def cmd_diff(args: argparse.Namespace) -> int:
 def cmd_export(args: argparse.Namespace) -> int:
     """Dump every proposal row as JSONL (committed and rejected)."""
     w = _world(args)
-    lines = [
-        json.dumps(w.proposal(r["seq"]), sort_keys=True) for r in w.history()
-    ]
+    lines = [json.dumps(w.proposal(r["seq"]), sort_keys=True) for r in w.history()]
     text = "\n".join(lines) + ("\n" if lines else "")
     if args.file and args.file != "-":
         Path(args.file).write_text(text)
@@ -313,9 +321,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--checkpoint", default=None)
     s.set_defaults(func=cmd_state)
 
-    s = sub.add_parser(
-        "read", help="print {version, state} atomically (OCC read half)"
-    )
+    s = sub.add_parser("read", help="print {version, state} atomically (OCC read half)")
     s.add_argument("name")
     s.set_defaults(func=cmd_read)
 
@@ -358,8 +364,13 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("blame", help="show who last changed a field as JSON")
     s.add_argument("name")
     s.add_argument("path", help="dot-separated field path, e.g. budget.total")
-    s.add_argument("--version", dest="version", type=int, default=None,
-                   help="blame as of this committed version (default: latest)")
+    s.add_argument(
+        "--version",
+        dest="version",
+        type=int,
+        default=None,
+        help="blame as of this committed version (default: latest)",
+    )
     s.set_defaults(func=cmd_blame)
 
     s = sub.add_parser("export", help="dump every proposal row as JSONL")

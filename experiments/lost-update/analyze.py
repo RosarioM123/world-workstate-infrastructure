@@ -69,8 +69,8 @@ def logistic_fit(xs: list[float], ys: list[int]) -> dict:
         h11 += w * x * x
     det = h00 * h11 - h01 * h01
     se1 = math.sqrt(h00 / det) if det > 0 else float("nan")
-    z = b1 / se1 if se1 == se1 and se1 > 0 else float("nan")
-    pval = 2.0 * (1.0 - norm_cdf(abs(z))) if z == z else float("nan")
+    z = b1 / se1 if not math.isnan(se1) and se1 > 0 else float("nan")
+    pval = 2.0 * (1.0 - norm_cdf(abs(z))) if not math.isnan(z) else float("nan")
     return {"b0": b0, "b1": b1, "se_b1": se1, "z": z, "p_value": pval}
 
 
@@ -78,7 +78,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--jsonl", default=os.path.join(HERE, "results.jsonl"))
     args = ap.parse_args()
-    rows = [json.loads(line) for line in open(args.jsonl) if line.strip()]
+    with open(args.jsonl) as fh:
+        rows = [json.loads(line) for line in fh if line.strip()]
     out: dict = {"n_total": len(rows), "conditions": {}}
     for cond in ("A", "B"):
         sub = [r for r in rows if r["condition"] == cond]
