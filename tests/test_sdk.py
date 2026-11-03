@@ -288,9 +288,9 @@ def test_naive_datetimes_rejected(sidecar):
     from datetime import datetime
 
     with pytest.raises(ValueError, match="timezone-aware"):
-        sidecar.record_timestamp(1, datetime(2026, 9, 1))  # noqa: DTZ001
+        sidecar.record_timestamp(1, datetime(2026, 9, 1))
     with pytest.raises(ValueError, match="timezone-aware"):
-        sidecar.resolve(datetime(2026, 9, 1))  # noqa: DTZ001
+        sidecar.resolve(datetime(2026, 9, 1))
 
 
 def test_record_timestamp_upserts(sidecar):
