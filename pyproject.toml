@@ -88,6 +88,16 @@ line-length = 88
 [tool.mypy]
 python_version = "3.11"
 warn_unused_ignores = true
+# Preserved experiment scripts reuse top-level module names across
+# experiments: prompts.py (Experiment #002 under 001-state-continuation
+# and Experiment #003 under experiment-003) and analyze.py (lost-update
+# and Experiment #003). They are standalone scripts run by path with
+# their own sys.path setup and never import each other, but in one
+# shared mypy run the same-named files collapse to a single module, so
+# the #003 runner resolves "prompts" to the #002 module and errors.
+# Exclude the #003 runner and its analyze.py from checking rather than
+# renaming preserved experiment code; everything else stays checked.
+exclude = '(experiments/experiment-003/runner/.*|experiments/experiment-003/analysis/analyze\.py)$'
 
 # uvicorn is an optional server dependency, imported lazily inside
 # functions (cli.cmd_serve, api.main.serve). It has no type stubs;
