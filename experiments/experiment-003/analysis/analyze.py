@@ -81,7 +81,9 @@ def load_scores() -> dict:
                 "m5_revision": (mean(chain_scores.values()) if chain_scores else None),
                 "chain_scores": chain_scores,
                 "chain_causes": causes,
-                "m6_contradictions": len(cont["contradictions"]["must_not_state_asserted"])
+                "m6_contradictions": len(
+                    cont["contradictions"]["must_not_state_asserted"]
+                )
                 + len(cont["contradictions"]["other"]),
                 "m7_fabricated": len(cont["unsupported"]["fabricated"]),
                 "m7_unverifiable": len(cont["unsupported"]["unverifiable"]),
@@ -125,26 +127,44 @@ def main() -> None:
         artifact_sizes[task] = {}
         for cond, fname in ARTIFACT_FILES.items():
             text = (ROOT / "artifacts" / task / fname).read_text()
-            artifact_sizes[task][cond] = {"words": len(text.split()), "chars": len(text)}
+            artifact_sizes[task][cond] = {
+                "words": len(text.split()),
+                "chars": len(text),
+            }
 
-    results = {"per_task_condition": {}, "per_condition": {}, "paired": {}, "revision_subset": {}}
+    results = {
+        "per_task_condition": {},
+        "per_condition": {},
+        "paired": {},
+        "revision_subset": {},
+    }
     lines = ["# Experiment #003: analysis tables", ""]
-    lines.append("All results PRELIMINARY, single model family, n = 3 trials per cell. No composite score. No significance tests.")
+    lines.append(
+        "All results PRELIMINARY, single model family, n = 3 trials per cell. No composite score. No significance tests."
+    )
     lines.append("")
 
     for task in TASKS:
         results["per_task_condition"][task] = {}
         lines.append(f"## {task}")
         lines.append("")
-        lines.append("| Metric | A (WORLD) mean (sd) | B (summary) mean (sd) | C (transcript) mean (sd) |")
+        lines.append(
+            "| Metric | A (WORLD) mean (sd) | B (summary) mean (sd) | C (transcript) mean (sd) |"
+        )
         lines.append("|---|---|---|---|")
         for metric in METRICS:
             row = [metric]
             for cond in CONDITIONS:
-                vals = [data[(task, cond, t)][metric] for t in (1, 2, 3) if (task, cond, t) in data]
+                vals = [
+                    data[(task, cond, t)][metric]
+                    for t in (1, 2, 3)
+                    if (task, cond, t) in data
+                ]
                 a = agg(vals)
                 results["per_task_condition"][task].setdefault(cond, {})[metric] = a
-                row.append("-" if a["mean"] is None else f"{a['mean']:.3f} ({a['sd']:.3f})")
+                row.append(
+                    "-" if a["mean"] is None else f"{a['mean']:.3f} ({a['sd']:.3f})"
+                )
             lines.append("| " + " | ".join(row) + " |")
         lines.append("")
 
@@ -161,7 +181,11 @@ def main() -> None:
         row = [metric]
         for cond in CONDITIONS:
             a = results["per_condition"][cond][metric]
-            row.append("-" if a["mean"] is None else f"{a['mean']:.3f} ({a['sd']:.3f}, n={a['n']})")
+            row.append(
+                "-"
+                if a["mean"] is None
+                else f"{a['mean']:.3f} ({a['sd']:.3f}, n={a['n']})"
+            )
         lines.append("| " + " | ".join(row) + " |")
     lines.append("")
 
@@ -183,7 +207,11 @@ def main() -> None:
         row = [metric]
         for pair in ("A-B", "A-C"):
             a = results["paired"][metric][pair]
-            row.append("-" if a["mean"] is None else f"{a['mean']:+.3f} ({a['sd']:.3f}, n={a['n']})")
+            row.append(
+                "-"
+                if a["mean"] is None
+                else f"{a['mean']:+.3f} ({a['sd']:.3f}, n={a['n']})"
+            )
         lines.append("| " + " | ".join(row) + " |")
     lines.append("")
 
@@ -199,14 +227,21 @@ def main() -> None:
                     chain_vals.extend(entry["chain_scores"].values())
                     for cause in entry["chain_causes"].values():
                         causes[cause] = causes.get(cause, 0) + 1
-        results["revision_subset"][cond] = {"chain_score": agg(chain_vals), "causes": causes}
+        results["revision_subset"][cond] = {
+            "chain_score": agg(chain_vals),
+            "causes": causes,
+        }
         a = results["revision_subset"][cond]["chain_score"]
-        lines.append(f"- Condition {cond}: chain element score mean {a['mean']}, sd {a['sd']}, n chains scored {a['n']}; failure causes {causes}")
+        lines.append(
+            f"- Condition {cond}: chain element score mean {a['mean']}, sd {a['sd']}, n chains scored {a['n']}; failure causes {causes}"
+        )
     lines.append("")
 
     lines.append("## Artifact sizes and context efficiency (metric 10)")
     lines.append("")
-    lines.append("| Task | A words | B words | C words | A pres/1k | B pres/1k | C pres/1k |")
+    lines.append(
+        "| Task | A words | B words | C words | A pres/1k | B pres/1k | C pres/1k |"
+    )
     lines.append("|---|---|---|---|---|---|---|")
     results["sizes"] = artifact_sizes
     results["efficiency"] = {}
@@ -220,7 +255,16 @@ def main() -> None:
             for t in (1, 2, 3):
                 entry = data.get((task, cond, t))
                 if entry:
-                    parts = [entry[m] for m in ("m1_decisions", "m2_constraints", "m3_assumptions", "m4_provenance", "m5_revision")]
+                    parts = [
+                        entry[m]
+                        for m in (
+                            "m1_decisions",
+                            "m2_constraints",
+                            "m3_assumptions",
+                            "m4_provenance",
+                            "m5_revision",
+                        )
+                    ]
                     parts = [p for p in parts if p is not None]
                     if parts:
                         pres.append(mean(parts))
@@ -231,9 +275,17 @@ def main() -> None:
         lines.append("| " + " | ".join(row) + " |")
     lines.append("")
 
-    hf = {(t, c): sum(1 for (_, cc, _), v in data.items() if cc == c and v["hard_failure"]) for t in TASKS for c in CONDITIONS}
+    hf = {
+        (t, c): sum(
+            1 for (_, cc, _), v in data.items() if cc == c and v["hard_failure"]
+        )
+        for t in TASKS
+        for c in CONDITIONS
+    }
     results["hard_failures"] = {f"{t}/{c}": n for (t, c), n in hf.items() if n}
-    lines.append(f"Hard failures (constraint violations): {results['hard_failures'] or 'none'}")
+    lines.append(
+        f"Hard failures (constraint violations): {results['hard_failures'] or 'none'}"
+    )
     lines.append("")
 
     (ROOT / "analysis" / "results.json").write_text(json.dumps(results, indent=2))
