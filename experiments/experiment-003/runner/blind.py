@@ -25,11 +25,7 @@ def main() -> None:
     mapping = json.loads(mapping_path.read_text()) if mapping_path.exists() else {}
     rng = random.Random(SEED)
     for task in tasks:
-        cells = [
-            (cond, trial)
-            for cond in ("A", "B", "C")
-            for trial in (1, 2, 3)
-        ]
+        cells = [(cond, trial) for cond in ("A", "B", "C") for trial in (1, 2, 3)]
         labels = [f"{task}-{chr(ord('A') + i)}{rng.randint(2, 9)}" for i in range(9)]
         rng.shuffle(cells)
         outdir = ROOT / "results" / "judged" / task
