@@ -188,7 +188,7 @@ marketing.
 2. **Only interim authentication.** When `WORLD_API_KEY` is set, the
    write endpoints require it as the `X-API-Key` header and are
    per-IP rate-limited (`src/world_engine/api/auth.py`,
-   `world_engine/api/middleware.py`). Reads are open, and there is
+   `src/world_engine/api/middleware.py`). Reads are open, and there is
    still no per-actor identity and no per-entity permission model:
    `actor` remains self-asserted (ADR 0006).
 3. **No confidentiality.** Ledger payloads (including intent notes) are
