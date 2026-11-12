@@ -32,7 +32,7 @@ Repository = "https://github.com/RosarioM123/world-workstate-infrastructure.git"
 [project.optional-dependencies]
 server = [
     "fastapi==0.141.1",
-    "uvicorn==0.53.0",
+    "uvicorn==0.54.0",
 ]
 test = [
     "pytest==9.1.1",
