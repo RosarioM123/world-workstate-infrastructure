@@ -57,8 +57,17 @@ checkpoint appends a new version; it never rewrites the past
    This is the fundamental limit. No better hash function fixes it;
    only a key (signed checkpoints) or an external anchor does.
 3. **Checkpoint repointing.** The `checkpoints` table is not covered by
-   the hash chain, so `UPDATE checkpoints SET seq = ...` is invisible
-   to `verify()` (`test_checkpoint_repoint_undetected_documents_limit`).
+   the hash chain, so `UPDATE checkpoints SET seq = ...` remains
+   invisible to `verify()` itself. Since Prompt 3 F3a (2026-11-04) it
+   is nevertheless detected at serve time: a checkpoint records the
+   pinned row's hash at creation, and `state(checkpoint=...)` and
+   `resume()` verify the pin before serving, raising
+   `InvariantViolation` on a repoint (`test_checkpoint_repoint_detected`).
+   Residual limit, kept honest: the pin lives in the same database, so
+   an attacker who also rewrites `pinned_hash` to match the new target
+   defeats this check; signed tips remain the out-of-band defense.
+   Checkpoints created before F3a carry no pin and are served
+   unverified.
 4. **Idempotency-table deletion.** Exactly-once per key depends on the
    `idempotency` table, which is not tamper-evident. Deleting a key's
    row lets a retry commit a second time; the chain still verifies
@@ -102,17 +111,31 @@ checkpoint appends a new version; it never rewrites the past
    tip with both keys during a transition window (protocol, no new
    API: HMAC has no public key to bind).
 2. **Checkpoint table inclusion**: fold checkpoint pins into the hashed
-   row (or a parallel chained table). Closes (3). Still open.
+   row (or a parallel chained table). Closes (3) at the `verify()`
+   level. Still open in that full form; the serve-time half is
+   **BUILT 2026-11-04** (Prompt 3 F3a: pinned row hash stored at
+   checkpoint creation, verified by `state()` and `resume()`; see
+   limit (3) above for the residual).
 3. **WORM / append-only storage** for ledger segments. Closes (1), (2),
    (4) at the storage layer. Still open.
 4. **Per-actor identity** on the API (ADR 0006): `actor` is currently
-   self-asserted. Still open.
-2. **Checkpoint table inclusion**: fold checkpoint pins into the hashed
-   row (or a parallel chained table). Closes (3).
-3. **WORM / append-only storage** for ledger segments. Closes (1), (2),
-   (4) at the storage layer.
-4. **Per-actor identity** on the API (ADR 0006): `actor` is currently
-   self-asserted.
+   self-asserted. Still open. Partial mitigation **BUILT 2026-11-04**
+   (Prompt 3 F4): a server configured with `actor=...` overrides any
+   body-supplied actor on writes, so a dedicated single-purpose
+   server's log cannot be made to name someone else. It is one shared
+   label, not per-user identity.
+
+### HTTP write authentication (Prompt 3 F2, 2026-11-04)
+
+The `world` HTTP server fails closed: with no API key configured,
+write routes (`/v1/update`, `/v1/checkpoint`, `/v1/resume`) return
+401 unless unauthenticated writes were explicitly allowed
+(`create_app(allow_unauthenticated_writes=True)` or `world serve
+--allow-unauthenticated`, intended for local development). The
+pre-F2 behavior, a startup warning followed by open writes, is gone:
+a missing key no longer silently disables authentication. Read
+routes stay open in every mode, as documented in Part A above.
+Pinned by `tests/test_world_server_security.py`.
 
 ---
 
@@ -188,6 +211,13 @@ marketing.
   that `verify_chain()` will name.
 
 ## Planned hardening (not yet built)
+
+Note (2026-11-05, Prompt 6): this list is scoped to the legacy
+`world_engine` in Part B. Two of its items exist in the primitive
+covered by Part A: signed tips (item 1) were built 2026-10-15, and
+per-field encryption (item 4) exists as `src/world/fieldcrypto.py`.
+See Part A's mitigation ranking for the primitive status of each
+item before treating anything here as unbuilt across the repo.
 
 1. **Signed checkpoints.** Periodically sign the tip hash with a
    server-held key (HMAC or ed25519) and publish the signature

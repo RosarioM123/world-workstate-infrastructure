@@ -137,7 +137,8 @@ def make_client(store, **kwargs):
 
 
 def test_server_health_and_open_writes(store):
-    c = make_client(store)  # no key: fail-open
+    # No key, but unauthenticated writes explicitly allowed (local dev).
+    c = make_client(store, allow_unauthenticated_writes=True)
     assert c.get("/health").json() == {"ok": True, "world": "srv", "version": 0}
     r = c.post("/v1/update", json={"state": {"a": 1}, "actor": "api"})
     assert r.status_code == 200
@@ -160,7 +161,9 @@ def test_server_api_key_gate(store):
 
 
 def test_server_invariant_violation_is_422_with_evidence(store):
-    c = make_client(store, invariants=[no_negative("bal")])
+    c = make_client(
+        store, invariants=[no_negative("bal")], allow_unauthenticated_writes=True
+    )
     assert c.post("/v1/update", json={"state": {"bal": 10}}).status_code == 200
     r = c.post("/v1/update", json={"state": {"bal": -1}, "note": "oops"})
     assert r.status_code == 422
@@ -174,7 +177,7 @@ def test_server_invariant_violation_is_422_with_evidence(store):
 
 
 def test_server_conflict_checkpoint_resume(store):
-    c = make_client(store)
+    c = make_client(store, allow_unauthenticated_writes=True)
     c.post("/v1/update", json={"state": {"n": 1}})
     r = c.post("/v1/update", json={"state": {"n": 2}, "expected_version": 0})
     assert r.status_code == 409
@@ -196,7 +199,7 @@ def test_server_conflict_checkpoint_resume(store):
 
 
 def test_server_rate_limit(store):
-    c = make_client(store, write_limit_per_min=2)
+    c = make_client(store, write_limit_per_min=2, allow_unauthenticated_writes=True)
     for _ in range(2):
         assert c.post("/v1/update", json={"state": {"a": 1}}).status_code == 200
     r = c.post("/v1/update", json={"state": {"a": 1}})
@@ -207,7 +210,7 @@ def test_server_rate_limit(store):
 
 
 def test_server_rate_limit_ignores_spoofed_xff_by_default(store):
-    c = make_client(store, write_limit_per_min=2)
+    c = make_client(store, write_limit_per_min=2, allow_unauthenticated_writes=True)
     for _ in range(2):
         assert c.post("/v1/update", json={"state": {"a": 1}}).status_code == 200
     # X-Forwarded-For is client-controlled: spoofing a fresh IP must not
@@ -222,7 +225,12 @@ def test_server_rate_limit_ignores_spoofed_xff_by_default(store):
 
 
 def test_server_rate_limit_trust_forwarded_for_opt_in(store):
-    c = make_client(store, write_limit_per_min=2, trust_forwarded_for=True)
+    c = make_client(
+        store,
+        write_limit_per_min=2,
+        trust_forwarded_for=True,
+        allow_unauthenticated_writes=True,
+    )
     for _ in range(2):
         assert c.post("/v1/update", json={"state": {"a": 1}}).status_code == 200
     # With the opt-in behind a trusted proxy, the forwarded IP gets its
@@ -239,7 +247,9 @@ def test_server_rate_limit_trust_forwarded_for_opt_in(store):
 
 
 def test_server_state_version_is_committed_only(store):
-    c = make_client(store, invariants=[no_negative("bal")])
+    c = make_client(
+        store, invariants=[no_negative("bal")], allow_unauthenticated_writes=True
+    )
     assert c.post("/v1/update", json={"state": {"bal": 10}}).status_code == 200
     r = c.post("/v1/update", json={"state": {"bal": -1}})
     assert r.status_code == 422 and r.json()["status"] == "REJECTED"
@@ -254,7 +264,9 @@ def test_server_state_version_is_committed_only(store):
 
 
 def test_server_proposal_audits_rejected_attempts(store):
-    c = make_client(store, invariants=[no_negative("bal")])
+    c = make_client(
+        store, invariants=[no_negative("bal")], allow_unauthenticated_writes=True
+    )
     c.post("/v1/update", json={"state": {"bal": 10}, "actor": "alice"})
     c.post("/v1/update", json={"state": {"bal": -1}, "actor": "bob"})
     r = c.get("/v1/proposals/2")

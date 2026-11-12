@@ -70,9 +70,12 @@ CREATE TABLE IF NOT EXISTS versions (
     hash       TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS checkpoints (
-    name      TEXT PRIMARY KEY,
-    seq       INTEGER NOT NULL REFERENCES versions(seq),
-    timestamp TEXT NOT NULL
+    name        TEXT PRIMARY KEY,
+    seq         INTEGER NOT NULL REFERENCES versions(seq),
+    timestamp   TEXT NOT NULL,
+    pinned_hash TEXT  -- hash of the pinned row at creation (Prompt 3
+                      -- F3a); NULL on rows created before F3a, which
+                      -- are served but treated as unverified
 );
 CREATE TABLE IF NOT EXISTS idempotency (
     key TEXT PRIMARY KEY,
@@ -183,6 +186,13 @@ class World:
         self._invariants = tuple(invariants or ())
         with closing(self._connect()) as cx:
             cx.executescript(_SCHEMA)
+            # Migration for databases created before Prompt 3 F3a: the
+            # checkpoints table gains a pinned_hash column. Additive
+            # only; existing rows keep NULL (unverified) pins.
+            cols = {r["name"] for r in cx.execute("PRAGMA table_info(checkpoints)")}
+            if "pinned_hash" not in cols:
+                cx.execute("ALTER TABLE checkpoints ADD COLUMN pinned_hash TEXT")
+                cx.commit()
 
     @property
     def name(self) -> str:
@@ -219,17 +229,25 @@ class World:
         Time travel is committed-only. Rejected proposals were never part
         of the timeline, so ``state(version=N)`` for a REJECTED seq raises
         ``KeyError``; audit rejected attempts with :meth:`proposal`.
+
+        Checkpoint reads verify the pin recorded at creation (Prompt 3
+        F3a): if the checkpoint was repointed or the pinned row changed,
+        :class:`InvariantViolation` is raised instead of serving the
+        wrong snapshot. Checkpoints created before F3a have no pin and
+        are served unverified.
         """
         if version is not None and checkpoint is not None:
             raise ValueError("pass version or checkpoint, not both")
         with closing(self._connect()) as cx:
             if checkpoint is not None:
                 hit = cx.execute(
-                    "SELECT seq FROM checkpoints WHERE name = ?", (checkpoint,)
+                    "SELECT seq, pinned_hash FROM checkpoints WHERE name = ?",
+                    (checkpoint,),
                 ).fetchone()
                 if hit is None:
                     raise KeyError(f"unknown checkpoint: {checkpoint!r}")
                 version = int(hit["seq"])
+                self._verify_checkpoint_pin(cx, checkpoint, version, hit["pinned_hash"])
             if version is None:
                 row = self._latest_committed(cx)
             else:
@@ -543,8 +561,41 @@ class World:
         )
         return seq
 
+    def _verify_checkpoint_pin(
+        self,
+        cx: sqlite3.Connection,
+        name: str,
+        seq: int,
+        pinned_hash: str | None,
+    ) -> None:
+        """Check a checkpoint's pinned row hash against the live chain.
+
+        Prompt 3 F3a: a checkpoint records the hash of the row it pins.
+        If the checkpoints row was repointed to another seq, or the
+        pinned row's content changed, the hashes disagree and serving
+        the checkpoint is refused with :class:`InvariantViolation`.
+        Rows created before F3a carry a NULL pin: they are served but
+        unverified (the pre-F3a behavior), as documented in
+        :meth:`state`.
+        """
+        if pinned_hash is None:
+            return
+        row = cx.execute("SELECT hash FROM versions WHERE seq = ?", (seq,)).fetchone()
+        current = str(row["hash"]) if row is not None else None
+        if current != pinned_hash:
+            raise InvariantViolation(
+                f"checkpoint {name!r} does not match the chain at seq "
+                f"{seq}: pinned hash was changed or the checkpoint was "
+                "repointed"
+            )
+
     def checkpoint(self, name: str) -> int:
-        """Pin the current version under ``name``. Names are immutable."""
+        """Pin the current version under ``name``. Names are immutable.
+
+        The row's hash at pin time is stored with the checkpoint, so
+        :meth:`state` and :meth:`resume` can later prove the pin still
+        points at the same chain content (Prompt 3 F3a).
+        """
         if not _NAME_RE.fullmatch(name):
             raise ValueError(
                 f"invalid checkpoint name {name!r}: use letters, digits, '-' and '_'"
@@ -554,11 +605,16 @@ class World:
             if cur is None:
                 raise ValueError("cannot checkpoint an empty world")
             seq = int(cur["seq"])
+            tip = cx.execute(
+                "SELECT hash FROM versions WHERE seq = ?", (seq,)
+            ).fetchone()
+            pinned_hash = str(tip["hash"])
             cx.execute("BEGIN IMMEDIATE")
             try:
                 cx.execute(
-                    "INSERT INTO checkpoints(name, seq, timestamp) VALUES (?, ?, ?)",
-                    (name, seq, _utcnow()),
+                    "INSERT INTO checkpoints(name, seq, timestamp, pinned_hash)"
+                    " VALUES (?, ?, ?, ?)",
+                    (name, seq, _utcnow(), pinned_hash),
                 )
             except sqlite3.IntegrityError:
                 cx.rollback()
@@ -588,6 +644,9 @@ class World:
 
         History is append-only: resume never rewrites the past, it appends.
         The restore is judged by the current invariants like any transition.
+        The checkpoint's pinned hash is verified first (see
+        :meth:`state`), so resuming a repointed checkpoint raises
+        :class:`InvariantViolation` and appends nothing.
         """
         target = self.state(checkpoint=name)  # KeyError on unknown name
         return self.update(
@@ -659,43 +718,60 @@ class World:
                 " WHERE status = 'COMMITTED' AND seq <= ?"
                 " ORDER BY seq DESC",
                 (version,),
-            ).fetchall()
-            if not rows:
-                return None
-            # Walk newest to oldest: the first version whose value differs
-            # from its predecessor is the one that last changed the path.
-            # A predecessor before the oldest version counts as absent, so
-            # a removal by the latest version is reported, not hidden.
-            vals = [_get_path(json.loads(r["state"]), path) for r in rows]
-            for i, r in enumerate(rows):
-                older_val = vals[i + 1] if i + 1 < len(vals) else _MISSING
-                if vals[i] != older_val:
-                    return {
-                        "path": path,
-                        "seq": int(r["seq"]),
-                        "timestamp": r["timestamp"],
-                        "actor": r["actor"],
-                        "note": r["note"],
-                        "change": (
-                            "added"
-                            if older_val is _MISSING
-                            else "removed"
-                            if vals[i] is _MISSING
-                            else "modified"
-                        ),
-                        "old": None if older_val is _MISSING else older_val,
-                        "new": None if vals[i] is _MISSING else vals[i],
-                    }
+            )
+            # Walk newest to oldest, streaming (Prompt 3 F5): the first
+            # version whose value differs from its predecessor is the
+            # one that last changed the path. Rows are parsed lazily
+            # and the walk stops at the change, so older snapshots are
+            # never loaded. A predecessor before the oldest version
+            # counts as absent, so a removal by the latest version is
+            # reported, not hidden.
+            newer: sqlite3.Row | None = None
+            newer_val: Any = None
+            for r in rows:
+                val = _get_path(json.loads(r["state"]), path)
+                if newer is not None and newer_val != val:
+                    return self._blame_hit(path, newer, val, newer_val)
+                newer, newer_val = r, val
+            if newer is not None and newer_val is not _MISSING:
+                return self._blame_hit(path, newer, _MISSING, newer_val)
             return None
 
+    @staticmethod
+    def _blame_hit(
+        path: str, row: sqlite3.Row, older_val: Any, newer_val: Any
+    ) -> dict[str, Any]:
+        return {
+            "path": path,
+            "seq": int(row["seq"]),
+            "timestamp": row["timestamp"],
+            "actor": row["actor"],
+            "note": row["note"],
+            "change": (
+                "added"
+                if older_val is _MISSING
+                else "removed"
+                if newer_val is _MISSING
+                else "modified"
+            ),
+            "old": None if older_val is _MISSING else older_val,
+            "new": None if newer_val is _MISSING else newer_val,
+        }
+
     def verify(self) -> bool:
-        """Walk the hash chain; True iff every row is intact and linked."""
+        """Walk the hash chain; True iff every row is intact and linked.
+
+        Rows are streamed from the cursor, never materialized as a
+        list (Prompt 3 F5): the pre-F5 implementation fetched every
+        row into memory, which measured about 659 MB RSS on a
+        1.06M-row chain.
+        """
         prev_hash = _genesis_prev_hash(self._name)
         with closing(self._connect()) as cx:
             rows = cx.execute(
                 "SELECT seq, timestamp, actor, note, status, state, prev_hash, hash"
                 " FROM versions ORDER BY seq ASC"
-            ).fetchall()
+            )
             for r in rows:
                 if r["prev_hash"] != prev_hash:
                     return False

@@ -4,6 +4,22 @@ Wraps a :class:`~world.core.World` with an API-key gate and per-IP rate
 limiting on writes. Invariants are declared once here so every remote writer
 is judged by the same rules — the server is the uniform-enforcement point
 that in-process callables alone cannot provide.
+
+Authentication fails closed: when no API key is configured, write
+routes return 401 unless unauthenticated writes were explicitly
+allowed (``allow_unauthenticated_writes=True``, or ``world serve
+--allow-unauthenticated`` for local development). A missing key must
+never silently disable authentication. Read routes stay open either
+way.
+
+Actor attribution: the ``actor`` field of a write body is
+self-asserted. Nothing authenticates that the named actor made the
+write, and the verdict log records the claim, not an identity. The
+one exception is a server configured with ``actor=...`` (Prompt 3
+F4): that server-side label overrides any body-supplied actor on
+writes, so at least a dedicated single-purpose server's log cannot
+be made to name someone else. It is still one shared label, not
+per-user identity or authorization (ADR 0006 remains open).
 """
 
 from __future__ import annotations
@@ -30,14 +46,24 @@ def create_app(
     api_key: str | None = None,
     write_limit_per_min: int = 60,
     trust_forwarded_for: bool = False,
+    allow_unauthenticated_writes: bool = False,
+    actor: str | None = None,
 ) -> FastAPI:
     work = World(name, dir=dir, invariants=invariants)
     app = FastAPI(title="world", version="0.2.0")
 
     if api_key:
         log.info("API-key gate enabled for world %r", name)
+    elif allow_unauthenticated_writes:
+        log.warning(
+            "no API key and allow_unauthenticated_writes set: "
+            "write endpoints are unauthenticated"
+        )
     else:
-        log.warning("WORLD_API_KEY not set: write endpoints are unauthenticated")
+        log.warning(
+            "no API key configured: write endpoints fail closed (401); "
+            "pass allow_unauthenticated_writes=True to open them"
+        )
 
     _hits: dict[str, deque[float]] = {}
     _last_sweep = 0.0
@@ -86,6 +112,18 @@ def create_app(
                     status_code=401,
                     content={"error": "unauthorized", "hint": "provide X-API-Key"},
                 )
+        elif not allow_unauthenticated_writes:
+            # Fail closed: no key configured and unauthenticated writes
+            # were not explicitly allowed. Missing configuration must
+            # not silently grant write access.
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "error": "unauthorized",
+                    "hint": "server has no API key configured and "
+                    "unauthenticated writes are not allowed",
+                },
+            )
         if _rate_limited(_client_ip(request)):
             return JSONResponse(
                 status_code=429,
@@ -146,7 +184,7 @@ def create_app(
         try:
             seq = work.update(
                 body["state"],
-                actor=body.get("actor"),
+                actor=actor if actor is not None else body.get("actor"),
                 note=body.get("note", ""),
                 expected_version=body.get("expected_version"),
                 idempotency_key=body.get("idempotency_key"),
@@ -187,7 +225,9 @@ def create_app(
         body = await request.json()
         try:
             seq = work.resume(
-                body.get("name", ""), actor=body.get("actor"), note=body.get("note")
+                body.get("name", ""),
+                actor=actor if actor is not None else body.get("actor"),
+                note=body.get("note"),
             )
         except KeyError as e:
             return JSONResponse(

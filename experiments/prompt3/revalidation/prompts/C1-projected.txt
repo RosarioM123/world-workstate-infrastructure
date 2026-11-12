@@ -1,0 +1,164 @@
+You are an AI agent resuming a task started by another agent in a previous session. You have no memory of that session. The only record of the prior work available to you is the handoff material included in this prompt. Work only from that material: do not invent facts, figures, names, dates, or commitments that are not in it. Where information you need is missing from the material, say so explicitly instead of filling the gap. Where the material records that something was later changed or superseded, treat the latest version as authoritative and say what changed. Complete the continuation assignment exactly as specified.
+
+----- USER PROMPT -----
+
+# Continuation assignment (C1)
+
+You are resuming planning of a two-day team offsite that a previous
+operations agent started. Using only the handoff material provided,
+produce a Continuation Document with exactly these sections:
+
+1. **Where things stand:** the current state of the plan: venue status,
+   group size, and the budget picture using only figures that actually
+   exist in the material.
+2. **Decisions in force:** every decision made so far, with reasons.
+   Separately list anything no longer in force.
+3. **Assumptions and facts:** the assumptions in play, labeled as
+   assumptions, with confidence. Keep given facts distinct from
+   assumptions.
+4. **Constraints:** every hard constraint on the offsite.
+5. **What changed and why:** anything that changed during the prior
+   session; if nothing changed, say so.
+6. **Open questions and missing information:** everything still unknown,
+   unresolved, or conflicting. Missing figures must be flagged as
+   missing; do not estimate or invent them. Conflicts must be surfaced,
+   not silently resolved.
+7. **Next actions:** the concrete next steps, in order, within the
+   constraints.
+8. **Planning memo:** a short memo (at most about 300 words) to the team
+   lead: budget table using only given figures and showing the total of
+   known costs, what is still missing before a final booking, and the
+   unresolved conflict that needs the venue to settle.
+
+----- HANDOFF MATERIAL FROM THE PREVIOUS SESSION -----
+
+# WORLD State Bundle: Task C1
+
+## Objective
+
+Plan a two-day offsite workshop for a 14-person team and reach a position where a final booking can be made, subject to the hard constraints below.
+
+## Decisions
+
+### D1 [status: proposed]
+- statement: Evaluate Riverside Hall as the venue for this offsite, as it is the only shortlisted venue in the materials.
+- rationale: No other venue option is given in the materials, so no inter-venue comparison is possible in this session. Riverside Hall meets the travel and step-free access constraints on the evidence given. D1 is proposed, not accepted, because capacity and catering price remain unresolved.
+- supersedes: none
+- evidence_ids: E1, E2, E3
+
+### D2 [status: accepted]
+- statement: Do not make a final booking until the catering price is received and the room capacity conflict is resolved.
+- rationale: Without a catering price the total cost cannot be calculated or checked against the $6,000 cap. Without a resolved capacity the venue cannot be confirmed as suitable for 14 people, because one source says 12 and the other says 16.
+- supersedes: none
+- evidence_ids: E4, E5, E6
+
+### D3 [status: accepted]
+- statement: Record both capacity figures, 12 from the venue email and 16 from the venue brochure, and treat the conflict as unresolved. Do not select either figure as correct.
+- rationale: The two sources disagree and scenario.md states the conflict has not been resolved. Selecting one figure without clarification from the venue would risk booking a room that is too small for 14 people, or rejecting a venue that is in fact large enough.
+- supersedes: none
+- evidence_ids: E4, E5
+
+### D4 [status: accepted]
+- statement: Record the catering price as missing, with no figure, and base the budget picture only on the figures that exist.
+- rationale: No catering price appears anywhere in the provided materials, and the venue contact said pricing would be sent later and it has not arrived. Inventing or estimating a figure would make the budget total unreliable.
+- supersedes: none
+- evidence_ids: E6, E7, E8, E9
+
+### D5 [status: accepted]
+- statement: Report the known cost subtotal as $2,870, made up of $2,400 venue rental plus $350 AV equipment plus $120 printed materials, and report it explicitly as a subtotal and not as the total cost.
+- rationale: These are the only cost figures that exist in the materials. The subtotal is $3,130 below the $6,000 cap, but final cap compliance cannot be confirmed while catering is unpriced.
+- supersedes: none
+- evidence_ids: E1, E7, E8, E9
+
+### D6 [status: accepted]
+- statement: Plan on the basis of a group of 14 people, despite two attendees being unconfirmed.
+- rationale: The materials give the group size as 14. The two unconfirmed attendees may still attend, and room capacity and catering must be planned for the full group until attendance is settled.
+- supersedes: none
+- evidence_ids: E10
+
+## Assumptions
+
+### A1 [status: active, confidence: high]
+- statement: The venue rental quote of $2,400 covers the full two days of the offsite, as stated in the venue email summary.
+- validated_by: none
+
+### A2 [status: active, confidence: medium]
+- statement: The AV equipment figure of $350 flat and the printed materials estimate of $120 are the applicable figures for this offsite, with no variation.
+- validated_by: none
+
+### A3 [status: active, confidence: medium]
+- statement: The travel time of 30 minutes and the step-free access confirmation for Riverside Hall, as reported in the materials, are accurate for the planned visit.
+- validated_by: none
+
+### A4 [status: active, confidence: medium]
+- statement: The two unconfirmed attendees are counted in planning numbers until they confirm or decline.
+- validated_by: none
+
+### A5 [status: active, confidence: low]
+- statement: No cost categories beyond venue rental, catering, AV equipment, and printed materials will be needed, based only on the fact that no other costs are given in the materials.
+- validated_by: none
+
+## Evidence
+
+### E1 (kind: source)
+- claim: Riverside Hall rental quote is $2,400 for two days.
+- source: scenario.md, venue option section (venue email summary)
+
+### E2 (kind: source)
+- claim: Travel time from the office to Riverside Hall is 30 minutes.
+- source: scenario.md, venue option section
+
+### E3 (kind: source)
+- claim: Step-free access at Riverside Hall is confirmed.
+- source: scenario.md, venue option section (venue email summary)
+
+### E4 (kind: source)
+- claim: The venue email says the main room at Riverside Hall holds 12 people.
+- source: scenario.md, venue option section (venue email)
+
+### E5 (kind: source)
+- claim: The venue brochure says the main room at Riverside Hall holds 16 people.
+- source: scenario.md, venue option section (venue brochure)
+
+### E6 (kind: source)
+- claim: The venue offers catering, but no catering price appears anywhere in the provided materials. The venue contact said pricing would be sent later and it has not arrived.
+- source: scenario.md, venue option section (catering)
+
+### E7 (kind: source)
+- claim: AV equipment rental from an outside supplier is $350 flat.
+- source: scenario.md, other given figures
+
+### E8 (kind: source)
+- claim: Printed materials estimate is $120.
+- source: scenario.md, other given figures
+
+### E9 (kind: source)
+- claim: Budget cap is $6,000 total for the whole offsite, and no costs other than venue rental, AV equipment, and printed materials are given in the materials, apart from catering which is offered but unpriced.
+- source: scenario.md, requirements section and other given figures
+
+### E10 (kind: source)
+- claim: Group size is 14 people, and two of the 14 have not yet confirmed their attendance.
+- source: scenario.md, requirements section
+
+## Constraints
+
+- C1-CON-1: Budget cap of $6,000 total for the whole offsite.
+- C1-CON-2: Venue must be within 45 minutes travel of the office.
+- C1-CON-3: Venue must have step-free access, because one attendee uses a wheelchair.
+- C1-CON-4: No alcohol at team events, per team policy.
+- C1-CON-5: Dates are fixed: two specific consecutive days already announced to the team.
+- C1-CON-6: Group size is 14 people. Two of the 14 have not yet confirmed attendance.
+
+## Open questions
+
+- What is the catering price for this offsite? The venue contact said pricing would be sent later and it has not arrived, and no catering price appears in the materials.
+- What is the correct capacity of the main room at Riverside Hall for this booking: 12 people as stated in the venue email, or 16 people as stated in the venue brochure?
+- Will the two attendees who have not yet confirmed attend, so that the final group size is confirmed as 14 or revised?
+- Is Riverside Hall available on the two specific consecutive days that are fixed and already announced to the team? The actual dates and venue availability are not stated in the materials provided for this session.
+- Will the catering and any drinks arrangement comply with the team policy of no alcohol at team events? The materials do not describe a catering menu or drinks arrangement.
+- Are there any costs beyond venue rental, catering, AV equipment, and printed materials? The materials state that no other costs are given, which does not confirm that none will arise.
+
+## Next actions
+
+- Q1, catering price: obtain the price the venue contact said would be sent later. Without it there is no total cost and no final cap check. Do not substitute an estimate.
+- Q2, capacity conflict: get the venue to clarify in writing whether the main room holds 12 (venue email) or 16 (venue brochure). The group is 14, so this decides suitability.

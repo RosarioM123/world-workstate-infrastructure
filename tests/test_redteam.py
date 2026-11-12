@@ -154,12 +154,39 @@ def test_full_rewrite_undetected_documents_limit(attacked):
     assert attacked.state() == {"balance": 0}  # forgery accepted
 
 
-def test_checkpoint_repoint_undetected_documents_limit(attacked):
-    # The checkpoints table is not hash-chained: repointing a checkpoint
-    # is invisible to verify().
+def test_checkpoint_repoint_detected(attacked):
+    # Behavior changed by approved Prompt 3 change F3a (2026-11-04);
+    # this replaces test_checkpoint_repoint_undetected_documents_limit.
+    # A checkpoint now records the pinned row's hash at creation, and
+    # state()/resume() verify it before serving. Repointing the seq
+    # alone is detected at serve time. verify() still returns True:
+    # the versions chain itself is untouched, so detection lives in
+    # the checkpoint check, not in verify(). (Residual limit, kept
+    # honest: the pin lives in the same database, so an attacker who
+    # also rewrites pinned_hash to match the new target defeats this
+    # check; signed tips remain the out-of-band defense.)
     _sql(attacked, "UPDATE checkpoints SET seq = 1 WHERE name = 'audited'")
     assert attacked.verify()
-    assert attacked.state(checkpoint="audited") == {"balance": 100}
+    with pytest.raises(InvariantViolation, match="repointed"):
+        attacked.state(checkpoint="audited")
+    with pytest.raises(InvariantViolation, match="repointed"):
+        attacked.resume("audited")
+    assert attacked.version == 3  # the refused resume appended nothing
+
+
+def test_checkpoint_with_null_pin_served_unverified(attacked):
+    # Checkpoints created before F3a have a NULL pinned_hash: they are
+    # served without the pin check (documented backward compatibility).
+    _sql(attacked, "UPDATE checkpoints SET pinned_hash = NULL")
+    assert attacked.state(checkpoint="audited") == {"balance": 120}
+
+
+def test_checkpoint_pin_detects_pinned_row_rewrite(attacked):
+    # Editing the pinned row's stored hash breaks the pin comparison
+    # even before verify() is consulted.
+    _sql(attacked, "UPDATE versions SET hash = 'forged' WHERE seq = 3")
+    with pytest.raises(InvariantViolation, match="repointed"):
+        attacked.state(checkpoint="audited")
 
 
 def test_idempotency_deletion_enables_double_apply_documents_limit(attacked):

@@ -1,0 +1,92 @@
+{
+  "R1-A5": {
+    "task": "R1",
+    "bundle": "full",
+    "trial": 1
+  },
+  "R1-B4": {
+    "task": "R1",
+    "bundle": "full",
+    "trial": 2
+  },
+  "R1-C2": {
+    "task": "R1",
+    "bundle": "projected",
+    "trial": 2
+  },
+  "R1-D5": {
+    "task": "R1",
+    "bundle": "projected",
+    "trial": 3
+  },
+  "R1-E3": {
+    "task": "R1",
+    "bundle": "projected",
+    "trial": 1
+  },
+  "R1-F8": {
+    "task": "R1",
+    "bundle": "full",
+    "trial": 3
+  },
+  "R2-A7": {
+    "task": "R2",
+    "bundle": "projected",
+    "trial": 2
+  },
+  "R2-B4": {
+    "task": "R2",
+    "bundle": "full",
+    "trial": 1
+  },
+  "R2-C2": {
+    "task": "R2",
+    "bundle": "projected",
+    "trial": 1
+  },
+  "R2-D8": {
+    "task": "R2",
+    "bundle": "full",
+    "trial": 2
+  },
+  "R2-E6": {
+    "task": "R2",
+    "bundle": "full",
+    "trial": 3
+  },
+  "R2-F9": {
+    "task": "R2",
+    "bundle": "projected",
+    "trial": 3
+  },
+  "C1-A7": {
+    "task": "C1",
+    "bundle": "projected",
+    "trial": 3
+  },
+  "C1-B1": {
+    "task": "C1",
+    "bundle": "full",
+    "trial": 3
+  },
+  "C1-C7": {
+    "task": "C1",
+    "bundle": "full",
+    "trial": 1
+  },
+  "C1-D1": {
+    "task": "C1",
+    "bundle": "projected",
+    "trial": 1
+  },
+  "C1-E6": {
+    "task": "C1",
+    "bundle": "full",
+    "trial": 2
+  },
+  "C1-F2": {
+    "task": "C1",
+    "bundle": "projected",
+    "trial": 2
+  }
+}
