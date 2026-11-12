@@ -76,4 +76,9 @@ T-12, C-9, C-14, C-12, C-13, T-7, T-8, C-5. P3: L-1, L-2, L-3, L-4,
 L-14, L-5, L-8, L-7, D-7, D-8, L-6, plus small items. Full list with
 rationales in `experiments/mission-90/AUDIT.md` section 9.
 
-**Day 1 commits:** (to be filled with SHAs at commit time)
+**Day 1 commits:**
+- `35597d7` docs: Day 1 mission audit and log (Foundation phase)
+  (`experiments/mission-90/AUDIT.md`, `experiments/mission-90/LOG.md`)
+- `fce7ab4` docs: correct stale uncommitted/pushed state in STATUS,
+  REPRODUCE, architecture, overview, security
+- `LOG.md` SHA line updated in the commit below (this line).
