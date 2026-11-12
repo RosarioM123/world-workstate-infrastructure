@@ -1,0 +1,214 @@
+{
+  "already_done": [
+    {
+      "id": "R1",
+      "must_mention": [
+        "context manager",
+        "merged"
+      ],
+      "text": "Connection-release fix written, merged, and covered by a regression test."
+    }
+  ],
+  "assumptions": [
+    {
+      "confidence": "medium",
+      "id": "A1",
+      "must_mention": [
+        "webhook",
+        "separate"
+      ],
+      "status": "active",
+      "text": "The payment webhook timeout is a separate issue from the pool exhaustion (it does not correlate with the pool pattern)."
+    },
+    {
+      "confidence": "low",
+      "id": "A2",
+      "must_mention": [
+        "pricing deploy"
+      ],
+      "status": "invalidated",
+      "text": "Initial hypothesis: the pricing service deploy four days ago caused the 500 errors."
+    }
+  ],
+  "category": "software engineering",
+  "constraints": [
+    {
+      "id": "K1",
+      "must_mention": [
+        "checkout service"
+      ],
+      "text": "Change freeze: code changes only in the checkout service repository during the incident."
+    },
+    {
+      "id": "K2",
+      "must_mention": [
+        "rollback",
+        "evidence"
+      ],
+      "text": "No rollback of any service without evidence that the rollback target caused the problem."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D1",
+      "must_mention": [
+        "context manager"
+      ],
+      "rationale": "Code inspection found connections leaking on error paths in report generation, exhausting the 50-connection pool under load.",
+      "status": "in_force",
+      "text": "Fix the report-generation path to release connections via a context manager on all paths."
+    },
+    {
+      "id": "D2",
+      "must_mention": [
+        "not roll back",
+        "pricing"
+      ],
+      "rationale": "Log timestamps show errors began three days before the pricing deploy; the deploy is exonerated.",
+      "status": "in_force",
+      "text": "Do not roll back the pricing service."
+    },
+    {
+      "id": "D3",
+      "must_mention": [
+        "monitor"
+      ],
+      "rationale": "Verify the fix holds under real traffic before closing the incident.",
+      "status": "in_force",
+      "text": "Keep the incident open and monitor error rates after the fix."
+    }
+  ],
+  "errata": [
+    {
+      "date": "2026-11-03T03:50Z",
+      "note": "Parity phrase 'pricing deploy' corrected to 'pricing service deploy', the scenario's own term, used by both the journal and the summary. Content was present in substance; the phrase list asserted a wording the sources do not use. Recorded before continuations."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E1",
+      "must_mention": [
+        "seven days",
+        "three days before"
+      ],
+      "source": "log timestamp analysis",
+      "text": "Error logs show the 500s began seven days ago, three days before the pricing deploy."
+    },
+    {
+      "id": "E2",
+      "must_mention": [
+        "report generation"
+      ],
+      "source": "log correlation analysis",
+      "text": "Error rate correlates with report-generation traffic, not with pricing calls."
+    },
+    {
+      "id": "E3",
+      "must_mention": [
+        "connection pool",
+        "50"
+      ],
+      "source": "code inspection of the checkout service",
+      "text": "Report-generation path leaked database connections on error paths; pool of 50 connections is exhausted under load."
+    },
+    {
+      "id": "E4",
+      "must_mention": [
+        "webhook",
+        "2,000"
+      ],
+      "source": "incident monitoring (given in session materials)",
+      "text": "A rare payment webhook timeout, about 1 in 2,000 calls, continues and is unexplained."
+    }
+  ],
+  "ground_truth_version": 1,
+  "must_mention": [
+    "connection pool",
+    "pricing service deploy",
+    "seven days",
+    "context manager",
+    "webhook",
+    "rollback",
+    "report generation",
+    "50 connections"
+  ],
+  "must_not_state": [
+    {
+      "id": "X1",
+      "must_mention": [
+        "pricing deploy caused",
+        "caused by the pricing",
+        "pricing service deploy introduced"
+      ],
+      "text": "The pricing service deploy caused the 500 errors."
+    },
+    {
+      "id": "X2",
+      "must_mention": [
+        "roll back the pricing",
+        "rollback of the pricing"
+      ],
+      "text": "Proposing to roll back the pricing service."
+    },
+    {
+      "id": "X3",
+      "must_mention": [
+        "webhook timeout is caused",
+        "webhook timeouts are caused"
+      ],
+      "text": "The cause of the webhook timeout is known (it is not)."
+    },
+    {
+      "id": "X4",
+      "must_mention": [
+        "incident is closed",
+        "mark the incident resolved"
+      ],
+      "text": "The incident is fully resolved and can be closed."
+    }
+  ],
+  "next_actions": [
+    {
+      "id": "N1",
+      "must_mention": [
+        "monitor",
+        "error rate"
+      ],
+      "text": "Monitor checkout error rates under load to confirm the fix holds."
+    },
+    {
+      "id": "N2",
+      "must_mention": [
+        "webhook"
+      ],
+      "text": "Investigate the payment webhook timeout as a separate thread."
+    }
+  ],
+  "objective": "Diagnose intermittent checkout 500 errors, fix the true cause, and avoid acting on an exonerated hypothesis.",
+  "open_questions": [
+    {
+      "id": "Q1",
+      "must_mention": [
+        "webhook"
+      ],
+      "text": "What causes the rare payment webhook timeout? Unexplained."
+    }
+  ],
+  "revision_chains": [
+    {
+      "authoritative": "Connection pool exhaustion from leaked connections in the report-generation path",
+      "entity": "A2 / root cause",
+      "id": "RC1",
+      "must_mention": [
+        "pricing deploy",
+        "connection pool"
+      ],
+      "original": "Leading hypothesis: the pricing service deploy caused the errors",
+      "provenance": "log timestamp analysis and code inspection",
+      "revised": "Root cause: connection pool exhaustion from leaked connections in the report-generation path",
+      "what_changed": "The accepted root cause changed from the pricing deploy to the connection leak",
+      "why": "Error timestamps predate the pricing deploy by three days, and code inspection found the leak"
+    }
+  ],
+  "task_id": "S2"
+}

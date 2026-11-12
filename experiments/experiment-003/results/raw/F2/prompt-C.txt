@@ -1,0 +1,149 @@
+# Continuation assignment (F2)
+
+You are resuming a credit review of Harborline Retail bonds that a
+previous analyst agent started. Using only the handoff material provided,
+produce a Continuation Document with exactly these sections:
+
+1. **Where things stand:** the current internal leverage figure used for
+   risk decisions, the position decision, and the watchlist status.
+2. **Decisions in force:** every decision that currently governs this
+   position, with the reason it was made. Separately list any decisions
+   that are no longer in force.
+3. **Assumptions and facts:** the assumptions the review rests on, labeled
+   as assumptions, with confidence. Keep established facts distinct from
+   assumptions and from unconfirmed reports.
+4. **Constraints:** every standing portfolio constraint that binds action
+   on this position.
+5. **What changed and why:** everything that changed during the prior
+   session, what it changed from and to, why, which version is
+   authoritative now, and where the change came from.
+6. **Open questions and missing information:** what is still unknown or
+   unconfirmed. Flag it; do not resolve it by assertion.
+7. **Next actions:** the concrete next steps, in order. Do not propose
+   redoing completed work, and do not propose anything the constraints
+   prohibit.
+8. **Draft risk committee memo:** a short memo (at most about 300 words)
+   giving the committee the current leverage figure and its source, the
+   position recommendation, the status of the covenant report, and the
+   key risk.
+
+----- HANDOFF MATERIAL FROM THE PREVIOUS SESSION -----
+
+# Work Journal: Harborline Retail Credit Review (Task F2)
+
+Agent: Agent A, Experiment #003, Task F2
+Session scope: Review of Harborline Retail bonds already held in the portfolio, using only the scenario materials provided. Work was done in order, Part 1 first, then the Part 2 update.
+
+## Entry 1: Start of session, materials read
+
+I read the brief first, then the scenario materials for Part 1, then the state model document that defines the format for the state bundle.
+
+Part 1 contained three items:
+- A rating agency report, described as a secondary source.
+- Portfolio constraints, described as standing and hard.
+- The current position and an initial desk note.
+
+No primary company filing was included in Part 1.
+
+## Entry 2: Part 1, rating agency report
+
+The agency report states Harborline Retail leverage at 3.1x, with a stable outlook.
+
+I recorded an important qualification at the time of reading: the agency figure excludes operating lease liabilities. That means 3.1x is not a total-obligations figure. It understates leverage on a basis that includes operating leases, by an amount not given in Part 1.
+
+Provenance noted: 3.1x comes from the rating agency report, a secondary source, on an ex-operating-lease basis.
+
+Initial conclusion from this item alone: leverage as reported by the agency looks moderate, but the figure is incomplete for an internal total-obligations view.
+
+## Entry 3: Part 1, portfolio constraints
+
+The standing constraints are:
+- The portfolio must not use leverage: no margin borrowing, no leveraged funds or ETFs, and no derivatives that create leveraged exposure.
+- Single-issuer limit: 5% of portfolio.
+- Watchlist names: no new purchases while on the watchlist.
+
+I noted that the first constraint governs the portfolio's own use of leverage. It is not a limit on an issuer's leverage ratio, and I did not treat it as one.
+
+The second and third constraints are directly testable against this position: position size against the 5% limit, and any purchase decision against watchlist status.
+
+## Entry 4: Part 1, current position and initial desk note
+
+The portfolio holds Harborline 2029 bonds at 2.8% of portfolio.
+
+At 2.8%, the position is within the 5% single-issuer limit, with headroom of 2.2 percentage points on the figures given.
+
+The initial desk note, based on the agency report, says: "leverage comfortable at 3.1x; consider adding on price dips".
+
+My Part 1 conclusion: on the agency figure alone, the desk note's stance follows. I recorded that stance as provisional, because it rests entirely on a secondary source whose leverage figure excludes operating lease liabilities. If a primary source gave a fuller obligations figure, the stance would need to be revisited.
+
+Part 1 stance recorded at this point:
+- Internal leverage view, provisional: 3.1x, agency basis, excluding operating leases.
+- Position stance, provisional: hold the existing position and consider adding on price dips.
+- Watchlist: no watchlist action indicated by Part 1 alone.
+
+## Entry 5: Part 2 update arrives
+
+Part 2 arrived mid-session with three new items:
+- A company 10-Q filing, described as a primary source.
+- A news article, described as unconfirmed.
+- A liquidity note, taken from the filing.
+
+This changed the evidence base materially. I worked through each item separately before revising any conclusion, so that the primary source, the unconfirmed report, and the liquidity information were not blended together.
+
+## Entry 6: Part 2, company 10-Q filing and the leverage correction
+
+The 10-Q filing shows total obligations including operating leases that imply leverage of 4.2x on the same earnings basis as the earlier figure.
+
+Decision on which source governs: the filing governs for the internal leverage figure. It is the primary source, and it uses the fuller obligations basis by including operating leases. The agency report is a secondary source and its figure explicitly excludes operating leases.
+
+Revised internal leverage figure: 4.2x, from the company 10-Q filing, including operating leases, on the same earnings basis.
+
+The earlier 4.2x versus 3.1x gap is therefore explained in the materials by basis, not by a change in earnings: same earnings basis, different obligations included. The difference is 1.1x.
+
+I did not delete the 3.1x figure. It remains in this journal and in the state bundle as the earlier agency figure, corrected for internal use by the filing figure. Anyone reading the record should be able to see both figures, their sources, and why the second governs.
+
+Effect on my stance: the description "leverage comfortable at 3.1x" no longer holds as the internal view. At 4.2x on a total-obligations basis, the case for adding on price dips is not supported by the materials. That part of the initial desk note is superseded.
+
+## Entry 7: Part 2, news article on a possible covenant breach
+
+A financial news article claims Harborline "may have breached a debt covenant", citing unnamed sources.
+
+I treated this claim as unconfirmed throughout, for the reasons given in the materials:
+- The sources are unnamed.
+- The company has denied the claim in a short statement.
+- No filing or lender statement confirms any breach.
+- The 10-Q filing itself contains no mention of any covenant breach.
+
+Conclusion: a covenant breach is not established. I did not record it as a fact, I did not base the position decision on it as if it had happened, and I did not treat the company's denial alone as proof that no breach occurred either. The correct status is unresolved and unconfirmed, and it is recorded as an open question in the state bundle.
+
+Its practical effect is narrower: an unresolved claim of this kind, combined with the higher corrected leverage figure, is a reason for closer monitoring, not a reason to state that a breach happened.
+
+## Entry 8: Part 2, liquidity note from the filing
+
+The liquidity note, from the filing, states that cash and revolver availability cover maturities through Q1 of next year.
+
+It also states that holiday-season sales are the key swing factor for the next quarter and have not been reported yet.
+
+Conclusion: near-term maturity coverage is supported by the filing for the period stated, through Q1 of next year. Beyond that, the key variable in the materials, holiday-season sales, is still unknown. I did not extend the liquidity conclusion beyond the period the filing covers, and I did not invent any sales figure.
+
+## Entry 9: Revised decisions at end of session
+
+With Part 2 incorporated, I revised the Part 1 stance as follows:
+
+1. Leverage figure: superseded. Internal figure is now 4.2x from the 10-Q filing, including operating leases. The 3.1x agency figure is retained as corrected history.
+2. Position decision: superseded. Hold the existing 2.8% position, do not add. The "consider adding on price dips" stance is reversed. Reasons: the corrected leverage is materially higher, the covenant claim is unresolved, and the key sales figure for the next quarter is not yet reported. The position remains within the 5% single-issuer limit, and no material in the scenario requires a sale, so the decision is hold with no new purchases, not exit.
+3. Watchlist status: changed. Place Harborline Retail on the watchlist. Reasons: corrected leverage of 4.2x, the unconfirmed and unresolved covenant claim, and dependence on unreported holiday-season sales. Under the standing constraints, placement on the watchlist itself bars new purchases while the name is on the watchlist, which reinforces the no-add decision by rule as well as by judgment.
+
+## Entry 10: What did not change, and what remains unknown
+
+What did not change:
+- Position size remains 2.8% of portfolio, within the 5% limit.
+- No covenant breach has been established by any confirmed source.
+- Liquidity coverage through Q1 of next year, as stated in the filing, was not contradicted by any other material.
+
+What remains unknown at the end of the session:
+- Whether any covenant breach occurred. The only support is an unconfirmed news article with unnamed sources, denied by the company, with no confirming filing or lender statement.
+- Holiday-season sales, described as the key swing factor for the next quarter, not yet reported.
+- Leverage or liquidity beyond the periods and basis given in the filing materials provided.
+
+End of session. The final report and the state bundle were written from this journal's revised conclusions, with the earlier figures and stances kept visible as superseded rather than overwritten.

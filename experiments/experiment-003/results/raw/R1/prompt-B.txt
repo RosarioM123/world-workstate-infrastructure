@@ -1,0 +1,41 @@
+# Continuation assignment (R1)
+
+You are resuming specification work on Team Notes v2 that a previous
+product agent started. Using only the handoff material provided, produce
+a Continuation Document with exactly these sections:
+
+1. **Where things stand:** the current, authoritative requirements for the
+   v2 launch.
+2. **Decisions in force:** every decision that currently governs the spec,
+   with the reason it was made. Separately list any decisions or
+   requirements that are no longer in force.
+3. **Assumptions and facts:** the assumptions the spec rests on, labeled
+   as assumptions, with confidence, including any assumption that turned
+   out not to hold. Keep facts distinct from assumptions.
+4. **Constraints:** every standing constraint on the v2 scope.
+5. **What changed and why:** every requirement that changed during the
+   prior session, what it changed from and to, why it changed, which
+   version is authoritative now, and where each change came from.
+6. **Open questions and missing information:** what is still undecided or
+   unknown. Flag it; do not invent answers.
+7. **Next actions:** the concrete next steps for the spec and build, in
+   order. Do not propose building anything the current scope excludes.
+8. **Authoritative spec summary:** a short summary (at most about 300
+   words) of the v2 launch spec as it currently stands, suitable to send
+   to the build team, with a brief change history.
+
+----- HANDOFF MATERIAL FROM THE PREVIOUS SESSION -----
+
+# Handoff Summary for Team Notes v2
+
+You are picking up the specification for Team Notes v2, a shared note-taking app, and this summary is what you need to continue it cold. The launch is set for December 15, and that date is fixed by marketing commitments and does not move. It has not changed at any point in the work so far, and it shapes everything else in the spec. The other standing rule is that no scope may be added to this version without the product manager's approval. No scope has been added. Every change so far has narrowed or deferred the launch rather than expanded it, and both standing rules from the original draft remain in force unchanged.
+
+As the spec now stands, the launch will be mobile-only, offline support will not be part of the launch at all, and sign-in will be by single sign-on only, with no passwords. That is considerably narrower than where the work began, so the history of how it narrowed matters, and the earlier versions described below are superseded and must not be built to.
+
+The original draft covered both desktop and mobile at launch. That changed in a written scope message from the product manager. The launch is now mobile-only, and desktop has moved to a later release rather than being cancelled. The reason given was engineering capacity. The desktop app needs a redesign that cannot be finished by December 15 without cutting quality, so keeping the fixed date intact meant narrowing the platform scope instead of moving the date. The product manager is the approver named in the rule against adding scope without approval, which is why that message was treated as authoritative for scope. What has not been settled is which later release desktop will ship in or on what date, as the materials give no date or release name for it.
+
+Offline support changed for a different kind of reason, driven by evidence rather than by capacity planning alone. The original draft required full offline editing at launch. That requirement rested on an assumption, held with medium confidence when it was first recorded, that the sync engine from the earlier version could be reused for offline support without major changes. If that assumption held, offline editing looked feasible at launch. If it failed, offline editing would be at risk under the fixed date, because there would be no room for a sync rewrite without either moving the date, which is not allowed, or adding unapproved scope, which is also not allowed. The assumption did fail. A note from the engineering lead, reporting on prototype work, found that offline editing built on top of the old sync engine produces unresolvable sync conflicts in about 1 in 20 editing sessions, and the note states directly that the assumption about reusing that engine did not hold for offline editing. Fixing the problem properly would need a sync rewrite that cannot land by launch. The recommendation in the note, which was agreed with the product manager, was therefore to move offline support out of the launch scope entirely and into the following release, known as v2.1. That is the current position, and no current launch requirement depends on the failed assumption anymore. It is worth keeping the failed assumption and the original offline requirement visible in your thinking, because deleting them would hide why the scope narrowed and could lead to offline editing being proposed again on the old engine. Two things about the deferral remain undecided. No planned date for v2.1 is given, and the materials defer offline support as a whole without specifying any partial form, so it is still unclear whether any limited offline behavior is expected at launch or whether there will be no offline support at all until v2.1.
+
+Authentication is the one requirement that has not changed at all. From the original draft through both updates, sign-in remains via single sign-on only, with no passwords, and neither the product manager's scope message nor the engineering lead's note touched it, the launch date, or the standing constraints, beyond the specific changes each of them made.
+
+Your next steps, then, are to build to the current mobile-only launch with single sign-on only and no offline support, hold the December 15 date, seek the product manager's approval before adding any scope, and pursue answers to the three open questions carried forward from the earlier work: when and in which release desktop will ship, what the planned date for v2.1 is, and whether any limited offline behavior is wanted at launch despite full offline editing having been deferred.

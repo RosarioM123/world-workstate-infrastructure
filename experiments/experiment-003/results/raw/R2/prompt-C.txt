@@ -1,0 +1,104 @@
+# Continuation assignment (R2)
+
+You are resuming planning of an onboarding user study that a previous
+research agent started. Using only the handoff material provided, produce
+a Continuation Document with exactly these sections:
+
+1. **Where things stand:** the current study format, session length used
+   for planning, participant incentive, target size, and recruitment
+   status.
+2. **Decisions in force:** every decision that currently governs the
+   study, with the reason it was made. Separately list any decisions or
+   instructions that are no longer in force.
+3. **Assumptions and facts:** the assumptions the plan rests on, labeled
+   as assumptions, with confidence, including any estimate that was
+   corrected. Keep facts distinct from assumptions.
+4. **Constraints:** every standing constraint (ethics approval, budget,
+   or other) that binds the study.
+5. **What changed and why:** everything that changed during the prior
+   session, what it changed from and to, why, which version is
+   authoritative now, and where each change came from. Include any
+   instruction that conflicted with a later one and say which governs.
+6. **Open questions and missing information:** what is still unknown.
+   Flag it; do not invent answers.
+7. **Next actions:** the concrete next steps, in order. Do not propose
+   anything the constraints prohibit.
+8. **Final run-of-show:** a short run-of-show and recruitment message (at
+   most about 300 words) using only the currently authoritative format,
+   session length, and incentive.
+
+----- HANDOFF MATERIAL FROM THE PREVIOUS SESSION -----
+
+# Task R2 Work Journal: Onboarding User Study Plan
+
+## Session purpose
+
+Plan a moderated user study of a new onboarding flow, working through the scenario materials in order and tracking every version, revision, and conflicting instruction.
+
+## Step 1: Plan as drafted at session start (Part 1)
+
+Source: Original study plan in scenario Part 1.
+
+- Format: In-person moderated sessions in the usability lab.
+- Target: 12 participants.
+- Session length: 45 minutes per session. This was recorded as a planning estimate, made before any pilot run, not as a measured result.
+- Ethics approval status: The existing IRB approval covers remote moderated sessions only. In-person sessions would need an amendment.
+- Reasoning at this stage: The draft assumed lab based sessions, so the IRB gap was noted as a constraint to resolve before in-person sessions could run.
+
+## Step 2: Earlier instruction recorded (Part 1)
+
+Source: Original project brief, written last month, described in scenario Part 1.
+
+- Participant incentive: $50 per participant.
+- Status at start of session: This was the incentive figure in force when drafting began.
+- Provenance noted: The figure came from the project brief, not from the budget owner memo that arrived later.
+
+## Step 3: Standing budget constraint recorded (Part 1)
+
+Source: Budget note in scenario Part 1.
+
+- Total study budget cap: $900.
+- Owner: The research lead.
+- Reasoning: The cap is a standing constraint against which incentive and participant numbers must be checked.
+
+## Step 4: Recruitment update and format reversal (Part 2)
+
+Source: Recruitment update evidence in scenario Part 2.
+
+- Evidence received: Recruitment is falling short. Only 3 of 12 participants have confirmed.
+- Evidence detail: Lab scheduling is the main friction cited by recruits.
+- Decision by the research lead: Switch the study to remote moderated sessions.
+- Reasoning: Remote sessions remove the lab scheduling friction cited by recruits. They also fall within the existing IRB approval, which covers remote moderated sessions only, so no IRB amendment is needed for the revised format.
+- Effect on prior plan: The original in-person format decision is reversed. The in-person version is kept in the record as superseded, not deleted, so a later reader can see what changed and why.
+
+## Step 5: Pilot timing correction (Part 2)
+
+Source: Pilot timing result evidence in scenario Part 2.
+
+- Evidence received: A pilot run of the session script took 25 minutes, not 45 minutes.
+- Correction applied: Planning should use 25 minutes per session.
+- Reasoning: A measured pilot run is stronger evidence than the initial pre-pilot estimate. The 45 minute figure is therefore retained only as the superseded initial estimate, marked as corrected, and the 25 minute figure becomes the authoritative planning value.
+- Effect on prior assumption: The original 45 minute assumption is invalidated by the pilot evidence.
+
+## Step 6: Incentive instruction superseded (Part 2)
+
+Source: Updated budget memo from the research lead, the budget owner, in scenario Part 2.
+
+- New instruction: Incentive is now $30 per participant, to keep the 12 participant study within the $900 cap.
+- Conflict identified: This conflicts with the $50 per participant figure in the original project brief from last month.
+- Resolution rule applied: Where two instructions conflict, the later one from the instruction owner governs. The memo is later, and its source is the research lead, who owns the budget.
+- Effect: The $30 figure is authoritative. The $50 figure is kept visible as the superseded instruction, with its provenance (original project brief, last month) and the reason for supersession (updated budget memo).
+
+## Step 7: Final check before closing the session
+
+- Format checked against IRB scope: Remote moderated sessions are covered by the existing approval.
+- Incentive checked against source: $30 per participant is the current instruction from the budget owner.
+- Session length checked against pilot: 25 minutes is the corrected planning value.
+- Recruitment status remains open: 3 of 12 participants confirmed, so recruitment for the remaining places is not complete.
+- No figures beyond those in the scenario materials were introduced.
+
+## Summary of revisions in order
+
+1. Format: In-person moderated sessions in the usability lab, reversed to remote moderated sessions, on recruitment evidence and IRB scope.
+2. Session length: 45 minute initial estimate, corrected to 25 minutes, on pilot timing evidence.
+3. Incentive: $50 per participant from the original project brief, superseded by $30 per participant from the updated budget memo by the research lead.

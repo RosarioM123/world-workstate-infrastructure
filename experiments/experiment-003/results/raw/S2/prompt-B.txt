@@ -1,0 +1,40 @@
+# Continuation assignment (S2)
+
+You are resuming an incident investigation in a checkout service that a
+previous engineer agent started. Using only the handoff material
+provided, produce a Continuation Document with exactly these sections:
+
+1. **Where things stand:** the current status of the incident: what caused
+   the main problem, what has been fixed, and what remains open.
+2. **Decisions in force:** every decision that currently governs the
+   incident response, with the reason it was made. Separately list any
+   decisions or hypotheses that are no longer in force.
+3. **Assumptions and facts:** the assumptions still in play, labeled as
+   assumptions, with confidence. Keep established findings distinct from
+   hypotheses.
+4. **Constraints:** every standing constraint on the incident response.
+5. **What changed and why:** how the understanding of the incident changed
+   during the prior session, what changed, why, which account is
+   authoritative now, and what evidence settled it.
+6. **Open questions and missing information:** what remains unexplained.
+   Flag it; do not guess a cause.
+7. **Next actions:** the concrete next steps, in order. Do not propose
+   redoing completed fixes, and do not propose anything the constraints
+   prohibit.
+8. **Incident follow-up note:** a short note (at most about 300 words) for
+   the incident channel: current status, what was fixed, what was ruled
+   out and why, and what is being investigated next.
+
+----- HANDOFF MATERIAL FROM THE PREVIOUS SESSION -----
+
+You are picking up an incident involving intermittent HTTP 500 errors in the checkout service. At intake the errors were reported at roughly 2% of requests and clustered at busy times, and the support team said they had begun appearing recently, although no precise start date was known at that stage. Several people suspected a deploy of the separate pricing service that had happened four days earlier, and that suspicion became the first working hypothesis of the session. It was only ever a hypothesis based on timing gossip, because the deploy was recent and close in time to when the errors were noticed, and confidence in it was low from the start. There was no log evidence, code evidence, or correlation evidence for it at that point, and what still needed to be established was when the errors had actually begun and whether the error rate tracked pricing service calls, another traffic pattern, or load in general.
+
+Two standing constraints governed the work from before any fix or rollback was considered. During the incident there was a change freeze under which code changes were allowed only in the checkout service repository, and no service was to be rolled back without evidence that the rollback target caused the problem. Those constraints ruled out rolling back the pricing service on suspicion alone, and in the end no rollback was performed.
+
+Log analysis later settled the question of the pricing service. Timestamp analysis of the checkout error logs showed that the 500 errors began seven days ago, which is three days before the pricing service deploy four days ago, so that deploy cannot have introduced errors that were already occurring and is exonerated by the timeline. The same analysis showed that the error rate correlates with report generation traffic and does not correlate with pricing calls. The original pricing hypothesis was therefore invalidated and replaced, but it was retained in the record as invalidated, with the timeline evidence as the reason, rather than being edited away or deleted. Attention shifted instead to the report generation path in the checkout service, following the correlation with report generation traffic.
+
+Code inspection of that path established the cause of the main problem. The report generation path in the checkout service opens database connections without reliably closing them on error paths. Under load, the leaked connections exhaust the connection pool, which has 50 connections, and once the pool is exhausted, subsequent checkout requests fail with 500s. This mechanism fits the pattern reported at intake, since errors clustered at busy times when report generation traffic and load are highest, and it accounts for a rate of roughly 2% rather than a total outage.
+
+A fix for that cause was written and merged in the checkout service repository, so it complied with the change freeze. Connections are now released via a context manager on all paths, including error paths, and a regression test was included with the fix. The materials make no claim about post merge error rates, so no post merge outcome should be assumed from this summary.
+
+One separate symptom remains open and unexplained. A rare timeout in the payment webhook handler is still occurring at about 1 in 2,000 calls, and it does not correlate with the pool exhaustion pattern. It was recorded as an open question with cause unknown, and it was not attributed to the connection pool problem for that reason. It was not attributed to the pricing service either, since no evidence links it to any cause, and no fix or owner is recorded for it. The next questions are what causes this timeout, and whether it has its own traffic, timing, or dependency pattern, given that it does not follow the pool exhaustion pattern.

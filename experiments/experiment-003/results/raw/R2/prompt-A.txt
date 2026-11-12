@@ -1,0 +1,403 @@
+# Continuation assignment (R2)
+
+You are resuming planning of an onboarding user study that a previous
+research agent started. Using only the handoff material provided, produce
+a Continuation Document with exactly these sections:
+
+1. **Where things stand:** the current study format, session length used
+   for planning, participant incentive, target size, and recruitment
+   status.
+2. **Decisions in force:** every decision that currently governs the
+   study, with the reason it was made. Separately list any decisions or
+   instructions that are no longer in force.
+3. **Assumptions and facts:** the assumptions the plan rests on, labeled
+   as assumptions, with confidence, including any estimate that was
+   corrected. Keep facts distinct from assumptions.
+4. **Constraints:** every standing constraint (ethics approval, budget,
+   or other) that binds the study.
+5. **What changed and why:** everything that changed during the prior
+   session, what it changed from and to, why, which version is
+   authoritative now, and where each change came from. Include any
+   instruction that conflicted with a later one and say which governs.
+6. **Open questions and missing information:** what is still unknown.
+   Flag it; do not invent answers.
+7. **Next actions:** the concrete next steps, in order. Do not propose
+   anything the constraints prohibit.
+8. **Final run-of-show:** a short run-of-show and recruitment message (at
+   most about 300 words) using only the currently authoritative format,
+   session length, and incentive.
+
+----- HANDOFF MATERIAL FROM THE PREVIOUS SESSION -----
+
+# WORLD State Bundle: Task R2 Onboarding User Study Plan
+
+Format follows docs/state-model.md (Draft v0.1). Current state is a projection over the StateChange log below. Nothing is overwritten: reversed, corrected, and superseded items remain visible with provenance.
+
+## Project
+
+- id: R2
+- name: Onboarding user study plan
+- goal: Plan a moderated user study of a new onboarding flow.
+- scope: Study format, target participant number, session length planning, participant incentive, recruitment status, and ethics and budget constraints, using only the scenario materials.
+- status: active
+- definition_of_done: A study plan whose current format, session length, and incentive reflect the latest authoritative updates, with all prior versions traceable.
+- provenance:
+  - created_by: agent (Agent A, Experiment 003 session for Task R2)
+  - created_at: session start, from scenario Part 1, with updates applied mid-session from scenario Part 2
+  - source: scenario.md Part 1 and Part 2, brief.md, docs/state-model.md
+
+### Constraints
+
+- C-01 IRB scope: The existing IRB approval covers remote moderated sessions only. In-person sessions would need an amendment.
+  - source: Scenario Part 1, original study plan, ethics approval status.
+- C-02 Budget cap: Total study budget cap is $900.
+  - owner: Research lead.
+  - source: Scenario Part 1, budget (standing).
+- C-03 Target size: Target is 12 participants.
+  - source: Scenario Part 1, original study plan. Confirmed again in the updated budget memo in Part 2, which refers to the 12 participant study.
+
+## Decisions
+
+### D-01 Format: in-person sessions (REVERSED)
+
+- id: D-01
+- project_id: R2
+- statement: Run in-person moderated sessions in the usability lab.
+- rationale: This was the format in the original draft plan at session start. No rationale beyond the draft plan is given in the materials.
+- status: reversed
+- supersedes_id: none
+- superseded_by: D-02
+- evidence_ids: []
+- provenance:
+  - created_by: agent, as drafted at session start
+  - created_at: session start
+  - source: Scenario Part 1, original study plan
+  - note: Kept visible because D-02 reverses it. Do not use as the current format.
+
+### D-02 Format: remote sessions (ACCEPTED, authoritative)
+
+- id: D-02
+- project_id: R2
+- statement: Switch the study to remote moderated sessions.
+- rationale: Recruitment is falling short and lab scheduling is the main friction cited by recruits. Remote sessions remove that friction and are already covered by the existing IRB approval, so no amendment is needed for this format.
+- status: accepted
+- supersedes_id: D-01
+- evidence_ids: [E-01, E-03]
+- provenance:
+  - created_by: research lead (decision stated in the recruitment update)
+  - created_at: mid-session update
+  - source: Scenario Part 2, recruitment update (evidence)
+
+### D-03 Incentive: $50 per participant (SUPERSEDED instruction)
+
+- id: D-03
+- project_id: R2
+- statement: Participant incentive is $50 per participant.
+- rationale: Figure issued in the original project brief. No further rationale is given in the materials for this figure.
+- status: superseded
+- supersedes_id: none
+- superseded_by: D-04
+- evidence_ids: [E-05]
+- provenance:
+  - created_by: original project brief
+  - created_at: last month, as stated in the scenario
+  - source: Scenario Part 1, earlier instruction (project brief, written last month)
+  - note: Kept visible as the superseded instruction. Do not use as the current incentive.
+
+### D-04 Incentive: $30 per participant (ACCEPTED, authoritative)
+
+- id: D-04
+- project_id: R2
+- statement: Participant incentive is now $30 per participant.
+- rationale: To keep the 12 participant study within the $900 cap, as stated in the updated budget memo.
+- status: accepted
+- supersedes_id: D-03
+- evidence_ids: [E-04]
+- provenance:
+  - created_by: research lead, budget owner
+  - created_at: mid-session update
+  - source: Scenario Part 2, updated budget memo (source: research lead, budget owner)
+  - note: This memo explicitly supersedes the incentive figure in the original project brief. Later instruction from the instruction owner governs over the earlier conflicting instruction.
+
+## Assumptions
+
+### A-01 Session length estimate: 45 minutes (INVALIDATED, superseded estimate)
+
+- id: A-01
+- project_id: R2
+- statement: Session length planning estimate is 45 minutes per session.
+- confidence: low
+- status: invalidated
+- validated_by_evidence_id: none. Invalidated by E-02.
+- superseded_by: A-02
+- provenance:
+  - created_by: agent, initial estimate at session start, before any pilot
+  - created_at: session start
+  - source: Scenario Part 1, original study plan
+  - note: Kept visible as the original uncorrected estimate. Do not use for planning.
+
+### A-02 Session length estimate: 25 minutes (ACTIVE, CORRECTED estimate, authoritative)
+
+- id: A-02
+- project_id: R2
+- statement: CORRECTED: Session length planning value is 25 minutes per session.
+- confidence: high
+- status: active
+- validated_by_evidence_id: E-02
+- supersedes: A-01
+- provenance:
+  - created_by: agent, applying the pilot timing result
+  - created_at: mid-session update
+  - source: Scenario Part 2, pilot timing result (evidence). A pilot run of the session script took 25 minutes, not 45, and planning should use 25 minutes per session.
+  - correction_note: This is a correction of A-01, not a new unrelated estimate. The change is from 45 minutes to 25 minutes, on measured pilot evidence.
+
+## Evidence
+
+### E-01 Recruitment update
+
+- id: E-01
+- project_id: R2
+- kind: observation
+- reference: Scenario Part 2, recruitment update (evidence)
+- summary: Recruitment is falling short. Only 3 of 12 participants have confirmed, and lab scheduling is the main friction cited by recruits.
+- captured_by: research lead update, as reported in the scenario
+- provenance:
+  - created_by: research lead, via the recruitment update
+  - created_at: mid-session update
+  - source: Scenario Part 2
+
+### E-02 Pilot timing result
+
+- id: E-02
+- project_id: R2
+- kind: data
+- reference: Scenario Part 2, pilot timing result (evidence)
+- summary: A pilot run of the session script took 25 minutes, not 45 minutes. Planning should use 25 minutes per session.
+- captured_by: pilot run, as reported in the scenario
+- provenance:
+  - created_by: pilot run result reported in the scenario
+  - created_at: mid-session update
+  - source: Scenario Part 2
+
+### E-03 IRB approval scope
+
+- id: E-03
+- project_id: R2
+- kind: document
+- reference: Scenario Part 1, original study plan, ethics approval status
+- summary: The existing IRB approval covers remote moderated sessions only. In-person sessions would need an amendment.
+- captured_by: agent, from the original study plan
+- provenance:
+  - created_by: original study plan
+  - created_at: session start
+  - source: Scenario Part 1
+
+### E-04 Updated budget memo
+
+- id: E-04
+- project_id: R2
+- kind: document
+- reference: Scenario Part 2, updated budget memo
+- summary: Incentive is now $30 per participant, to keep the 12 participant study within the $900 cap. This memo supersedes the incentive figure in the original project brief.
+- captured_by: research lead, budget owner
+- provenance:
+  - created_by: research lead, budget owner
+  - created_at: mid-session update
+  - source: Scenario Part 2
+
+### E-05 Original project brief incentive instruction
+
+- id: E-05
+- project_id: R2
+- kind: document
+- reference: Scenario Part 1, earlier instruction (project brief, written last month)
+- summary: Participant incentive was $50 per participant in the original project brief.
+- captured_by: agent, from the scenario record of the brief
+- provenance:
+  - created_by: original project brief
+  - created_at: last month, as stated in the scenario
+  - source: Scenario Part 1
+  - note: Preserved for provenance of the superseded instruction D-03.
+
+## Questions (open)
+
+### Q-01 Recruitment completion
+
+- id: Q-01
+- project_id: R2
+- question: How will the remaining participant places be filled, given that only 3 of 12 participants have confirmed?
+- status: open
+- blocks_task_id: none stated in the materials
+- answered_by_decision_id: none
+- provenance:
+  - created_by: agent, from E-01
+  - created_at: mid-session, after the recruitment update
+  - source: Scenario Part 2, recruitment update (evidence). Arithmetic from the given figures: 12 target minus 3 confirmed leaves 9 places unconfirmed.
+
+### Q-02 Remote session scheduling
+
+- id: Q-02
+- project_id: R2
+- question: What scheduling and recruitment approach will be used for remote sessions now that lab scheduling friction has been removed?
+- status: open
+- blocks_task_id: none stated in the materials
+- answered_by_decision_id: none
+- provenance:
+  - created_by: agent, from D-02 and E-01
+  - created_at: mid-session, after the format reversal
+  - source: Scenario Part 2, recruitment update. No schedule or channel is given in the materials.
+
+## StateChange Log
+
+Append only log, in order. Current state above is the projection of this log.
+
+- seq: 1
+  - entity_type: Project
+  - entity_id: R2
+  - change: created
+  - before: none
+  - after: Project created from the original study plan, with goal to plan a moderated user study of a new onboarding flow, target 12 participants, and constraints C-01 and C-02 recorded.
+  - actor: agent
+  - timestamp: session start
+  - reason: Session start, scenario Part 1.
+
+- seq: 2
+  - entity_type: Decision
+  - entity_id: D-01
+  - change: created
+  - before: none
+  - after: Format is in-person moderated sessions in the usability lab, status accepted at draft stage (later reversed at seq 6).
+  - actor: agent, as drafted
+  - timestamp: session start
+  - reason: Original study plan in scenario Part 1.
+
+- seq: 3
+  - entity_type: Assumption
+  - entity_id: A-01
+  - change: created
+  - before: none
+  - after: Session length estimate is 45 minutes per session, confidence low, status active at draft stage (later invalidated at seq 8).
+  - actor: agent
+  - timestamp: session start
+  - reason: Initial planning estimate before any pilot, scenario Part 1.
+
+- seq: 4
+  - entity_type: Decision
+  - entity_id: D-03
+  - change: created
+  - before: none
+  - after: Incentive instruction recorded as $50 per participant, status accepted at draft stage (later superseded at seq 10).
+  - actor: original project brief
+  - timestamp: last month, as stated in the scenario, recorded at session start
+  - reason: Earlier instruction in scenario Part 1.
+
+- seq: 5
+  - entity_type: Evidence
+  - entity_id: E-01
+  - change: created
+  - before: none
+  - after: Recruitment update recorded: 3 of 12 confirmed, lab scheduling is the main friction cited by recruits.
+  - actor: research lead update
+  - timestamp: mid-session update
+  - reason: New evidence in scenario Part 2.
+
+- seq: 6
+  - entity_type: Decision
+  - entity_id: D-01 and D-02
+  - change: superseded
+  - before: D-01 in-person format was the current format.
+  - after: D-01 status reversed. D-02 created and accepted: format is remote moderated sessions, authoritative. D-02 supersedes D-01.
+  - actor: research lead (decision), recorded by agent
+  - timestamp: mid-session update
+  - reason: Recruitment shortfall and lab scheduling friction in E-01, plus existing IRB approval in E-03 already covering remote sessions.
+
+- seq: 7
+  - entity_type: Evidence
+  - entity_id: E-02
+  - change: created
+  - before: none
+  - after: Pilot timing result recorded: pilot run took 25 minutes, not 45 minutes.
+  - actor: pilot run result
+  - timestamp: mid-session update
+  - reason: New evidence in scenario Part 2.
+
+- seq: 8
+  - entity_type: Assumption
+  - entity_id: A-01 and A-02
+  - change: superseded
+  - before: A-01 estimate of 45 minutes was the current planning value.
+  - after: A-01 status invalidated. A-02 created and active: CORRECTED estimate is 25 minutes per session, confidence high, validated by E-02, supersedes A-01.
+  - actor: agent, applying pilot evidence
+  - timestamp: mid-session update
+  - reason: Correction on pilot timing evidence E-02.
+
+- seq: 9
+  - entity_type: Evidence
+  - entity_id: E-04
+  - change: created
+  - before: none
+  - after: Updated budget memo recorded: incentive is now $30 per participant to keep the 12 participant study within the $900 cap, superseding the original project brief figure.
+  - actor: research lead, budget owner
+  - timestamp: mid-session update
+  - reason: New instruction in scenario Part 2.
+
+- seq: 10
+  - entity_type: Decision
+  - entity_id: D-03 and D-04
+  - change: superseded
+  - before: D-03 incentive of $50 per participant from the original project brief was the current instruction.
+  - after: D-03 status superseded. D-04 created and accepted: incentive is $30 per participant, authoritative. D-04 supersedes D-03.
+  - actor: research lead, budget owner, recorded by agent
+  - timestamp: mid-session update
+  - reason: Updated budget memo E-04. Later instruction from the budget owner governs over the earlier conflicting instruction, per the brief rule for conflicting instructions.
+
+## Artifacts
+
+- A-R2-01 journal.md: Chronological work journal for this session, in artifacts/R2/journal.md.
+- A-R2-02 report.md: Final study plan report, in artifacts/R2/report.md.
+- A-R2-03 state.md: This state bundle, in artifacts/R2/state.md.
+- provenance for all artifacts: Produced by Agent A in the Experiment 003 Task R2 session, from scenario.md Part 1 and Part 2 only.
+
+## Handoff
+
+- id: H-R2-01
+- project_id: R2
+- generated_at: end of this session
+- for_actor: Next participant continuing the onboarding user study plan
+- format_version: WORLD state model Draft v0.1
+
+### Context snapshot
+
+Goal is to plan a moderated user study of a new onboarding flow for 12 participants. At handoff, the plan is for remote moderated sessions of 25 minutes, with a $30 per participant incentive, under a $900 total budget cap owned by the research lead, and within an existing IRB approval that covers remote moderated sessions only. Recruitment stands at 3 of 12 confirmed.
+
+### Accepted decisions to carry forward (authoritative)
+
+- D-02: Format is remote moderated sessions.
+- D-04: Incentive is $30 per participant.
+
+### Decisions and instructions NOT to revert to without a new authoritative instruction
+
+- D-01: In-person moderated sessions in the usability lab. Status reversed by D-02.
+- D-03: $50 per participant incentive from the original project brief written last month. Status superseded by D-04 from the updated budget memo by the research lead, budget owner.
+
+### Active assumptions to carry forward
+
+- A-02: CORRECTED session length is 25 minutes per session, confidence high, validated by pilot evidence E-02. This supersedes A-01.
+- A-01 is invalidated and must not be used: 45 minutes was the initial pre-pilot estimate only.
+
+### Open questions to start with
+
+- Q-01: Recruitment completion for the remaining 9 unconfirmed places, from 3 confirmed out of 12 target.
+- Q-02: Scheduling and recruitment approach for remote sessions. No schedule or channel is given in the materials.
+
+### Key evidence refs
+
+- E-01: Recruitment update, 3 of 12 confirmed, lab scheduling friction.
+- E-02: Pilot timing, 25 minutes, not 45 minutes.
+- E-03: IRB scope, remote moderated sessions only.
+- E-04: Updated budget memo, $30 incentive, supersedes the brief.
+- E-05: Original project brief, $50 incentive, superseded.
+
+### Recent state changes
+
+See StateChange log seq 5 to 10 for the mid-session revisions in order: format reversal, session length correction, and incentive supersession, each with its reason and source.

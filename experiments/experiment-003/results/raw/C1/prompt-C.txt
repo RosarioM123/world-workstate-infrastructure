@@ -1,0 +1,135 @@
+# Continuation assignment (C1)
+
+You are resuming planning of a two-day team offsite that a previous
+operations agent started. Using only the handoff material provided,
+produce a Continuation Document with exactly these sections:
+
+1. **Where things stand:** the current state of the plan: venue status,
+   group size, and the budget picture using only figures that actually
+   exist in the material.
+2. **Decisions in force:** every decision made so far, with reasons.
+   Separately list anything no longer in force.
+3. **Assumptions and facts:** the assumptions in play, labeled as
+   assumptions, with confidence. Keep given facts distinct from
+   assumptions.
+4. **Constraints:** every hard constraint on the offsite.
+5. **What changed and why:** anything that changed during the prior
+   session; if nothing changed, say so.
+6. **Open questions and missing information:** everything still unknown,
+   unresolved, or conflicting. Missing figures must be flagged as
+   missing; do not estimate or invent them. Conflicts must be surfaced,
+   not silently resolved.
+7. **Next actions:** the concrete next steps, in order, within the
+   constraints.
+8. **Planning memo:** a short memo (at most about 300 words) to the team
+   lead: budget table using only given figures and showing the total of
+   known costs, what is still missing before a final booking, and the
+   unresolved conflict that needs the venue to settle.
+
+----- HANDOFF MATERIAL FROM THE PREVIOUS SESSION -----
+
+# Task C1 Work Journal: Two-day team offsite planning
+
+Agent A session. Source materials used: brief.md and scenario.md only.
+All figures below are copied from those materials with their source noted.
+No figure has been added from outside the materials.
+
+## 1. Starting point and requirements read
+
+Read the standing requirements and constraints from scenario.md:
+
+- Budget cap: $6,000 total for the whole offsite.
+- Venue must be within 45 minutes travel of the office.
+- One attendee uses a wheelchair: the venue must have step-free access.
+- Team policy: no alcohol at team events.
+- Dates are fixed: two specific consecutive days already announced to the team. The specific calendar dates are not stated in the materials provided for this session.
+- Group size: 14 people. Two of the 14 have not yet confirmed their attendance, so 12 are confirmed and 2 are unconfirmed at this point.
+
+Noted at the outset: planning must be sized for 14 people unless attendance changes, because the unconfirmed attendees may still attend.
+
+## 2. Venue options considered
+
+Only one venue is shortlisted in the materials: Riverside Hall.
+
+No other venue option is given, so no comparison between venues was possible in this session. Riverside Hall was therefore evaluated on its own against each hard constraint.
+
+Figures and facts gathered for Riverside Hall:
+
+- Rental quote: $2,400 for two days. Source: venue email, as reported in scenario.md.
+- Travel time from the office: 30 minutes. Source: scenario.md.
+- Step-free access: confirmed. Source: venue email, as reported in scenario.md.
+- Catering: the venue offers catering. No catering price appears anywhere in the provided materials. See section 5 below.
+
+## 3. Constraints checked for Riverside Hall
+
+Budget cap: checked in section 4 below. The known costs are under the cap, but the total cannot be confirmed because the catering price is missing.
+
+Travel time: 30 minutes against a limit of 45 minutes. This constraint is met on the figure given.
+
+Step-free access: confirmed in the venue email. This constraint is met on the evidence given.
+
+No alcohol: this is a team policy that any catering or venue arrangement must respect. The materials do not state a catering menu or a drinks arrangement, so compliance on this point still has to be confirmed when catering is arranged. No assumption was made about what catering includes.
+
+Fixed dates: the dates are described as fixed and already announced. The materials do not give the actual dates or state whether Riverside Hall is available on those dates. Availability for the fixed dates was not confirmed in this session because that information is not in the materials.
+
+Group size and capacity: checked in section 5 below. This check could not be completed because the two capacity figures conflict.
+
+## 4. Figures gathered and budget arithmetic
+
+All cost figures that exist in the materials:
+
+- Venue rental, Riverside Hall, two days: $2,400. Source: venue email.
+- AV equipment rental, outside supplier: $350 flat. Source: scenario.md, other given figures.
+- Printed materials estimate: $120. Source: scenario.md, other given figures. This figure is described as an estimate.
+- Catering: no price given. Recorded as missing, not as zero and not as an estimate. See section 5.
+
+Known subtotal, using only the figures above:
+
+$2,400 plus $350 plus $120 equals $2,870.
+
+Comparison to the cap: $2,870 is $3,130 below the $6,000 cap.
+
+Limit of this calculation: $2,870 is not the total cost of the offsite. It is the subtotal of the costs that have figures. The catering cost is missing, and the materials state that no other costs are given, which is not the same as confirming that no other costs will arise. A final budget judgement cannot be made until the catering price is known.
+
+No catering figure was estimated, averaged, or substituted at any point in this session.
+
+## 5. Gaps and conflicts found
+
+### Gap 1: Catering price is missing
+
+The venue offers catering, but no catering price appears anywhere in the provided materials. The venue contact said pricing would be "sent later" and it has not arrived, according to scenario.md.
+
+Impact: the total cost cannot be calculated, the budget cap cannot be finally checked, and a final booking cannot be responsibly confirmed on cost grounds until this price is received.
+
+Treatment in this session: recorded as missing in the journal, the report, and the state bundle. Left as an open question for the venue contact.
+
+### Conflict 1: Room capacity figures conflict, unresolved
+
+Two figures for the main room at Riverside Hall are given:
+
+- 12 people. Source: venue email.
+- 16 people. Source: venue brochure.
+
+These figures conflict. Scenario.md states the conflict has not been resolved.
+
+Impact: the group is 14 people. If the correct figure is 12, the main room does not hold the full group. If the correct figure is 16, the main room does hold the full group. The venue cannot be confirmed as suitable for 14 people until this is resolved.
+
+Treatment in this session: both figures were recorded with their sources. Neither figure was chosen, averaged, or treated as authoritative. The conflict is recorded as unresolved and as an open question for the venue.
+
+### Gap 2: Attendance for two people is unconfirmed
+
+Group size is 14, with two people not yet confirmed. Final attendance is therefore not yet known. This interacts with the capacity conflict: even the required capacity is not fully settled until attendance is confirmed, but planning for 14 remains the safe basis given in the materials.
+
+### Gap 3: Venue availability for the fixed dates is not stated
+
+The dates are fixed and announced, but the materials do not state the actual dates and do not confirm that Riverside Hall is available on those dates. This was noted as unconfirmed rather than assumed.
+
+### Gap 4: No other cost figures are given
+
+The materials state that no other costs are given. No additional cost categories were invented in this session, and no allowance was added for unspecified costs.
+
+## 6. Session outcome
+
+Work completed: constraints listed, the single shortlisted venue checked against the constraints that could be checked, all existing figures gathered with provenance, the known subtotal calculated, and the missing and conflicting information identified.
+
+Work not completed, by design: no final booking recommendation was made. Two items block it: the missing catering price and the unresolved capacity conflict. Both are carried forward as open questions in report.md and state.md.

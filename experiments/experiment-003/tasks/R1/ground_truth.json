@@ -1,0 +1,216 @@
+{
+  "already_done": [
+    {
+      "id": "R1",
+      "must_mention": [
+        "draft"
+      ],
+      "text": "Original spec draft (v1) written, including all three original requirements."
+    }
+  ],
+  "assumptions": [
+    {
+      "confidence": "medium",
+      "id": "A1",
+      "must_mention": [
+        "sync engine",
+        "reused"
+      ],
+      "status": "invalidated",
+      "text": "The v1 sync engine can be reused for offline support without major changes."
+    }
+  ],
+  "category": "changing requirements and revision history",
+  "constraints": [
+    {
+      "id": "K1",
+      "must_mention": [
+        "december 15"
+      ],
+      "text": "The December 15 launch date does not move."
+    },
+    {
+      "id": "K2",
+      "must_mention": [
+        "product manager",
+        "approval"
+      ],
+      "text": "No scope may be added to v2 without the product manager's approval."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D1",
+      "must_mention": [
+        "desktop and mobile"
+      ],
+      "rationale": "Original spec draft.",
+      "status": "superseded",
+      "text": "REQ-A v1: launch on desktop and mobile."
+    },
+    {
+      "id": "D2",
+      "must_mention": [
+        "mobile-only"
+      ],
+      "rationale": "Engineering capacity: the desktop app needs a redesign that cannot finish by December 15 without cutting quality.",
+      "status": "in_force",
+      "text": "REQ-A v2: launch mobile-only; desktop moves to a later release."
+    },
+    {
+      "id": "D3",
+      "must_mention": [
+        "offline"
+      ],
+      "rationale": "Original spec draft.",
+      "status": "superseded",
+      "text": "REQ-B v1: full offline editing required at launch."
+    },
+    {
+      "id": "D4",
+      "must_mention": [
+        "v2.1"
+      ],
+      "rationale": "Prototype showed unresolvable sync conflicts in about 1 in 20 editing sessions on the v1 sync engine; a proper fix needs a sync rewrite that cannot land by launch. Agreed with the PM.",
+      "status": "in_force",
+      "text": "REQ-B v2: offline support moves to release v2.1, not required at launch."
+    },
+    {
+      "id": "D5",
+      "must_mention": [
+        "sso"
+      ],
+      "rationale": "Original spec draft; unchanged by the updates.",
+      "status": "in_force",
+      "text": "REQ-C: authentication via SSO only, no passwords."
+    }
+  ],
+  "errata": [
+    {
+      "date": "2026-11-03T03:50Z",
+      "note": "Parity phrase 'sso' corrected to 'sign-on': the summary writes 'single sign-on' in full. Content present in substance. Graders accept 'single sign-on' for the SSO requirement everywhere. Recorded before continuations."
+    },
+    {
+      "date": "2026-11-03T03:52Z",
+      "note": "Addendum to the 03:50 erratum: the state bundle and journal use the acronym 'SSO' while the summary spells out 'single sign-on'. Phrase restored to 'sso' and the parity gate normalization gained one documented alias (single sign on -> sso) so both forms pass. Content was never in doubt."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E1",
+      "must_mention": [
+        "mobile-only",
+        "capacity"
+      ],
+      "source": "product manager's scope message",
+      "text": "PM's written scope change: launch mobile-only because of engineering capacity and the desktop redesign."
+    },
+    {
+      "id": "E2",
+      "must_mention": [
+        "1 in 20",
+        "sync conflicts"
+      ],
+      "source": "engineering review note (prototype finding)",
+      "text": "Prototype: offline editing on the v1 sync engine produces unresolvable sync conflicts in about 1 in 20 sessions."
+    }
+  ],
+  "ground_truth_version": 1,
+  "must_mention": [
+    "mobile-only",
+    "desktop",
+    "offline",
+    "v2.1",
+    "sso",
+    "december 15",
+    "sync conflicts",
+    "product manager",
+    "sync engine"
+  ],
+  "must_not_state": [
+    {
+      "id": "X1",
+      "must_mention": [
+        "desktop at launch",
+        "launch on desktop and mobile",
+        "desktop and mobile at launch"
+      ],
+      "text": "Desktop is part of the v2 launch."
+    },
+    {
+      "id": "X2",
+      "must_mention": [
+        "offline editing is required at launch",
+        "offline support is required at launch",
+        "offline editing at launch"
+      ],
+      "text": "Offline editing is required at the v2 launch."
+    },
+    {
+      "id": "X3",
+      "must_mention": [
+        "sync engine can be reused",
+        "sync engine is reusable"
+      ],
+      "text": "The v1 sync engine can be reused for offline support without major changes (as a current assumption)."
+    }
+  ],
+  "next_actions": [
+    {
+      "id": "N1",
+      "must_mention": [
+        "mobile"
+      ],
+      "text": "Confirm the mobile-only build plan with engineering against the December 15 date."
+    },
+    {
+      "id": "N2",
+      "must_mention": [
+        "v2.1",
+        "sync"
+      ],
+      "text": "Scope the sync rewrite for v2.1 offline support."
+    }
+  ],
+  "objective": "Produce the authoritative Team Notes v2 launch specification after two official requirement changes.",
+  "open_questions": [
+    {
+      "id": "Q1",
+      "must_mention": [
+        "desktop"
+      ],
+      "text": "Which later release gets the desktop app? Not specified in the updates."
+    }
+  ],
+  "revision_chains": [
+    {
+      "authoritative": "Mobile-only launch",
+      "entity": "REQ-A",
+      "id": "RC1",
+      "must_mention": [
+        "desktop and mobile",
+        "mobile-only"
+      ],
+      "original": "Launch on desktop and mobile",
+      "provenance": "product manager's scope message",
+      "revised": "Launch mobile-only; desktop in a later release",
+      "what_changed": "Launch platforms narrowed from desktop and mobile to mobile only",
+      "why": "Engineering capacity: the desktop redesign cannot finish by December 15 without cutting quality"
+    },
+    {
+      "authoritative": "Offline support in v2.1, not at launch",
+      "entity": "REQ-B",
+      "id": "RC2",
+      "must_mention": [
+        "offline",
+        "v2.1"
+      ],
+      "original": "Full offline editing required at launch",
+      "provenance": "engineering review note, agreed with the PM",
+      "revised": "Offline support deferred to release v2.1",
+      "what_changed": "Offline editing moved from a launch requirement to a v2.1 item",
+      "why": "Prototype showed unresolvable sync conflicts in about 1 in 20 sessions on the v1 sync engine; the fix needs a sync rewrite that cannot land by launch"
+    }
+  ],
+  "task_id": "R1"
+}
