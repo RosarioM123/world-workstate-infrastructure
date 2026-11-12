@@ -37,6 +37,7 @@ spec = importlib.util.spec_from_file_location(
     "exp003_prompts",
     REPO / "experiments" / "experiment-003" / "runner" / "prompts.py",
 )
+assert spec is not None and spec.loader is not None
 exp003_prompts = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(exp003_prompts)
 
