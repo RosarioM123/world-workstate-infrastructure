@@ -11,7 +11,7 @@ Usage: python3 build_records.py
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import prompts
@@ -26,7 +26,7 @@ MODEL = (
 
 
 def ts(path: Path) -> str:
-    return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).strftime(
+    return datetime.fromtimestamp(path.stat().st_mtime, tz=UTC).strftime(
         "%Y-%m-%dT%H:%M:%SZ"
     )
 
