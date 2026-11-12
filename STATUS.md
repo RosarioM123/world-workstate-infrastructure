@@ -1,84 +1,128 @@
-# WORLD status
+# WORLD: Status Dashboard
 
-Single-pointer dashboard. Updated 2026-11-02. Every number below was
-verified against code, artifacts, or a fresh run on that date; the
-audit trail is in the commit "docs: strengthen research positioning
-and technical documentation".
+**Purpose:** single-pointer dashboard. Long-form state lives in
+`research/RESEARCH_OVERVIEW.md` and the evidence register in
+`research/EVIDENCE_REGISTER.md`.
 
-## Current state
+**Updated 2026-11-05** (Prompt 6). **Version:** 0.1.0.
+**License:** MIT. **Not deployed, not production-ready, no external
+users.**
 
-- **Version:** 0.1.0 (`src/world/__init__.py`). Working prototype, not
-  deployed, not production-ready. No external users.
-- **Tests:** 377 passing, 0 failing (full suite run locally
-  2026-11-02, Python 3.12.3). CI runs pytest plus ruff and mypy on
-  Python 3.11, 3.12, and 3.13.
-- **License:** MIT (`LICENSE`).
+**Tests:** 409 passing, 0 failing (full suite run locally
+2026-11-05, Python 3.12.3; earlier same-day runs consistent).
+**Model checker:** 1,220,255 states explored (three
+configurations), properties P1 to P6 hold; mutation test catches
+the injected P4 violation. **CI:** pytest on Python 3.11, 3.12,
+3.13; ruff and mypy in a separate lint job on Python 3.12
+(unpinned tool installs, a known weakness, see open items).
 
-## Experiments
+**Uncommitted work in this tree:** Prompt 3 (below) and
+Experiment #003 are implemented and verified locally but not
+committed or pushed; remote main (`073ac26` at last sync) still
+carries the 377-test, pre-Prompt-3 state. Every Prompt 3 line
+below describes the working tree, not the public repo.
 
-- **Experiment #001** (Block, 2026-09-17): complete. Structured state
-  won on governance (5/5 decisions with rationale, 7/7 assumptions with
-  confidence, zero errors); n=1. `docs/experiment-001-results.md`.
-- **Experiment #002** (Intel main run plus Disney replication,
-  2026-09-17 to 23): complete. WORLD-state continuation preserved
-  decision governance best in both runs (reference means: Intel 3.92
-  vs 3.58 vs 3.33; Disney 4.45 vs 4.09 vs 2.82), narrowly; the summary
-  came within 0.36 in the replication; the WORLD continuation failed
-  revision history (2 of 5) in both runs. Thesis partially supported,
-  narrowly scoped. `docs/experiment-002/results.md`.
-- **Lost-update experiment**: complete, preregistered. Scripted
-  agents: 33 of 50 lost updates with no control, 0 of 50 with
-  `expected_version` plus retry. LLM-agent replication still blocked
-  on model API credentials. `experiments/lost-update/`.
-- **Crash consistency**: complete. 15 of 15 mid-transaction SIGKILLs
-  recovered cleanly. `experiments/crash-consistency/`.
-- **Soak**: complete. 1.06M rows, no latency drift; `verify()` is
-  O(n) memory (659 MB RSS at 1.06M rows), the known scaling limit.
-  `experiments/soak/`.
+---
 
-## Verification
+## Shipped (primitive, `src/world/`)
 
-- **Protocol model checker** (`spec/model_check.py`): 1,220,255
-  states explored across three bounded workloads; properties P1 to P6
-  hold on every reachable state; mutation test (re-validation removed)
-  produces the P4 counterexample. Re-run and confirmed 2026-11-02.
-  The TLA+ transcription has not been run through TLC (no JVM in the
-  environment); the Python checker is authoritative.
-- **Property and fuzz testing**: Hypothesis stateful differential
-  testing (1,526 operations, zero divergences); `verify()` fuzzing
-  detected 500 of 500 seeded mutations (plus 450 under alternate
-  seeds); red-team suite documents detected and undetected attack
-  classes (`docs/SECURITY.md`).
-- **Independent C# verifier** (`tools/ChainVerifyWorld/`): no shared
-  code with the Python implementation; accepts valid chains, rejects
-  tampered rows, broken links, and wrong world names.
+**World primitive.** One named world = one SQLite file. Stateless
+handles, opaque JSON document, invariants judge every proposal,
+COMMITTED and REJECTED verdicts appended to a SHA-256 hash
+chain. Optimistic concurrency (`expected_version`: exactly one
+winner), idempotent retries, checkpoints, committed-only time
+travel via full snapshots, `blame`, `update_many` batches,
+atomic `read()`. Documented in `docs/adr/0008-world-primitive.md`.
 
-## Shipped in the primitive since 0.1.0
+**Prompt 3 architecture strengthening (2026-11-04, uncommitted).**
 
-Batch updates (`update_many`, 54,975 ops/s at batch 500 in the
-2026-10-15 benchmark record); atomic `read()` for the OCC loop;
-HMAC and Ed25519 signed tips with key rotation; per-field encryption
-with crypto-shredding redaction; Merkle inclusion proofs; per-field
-blame; committed-only time travel with `proposal(seq)` audit access;
-log export/import via CLI. Benchmarks: `docs/benchmarks/`.
+- F1: handoff schema upgrade (`Assumption`, decision `id`,
+  `status`, `supersedes`, `evidence_ids`, referential-integrity
+  validation in `save_state`), `revision_chain` view.
+- F2: HTTP server fails closed; `--allow-unauthenticated` is the
+  explicit local-development opt-in.
+- F3a: checkpoint `pinned_hash` tamper evidence (verify on read
+  and resume).
+- F4: server-side actor override.
+- F5: streaming `verify()` and `blame()`; peak-RSS delta on a
+  20,000-version chain 19.7 MB to 0.8 MB.
+- F6: `project_state` projection view.
 
-## Open items
+**Optional layers.** Signed tips (HMAC, Ed25519 with rotation),
+Merkle inclusion proofs, per-field encryption with
+crypto-shredding redaction, transcript producer.
 
-- **Revision history** is the demonstrated failure from #002 and the
-  next experiment the record calls for, ahead of any broader claim.
-- **Cross-model handoffs** and **human auditability** (success criteria
-  3 and 2 in `docs/hypothesis.md`) remain untested.
-- **Persisted invariant registry** (the DB naming the rules that
-  judged each version) and **streaming verify** are designed gaps, not
-  built.
-- **External validation**: zero customer or user conversations to
-  date. Whether to prioritize validation conversations over the next
-  build item is an open decision for the maintainer.
-- The legacy `world_engine` demo remains in the repo, frozen as a
-  demo; the `world` primitive is the direction.
+**Surfaces.** Python API, `world` CLI, `world serve` HTTP API.
+Core dependency-free (stdlib only).
 
-## Research documentation
+---
 
-`research/RESEARCH_OVERVIEW.md`, `research/HYPOTHESIS.md`,
-`research/LIMITATIONS.md`, `research/RELATED_WORK.md`, and the survey
-in `research/comparisons.md`.
+## Experiments (handoff evidence, `docs/` and `experiments/`)
+
+- **#001 Block (2026-09-17):** WORLD won on governance, 5/5
+  decisions with rationales, 7/7 assumptions with confidence,
+  zero errors. n=1. DOCUMENTED.
+- **#002 Intel + Disney replication (2026-09-17 to 23):** WORLD
+  preserved decision governance best in both runs (Intel 3.92 vs
+  3.58 vs 3.33; Disney 4.45 vs 4.09 vs 2.82, reference means);
+  failed revision history in both runs (2/5). n=1 per run.
+  DOCUMENTED, preliminary.
+- **#003 (2026-11-03, preregistered, 8 tasks, 72 continuations,
+  blind graded):** assumption retention is the one consistent
+  advantage (A 0.721 vs B 0.500 vs C 0.488); decisions slightly
+  favored baselines; revision history tied at ceiling (1.000
+  all); unverifiable additions only under A (12); bundles cost
+  2.7x to 3.3x the words. PRELIMINARY, single model family.
+  Condition A was hand-authored Markdown; the `World` class was
+  never exercised. Untracked in this tree.
+- **Prompt 3 revalidation (2026-11-04):** first runs through the
+  shipped code path (R1, R2, C1, n=3 per cell). Preservation at
+  or near the #003 structured level; no revision regression
+  from projection. PRELIMINARY.
+
+---
+
+## Verification (primitive)
+
+- **Model checker:** 1,220,255 states, P1 to P6 hold; mutation
+  test proves it can fail. `docs/spec/protocol-verification.md`.
+- **Lost-update:** 33/50 lost unprotected vs 0/50 with
+  `expected_version` + retry (scripted agents). DOCUMENTED.
+- **Crash consistency:** 15/15 recorded mid-transaction kills
+  recovered; 39 further rounds (2026-11-02) with zero durability
+  violations.
+- **Soak:** 1.06M rows, integrity held; `verify()` at 75,921
+  rows/s and 659 MB RSS in the 2026-10-15 run. Pre-F5 record;
+  the soak has not been re-run at scale since streaming
+  `verify()` landed.
+- **Independent C# verifier:** reproduces chain verification
+  with no shared code.
+- **Coverage:** 92.71% branch coverage over the package
+  (measured 2026-11-05 with the CI command); the CI gate is 85%.
+
+---
+
+## Open items (designed gaps and open decisions)
+
+- **Revision history: unresolved.** #002 failure (2/5, both
+  runs) against #003 ceiling (1.000, all conditions). Next:
+  harder revision chains with no parity gate on revision
+  elements, plus human grading of the preserved #003 25%
+  subset.
+- **F3b undecided:** bind idempotency keys into the row hash.
+  Would break verification of existing databases; the
+  idempotency table currently sits outside the chain.
+- **Invariants are code, not data:** the database cannot name
+  the rule set that judged a historical version. Persisted
+  registry is designed, not built.
+- **No per-actor identity:** `actor` is self-asserted; no RBAC.
+- **CI lint pinning:** the lint job installs unpinned ruff and
+  mypy. Recommend pins; not changed under Prompt 6.
+- **External validation: pending.** The protocol is written
+  (`experiments/prompt6/VALIDATION_PROTOCOL.md`); zero external
+  reviewers have completed it.
+- **Release blockers:** Prompt 3 and #003 uncommitted and
+  unreviewed; no release approval. See
+  `experiments/prompt6/RELEASE_READINESS.md`.
+- **Legacy `world_engine` package** still ships in the repo;
+  retire-or-merge is a roadmap item.

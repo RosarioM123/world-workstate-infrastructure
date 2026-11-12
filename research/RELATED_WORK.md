@@ -130,22 +130,31 @@ shared state itself: the successor loads the same named document the
 predecessor wrote, with its decisions, assumptions, evidence links,
 constraints, and verdict history intact and checkable. The
 `AgentState` helpers in `src/world/handoff.py` are a thin typed layer
-over that document (decisions, evidence, open questions, next actions)
-for the common research-handoff shape. Experiments #001 and #002 are,
-to this project's knowledge, an unusual attempt to measure handoff
-formats against each other under blind grading with predeclared keys;
-that methodological point is stated as an observation about this repo's
-own record, not as a literature claim.
+over that document (objective, decisions, assumptions, evidence, open
+questions, next actions) for the common research-handoff shape. Since
+Prompt 3 (2026-11-04) the layer also carries decision ids, lifecycle
+status, supersession links and evidence links, assumption confidence
+and status, a computed `revision_chain` view, and a `project_state`
+projection. Experiments #001, #002, and #003 are, to this project's
+knowledge, an unusual attempt to measure handoff formats against each
+other under blind grading with predeclared keys; that methodological
+point is stated as an observation about this repo's own record, not
+as a literature claim.
 
 ## Open research gaps
 
 Specific, and in the order the experiment record raises them:
 
-1. **Revision chains.** Structured state demonstrably fails to transmit
-   old-to-new-to-trigger revision history into continuations
-   (Experiment #002, both runs). Whether an explicit revision-chain
-   schema fixes this, or whether successors simply do not read
-   revision structure, is untested anywhere in this repo.
+1. **Revision chains.** Structured state failed to transmit
+   old-to-new-to-trigger revision history into continuations in
+   Experiment #002 (both runs), but Experiment #003 scored revision
+   history at ceiling in all conditions and could not discriminate.
+   The question is unresolved. Prompt 3 shipped an explicit
+   revision schema (decision `supersedes` links plus the computed
+   `revision_chain` view), and the Prompt 3 revalidation exercised
+   it on three tasks with no regression (PRELIMINARY); whether it
+   fixes the #002 failure, or whether successors simply do not
+   read revision structure, needs a discriminating experiment.
 2. **Cross-model handoffs.** All handoff evidence here is same-model-
    family. Whether stable labeled state helps more, less, or
    differently when the successor is a different model is unknown.

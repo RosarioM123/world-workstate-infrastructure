@@ -1,0 +1,52 @@
+flowchart TB
+    subgraph agents["Agent layer: separate processes, no shared memory"]
+        AA["Agent A: works, records, exits"]
+        AB["Agent B: successor in a new process"]
+        HUMAN["Human operator"]
+    end
+    subgraph surfaces["Access surfaces"]
+        HANDOFF["Handoff API: AgentState, save_state, load_state, project_state, revision_chain (src/world/handoff.py)"]
+        PYAPI["Python API: World (src/world/core.py)"]
+        CLI["CLI: world (src/world/cli.py)"]
+        HTTP["HTTP server: world serve, API-key gate on writes, fails closed by default (src/world/server.py)"]
+    end
+    subgraph core["WORLD core: the update protocol"]
+        JUDGE{"Invariant judging: rules declared per handle (src/world/invariants.py)"}
+        OCC["Optimistic concurrency: expected_version revalidated inside BEGIN IMMEDIATE"]
+        IDEM["Idempotency: a committed retry returns the original seq"]
+        APPEND["Append the verdict: COMMITTED or REJECTED, hash-chained either way"]
+    end
+    subgraph store["Persistence: one SQLite file per world"]
+        VER[("versions: seq, timestamp, actor, note, state, status, prev_hash, hash")]
+        CP[("checkpoints: name, seq, pinned_hash")]
+        IDT[("idempotency: key, seq")]
+        FK[("field_keys: wrapped per-field data keys")]
+    end
+    subgraph integrity["Integrity and confidentiality layers"]
+        VERIFY["verify(): streaming hash-chain verification"]
+        TIPS["Signed tips: HMAC and Ed25519 with key rotation, keys held out of band"]
+        MERKLE["Merkle root and inclusion proofs, verifiable without the database"]
+        CRYPT["Per-field encryption and crypto-shredding redaction (src/world/fieldcrypto.py)"]
+    end
+    subgraph offline["Offline verification, not part of runtime"]
+        MC["Model checker (spec/model_check.py): P1 to P6 over 1,220,255 explored states"]
+    end
+    AA -->|"save_state"| HANDOFF
+    AB -->|"load_state, revision_chain"| HANDOFF
+    HUMAN --> CLI
+    HANDOFF --> PYAPI
+    CLI --> PYAPI
+    HTTP -->|"one World handle, invariants declared once"| PYAPI
+    PYAPI --> JUDGE
+    JUDGE -->|"proposal passes"| OCC
+    OCC --> IDEM
+    IDEM --> APPEND
+    APPEND --> VER
+    PYAPI -->|"checkpoint pins seq plus current row hash"| CP
+    PYAPI -->|"resume restores a checkpoint as a new version"| VER
+    IDEM -.->|"reads and writes"| IDT
+    CRYPT -->|"wrapped keys only, master key never stored"| FK
+    VER --> VERIFY
+    VER --> MERKLE
+    VER -.->|"tip is the signed (name, seq, hash)"| TIPS
+    MC -.->|"checks the protocol the core implements"| core
