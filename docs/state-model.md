@@ -1,12 +1,37 @@
-# WORLD State Model (Draft v0.1)
+# WORLD State Model (v0.1; partly implemented, partly draft)
 
 The canonical schema for work state. This is the heart of the WORLD thesis:
 if this ontology doesn't hold up across projects, there is no shared
 abstraction (see `docs/thesis-challenge.md`, objection 8).
 
-Status: **draft**. It becomes real only after the handoff experiment
-validates that these entities — and not a simpler set — are what actually
-prevent information loss.
+Status, split by entity (updated 2026-11-05, Prompt 6): **implemented**
+as handoff types in `src/world/handoff.py`: Decision, Assumption, and
+Evidence (see the implementation note below). **Draft only**: Project,
+Task, Artifact, Action, StateChange, Question, and Handoff as stored
+types. Experiment #003 (2026-11-03) has now run and bore directly on
+the implemented fields (its M3 result turned on assumption confidence
+and status), so the original framing, that the model becomes real
+only after a handoff experiment validates the entities, is partly
+satisfied for the implemented subset and still open for the rest.
+
+Field-name mapping (document to code): Decision `statement` is
+`text` in code; Decision `supersedes_id` is `supersedes`; Evidence
+`summary` is `claim`; Evidence `reference` is `source`. Where this
+document and `src/world/handoff.py` disagree on a name, the code is
+authoritative.
+
+Implementation status (2026-11-04, Prompt 3 F1): the shipped handoff
+schema (`src/world/handoff.py`) now implements this model's Decision
+fields (`id`, `status`, `supersedes`, `evidence_ids`; the code names
+the link `supersedes` where this document writes `supersedes_id`),
+the Assumption entity (`id`, `confidence`, `status`, `validated_by`),
+and Evidence `id` and `kind`. `save_state` validates the revision
+graph's referential integrity, and `revision_chain` derives a
+decision's revision history from committed snapshots. The remaining
+entities (Project, Task, Artifact, Action, StateChange as stored
+types) are still draft only: core storage remains one opaque JSON
+document per version, and Experiment #003's evidence for the fields
+above is recorded in `experiments/prompt3/AUDIT.md`.
 
 ## Design principles
 

@@ -277,6 +277,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
         invariants=invariants,
         api_key=api_key,
         write_limit_per_min=args.rate_limit,
+        allow_unauthenticated_writes=args.allow_unauthenticated,
     )
     uvicorn.run(app, host=args.host, port=args.port)
     return 0  # pragma: no cover - blocks serving
@@ -405,6 +406,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     s.add_argument(
         "--rate-limit", type=int, default=60, help="writes/min/IP, 0 to disable"
+    )
+    s.add_argument(
+        "--allow-unauthenticated",
+        action="store_true",
+        help="when no API key is set, allow unauthenticated writes "
+        "(local development only; writes fail closed without it)",
     )
     s.set_defaults(func=cmd_serve)
 
