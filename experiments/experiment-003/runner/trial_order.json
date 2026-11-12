@@ -1,0 +1,362 @@
+[
+  {
+    "task": "C2",
+    "condition": "C",
+    "trial": 2
+  },
+  {
+    "task": "R2",
+    "condition": "C",
+    "trial": 2
+  },
+  {
+    "task": "C2",
+    "condition": "A",
+    "trial": 1
+  },
+  {
+    "task": "R1",
+    "condition": "B",
+    "trial": 3
+  },
+  {
+    "task": "C2",
+    "condition": "B",
+    "trial": 2
+  },
+  {
+    "task": "C2",
+    "condition": "C",
+    "trial": 3
+  },
+  {
+    "task": "C2",
+    "condition": "B",
+    "trial": 3
+  },
+  {
+    "task": "C1",
+    "condition": "A",
+    "trial": 2
+  },
+  {
+    "task": "R2",
+    "condition": "A",
+    "trial": 2
+  },
+  {
+    "task": "F2",
+    "condition": "B",
+    "trial": 3
+  },
+  {
+    "task": "F1",
+    "condition": "A",
+    "trial": 3
+  },
+  {
+    "task": "S1",
+    "condition": "A",
+    "trial": 1
+  },
+  {
+    "task": "F2",
+    "condition": "C",
+    "trial": 3
+  },
+  {
+    "task": "F2",
+    "condition": "A",
+    "trial": 2
+  },
+  {
+    "task": "C1",
+    "condition": "A",
+    "trial": 3
+  },
+  {
+    "task": "C1",
+    "condition": "C",
+    "trial": 1
+  },
+  {
+    "task": "F2",
+    "condition": "B",
+    "trial": 2
+  },
+  {
+    "task": "C1",
+    "condition": "B",
+    "trial": 2
+  },
+  {
+    "task": "F2",
+    "condition": "A",
+    "trial": 1
+  },
+  {
+    "task": "C2",
+    "condition": "A",
+    "trial": 3
+  },
+  {
+    "task": "C1",
+    "condition": "A",
+    "trial": 1
+  },
+  {
+    "task": "F2",
+    "condition": "C",
+    "trial": 2
+  },
+  {
+    "task": "S2",
+    "condition": "B",
+    "trial": 1
+  },
+  {
+    "task": "F1",
+    "condition": "C",
+    "trial": 2
+  },
+  {
+    "task": "S1",
+    "condition": "B",
+    "trial": 1
+  },
+  {
+    "task": "R1",
+    "condition": "C",
+    "trial": 3
+  },
+  {
+    "task": "S1",
+    "condition": "A",
+    "trial": 2
+  },
+  {
+    "task": "S1",
+    "condition": "C",
+    "trial": 1
+  },
+  {
+    "task": "S1",
+    "condition": "B",
+    "trial": 3
+  },
+  {
+    "task": "R2",
+    "condition": "B",
+    "trial": 2
+  },
+  {
+    "task": "S2",
+    "condition": "B",
+    "trial": 2
+  },
+  {
+    "task": "S2",
+    "condition": "A",
+    "trial": 1
+  },
+  {
+    "task": "R1",
+    "condition": "B",
+    "trial": 1
+  },
+  {
+    "task": "S1",
+    "condition": "B",
+    "trial": 2
+  },
+  {
+    "task": "S2",
+    "condition": "A",
+    "trial": 3
+  },
+  {
+    "task": "F1",
+    "condition": "A",
+    "trial": 2
+  },
+  {
+    "task": "F1",
+    "condition": "A",
+    "trial": 1
+  },
+  {
+    "task": "R2",
+    "condition": "A",
+    "trial": 3
+  },
+  {
+    "task": "S2",
+    "condition": "C",
+    "trial": 1
+  },
+  {
+    "task": "F1",
+    "condition": "B",
+    "trial": 2
+  },
+  {
+    "task": "R1",
+    "condition": "C",
+    "trial": 2
+  },
+  {
+    "task": "F1",
+    "condition": "C",
+    "trial": 1
+  },
+  {
+    "task": "C2",
+    "condition": "B",
+    "trial": 1
+  },
+  {
+    "task": "R1",
+    "condition": "B",
+    "trial": 2
+  },
+  {
+    "task": "F1",
+    "condition": "B",
+    "trial": 1
+  },
+  {
+    "task": "S2",
+    "condition": "B",
+    "trial": 3
+  },
+  {
+    "task": "R1",
+    "condition": "C",
+    "trial": 1
+  },
+  {
+    "task": "S2",
+    "condition": "C",
+    "trial": 2
+  },
+  {
+    "task": "C1",
+    "condition": "C",
+    "trial": 2
+  },
+  {
+    "task": "C2",
+    "condition": "C",
+    "trial": 1
+  },
+  {
+    "task": "R1",
+    "condition": "A",
+    "trial": 2
+  },
+  {
+    "task": "S2",
+    "condition": "A",
+    "trial": 2
+  },
+  {
+    "task": "C2",
+    "condition": "A",
+    "trial": 2
+  },
+  {
+    "task": "R1",
+    "condition": "A",
+    "trial": 1
+  },
+  {
+    "task": "S1",
+    "condition": "C",
+    "trial": 3
+  },
+  {
+    "task": "S2",
+    "condition": "C",
+    "trial": 3
+  },
+  {
+    "task": "R2",
+    "condition": "A",
+    "trial": 1
+  },
+  {
+    "task": "F2",
+    "condition": "A",
+    "trial": 3
+  },
+  {
+    "task": "R1",
+    "condition": "A",
+    "trial": 3
+  },
+  {
+    "task": "C1",
+    "condition": "B",
+    "trial": 1
+  },
+  {
+    "task": "R2",
+    "condition": "B",
+    "trial": 3
+  },
+  {
+    "task": "F2",
+    "condition": "B",
+    "trial": 1
+  },
+  {
+    "task": "C1",
+    "condition": "C",
+    "trial": 3
+  },
+  {
+    "task": "C1",
+    "condition": "B",
+    "trial": 3
+  },
+  {
+    "task": "R2",
+    "condition": "C",
+    "trial": 1
+  },
+  {
+    "task": "S1",
+    "condition": "C",
+    "trial": 2
+  },
+  {
+    "task": "F1",
+    "condition": "B",
+    "trial": 3
+  },
+  {
+    "task": "R2",
+    "condition": "C",
+    "trial": 3
+  },
+  {
+    "task": "F2",
+    "condition": "C",
+    "trial": 1
+  },
+  {
+    "task": "S1",
+    "condition": "A",
+    "trial": 3
+  },
+  {
+    "task": "R2",
+    "condition": "B",
+    "trial": 1
+  },
+  {
+    "task": "F1",
+    "condition": "C",
+    "trial": 3
+  }
+]

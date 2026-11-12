@@ -1,0 +1,1584 @@
+{
+  "per_task_condition": {
+    "F1": {
+      "A": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.8,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      },
+      "B": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.5,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 0.9333,
+          "sd": 0.0577
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 2,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      },
+      "C": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.5,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 2,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      }
+    },
+    "F2": {
+      "A": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.5,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 2,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 1,
+          "sd": 0.0
+        }
+      },
+      "B": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.25,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 2,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 1,
+          "sd": 0.0
+        }
+      },
+      "C": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.1667,
+          "sd": 0.1443
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 2,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 1.3333,
+          "sd": 0.5774
+        }
+      }
+    },
+    "S1": {
+      "A": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.5,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 0.8333,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 1,
+          "sd": 0.0
+        }
+      },
+      "B": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.0,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 0.8333,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 2,
+          "sd": 0.0
+        }
+      },
+      "C": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.0,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 0.8333,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 2.6667,
+          "sd": 0.5774
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 2,
+          "sd": 0.0
+        }
+      }
+    },
+    "S2": {
+      "A": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 0.8333,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.75,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 0.875,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      },
+      "B": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 0.8333,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.75,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 0.875,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      },
+      "C": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 0.8333,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.75,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 0.875,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      }
+    },
+    "R1": {
+      "A": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 2,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      },
+      "B": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 2,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      },
+      "C": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 2,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      }
+    },
+    "R2": {
+      "A": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.5,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      },
+      "B": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.5,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      },
+      "C": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.5,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      }
+    },
+    "C1": {
+      "A": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 0.75,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 0.8333,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 2,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      },
+      "B": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.5,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 0.8333,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      },
+      "C": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 3,
+          "mean": 0.5,
+          "sd": 0.0
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 0.8333,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      }
+    },
+    "C2": {
+      "A": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 0.5,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      },
+      "B": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 0.5,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      },
+      "C": {
+        "m1_decisions": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m2_constraints": {
+          "n": 3,
+          "mean": 1.0,
+          "sd": 0.0
+        },
+        "m3_assumptions": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "m4_provenance": {
+          "n": 3,
+          "mean": 0.5,
+          "sd": 0.0
+        },
+        "m5_revision": {
+          "n": 0,
+          "mean": null,
+          "sd": null
+        },
+        "m6_contradictions": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m7_fabricated": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        },
+        "m8_quality": {
+          "n": 3,
+          "mean": 3,
+          "sd": 0.0
+        },
+        "loss_count": {
+          "n": 3,
+          "mean": 0,
+          "sd": 0.0
+        }
+      }
+    }
+  },
+  "per_condition": {
+    "A": {
+      "m1_decisions": {
+        "n": 24,
+        "mean": 0.9479,
+        "sd": 0.0946
+      },
+      "m2_constraints": {
+        "n": 24,
+        "mean": 1.0,
+        "sd": 0.0
+      },
+      "m3_assumptions": {
+        "n": 21,
+        "mean": 0.7214,
+        "sd": 0.2154
+      },
+      "m4_provenance": {
+        "n": 24,
+        "mean": 0.8802,
+        "sd": 0.1641
+      },
+      "m5_revision": {
+        "n": 18,
+        "mean": 1.0,
+        "sd": 0.0
+      },
+      "m6_contradictions": {
+        "n": 24,
+        "mean": 0,
+        "sd": 0.0
+      },
+      "m7_fabricated": {
+        "n": 24,
+        "mean": 0,
+        "sd": 0.0
+      },
+      "m8_quality": {
+        "n": 24,
+        "mean": 2.625,
+        "sd": 0.4945
+      },
+      "loss_count": {
+        "n": 24,
+        "mean": 0.25,
+        "sd": 0.4423
+      }
+    },
+    "B": {
+      "m1_decisions": {
+        "n": 24,
+        "mean": 0.9792,
+        "sd": 0.0563
+      },
+      "m2_constraints": {
+        "n": 24,
+        "mean": 1.0,
+        "sd": 0.0
+      },
+      "m3_assumptions": {
+        "n": 21,
+        "mean": 0.5,
+        "sd": 0.3062
+      },
+      "m4_provenance": {
+        "n": 24,
+        "mean": 0.8719,
+        "sd": 0.1601
+      },
+      "m5_revision": {
+        "n": 18,
+        "mean": 1.0,
+        "sd": 0.0
+      },
+      "m6_contradictions": {
+        "n": 24,
+        "mean": 0,
+        "sd": 0.0
+      },
+      "m7_fabricated": {
+        "n": 24,
+        "mean": 0,
+        "sd": 0.0
+      },
+      "m8_quality": {
+        "n": 24,
+        "mean": 2.625,
+        "sd": 0.4945
+      },
+      "loss_count": {
+        "n": 24,
+        "mean": 0.375,
+        "sd": 0.7109
+      }
+    },
+    "C": {
+      "m1_decisions": {
+        "n": 24,
+        "mean": 0.9792,
+        "sd": 0.0563
+      },
+      "m2_constraints": {
+        "n": 24,
+        "mean": 1.0,
+        "sd": 0.0
+      },
+      "m3_assumptions": {
+        "n": 21,
+        "mean": 0.4881,
+        "sd": 0.3209
+      },
+      "m4_provenance": {
+        "n": 24,
+        "mean": 0.8802,
+        "sd": 0.1641
+      },
+      "m5_revision": {
+        "n": 18,
+        "mean": 1.0,
+        "sd": 0.0
+      },
+      "m6_contradictions": {
+        "n": 24,
+        "mean": 0,
+        "sd": 0.0
+      },
+      "m7_fabricated": {
+        "n": 24,
+        "mean": 0,
+        "sd": 0.0
+      },
+      "m8_quality": {
+        "n": 24,
+        "mean": 2.5833,
+        "sd": 0.5036
+      },
+      "loss_count": {
+        "n": 24,
+        "mean": 0.4167,
+        "sd": 0.7755
+      }
+    }
+  },
+  "paired": {
+    "m1_decisions": {
+      "A-B": {
+        "n": 24,
+        "mean": -0.0312,
+        "sd": 0.0845
+      },
+      "A-C": {
+        "n": 24,
+        "mean": -0.0312,
+        "sd": 0.0845
+      }
+    },
+    "m2_constraints": {
+      "A-B": {
+        "n": 24,
+        "mean": 0.0,
+        "sd": 0.0
+      },
+      "A-C": {
+        "n": 24,
+        "mean": 0.0,
+        "sd": 0.0
+      }
+    },
+    "m3_assumptions": {
+      "A-B": {
+        "n": 21,
+        "mean": 0.2214,
+        "sd": 0.2154
+      },
+      "A-C": {
+        "n": 21,
+        "mean": 0.2333,
+        "sd": 0.2238
+      }
+    },
+    "m4_provenance": {
+      "A-B": {
+        "n": 24,
+        "mean": 0.0083,
+        "sd": 0.0282
+      },
+      "A-C": {
+        "n": 24,
+        "mean": 0.0,
+        "sd": 0.0
+      }
+    },
+    "m5_revision": {
+      "A-B": {
+        "n": 18,
+        "mean": 0.0,
+        "sd": 0.0
+      },
+      "A-C": {
+        "n": 18,
+        "mean": 0.0,
+        "sd": 0.0
+      }
+    },
+    "m6_contradictions": {
+      "A-B": {
+        "n": 24,
+        "mean": 0,
+        "sd": 0.0
+      },
+      "A-C": {
+        "n": 24,
+        "mean": 0,
+        "sd": 0.0
+      }
+    },
+    "m7_fabricated": {
+      "A-B": {
+        "n": 24,
+        "mean": 0,
+        "sd": 0.0
+      },
+      "A-C": {
+        "n": 24,
+        "mean": 0,
+        "sd": 0.0
+      }
+    },
+    "m8_quality": {
+      "A-B": {
+        "n": 24,
+        "mean": 0,
+        "sd": 0.5108
+      },
+      "A-C": {
+        "n": 24,
+        "mean": 0.0417,
+        "sd": 0.55
+      }
+    },
+    "loss_count": {
+      "A-B": {
+        "n": 24,
+        "mean": -0.125,
+        "sd": 0.3378
+      },
+      "A-C": {
+        "n": 24,
+        "mean": -0.1667,
+        "sd": 0.3807
+      }
+    }
+  },
+  "revision_subset": {
+    "A": {
+      "chain_score": {
+        "n": 33,
+        "mean": 1.0,
+        "sd": 0.0
+      },
+      "causes": {}
+    },
+    "B": {
+      "chain_score": {
+        "n": 33,
+        "mean": 1.0,
+        "sd": 0.0
+      },
+      "causes": {}
+    },
+    "C": {
+      "chain_score": {
+        "n": 33,
+        "mean": 1.0,
+        "sd": 0.0
+      },
+      "causes": {}
+    }
+  },
+  "sizes": {
+    "F1": {
+      "A": {
+        "words": 3428,
+        "chars": 20924
+      },
+      "B": {
+        "words": 1314,
+        "chars": 7786
+      },
+      "C": {
+        "words": 1522,
+        "chars": 9187
+      }
+    },
+    "F2": {
+      "A": {
+        "words": 3225,
+        "chars": 20309
+      },
+      "B": {
+        "words": 1001,
+        "chars": 6076
+      },
+      "C": {
+        "words": 1383,
+        "chars": 8508
+      }
+    },
+    "S1": {
+      "A": {
+        "words": 3108,
+        "chars": 19060
+      },
+      "B": {
+        "words": 978,
+        "chars": 5686
+      },
+      "C": {
+        "words": 871,
+        "chars": 5117
+      }
+    },
+    "S2": {
+      "A": {
+        "words": 3004,
+        "chars": 19501
+      },
+      "B": {
+        "words": 622,
+        "chars": 3772
+      },
+      "C": {
+        "words": 948,
+        "chars": 5772
+      }
+    },
+    "R1": {
+      "A": {
+        "words": 2314,
+        "chars": 14667
+      },
+      "B": {
+        "words": 769,
+        "chars": 4569
+      },
+      "C": {
+        "words": 850,
+        "chars": 5155
+      }
+    },
+    "R2": {
+      "A": {
+        "words": 2370,
+        "chars": 15478
+      },
+      "B": {
+        "words": 546,
+        "chars": 3333
+      },
+      "C": {
+        "words": 743,
+        "chars": 4668
+      }
+    },
+    "C1": {
+      "A": {
+        "words": 2652,
+        "chars": 15944
+      },
+      "B": {
+        "words": 818,
+        "chars": 4728
+      },
+      "C": {
+        "words": 1069,
+        "chars": 6543
+      }
+    },
+    "C2": {
+      "A": {
+        "words": 281,
+        "chars": 1653
+      },
+      "B": {
+        "words": 94,
+        "chars": 534
+      },
+      "C": {
+        "words": 102,
+        "chars": 569
+      }
+    }
+  },
+  "efficiency": {
+    "F1": {
+      "A": 0.28,
+      "B": 0.6748,
+      "C": 0.5913
+    },
+    "F2": {
+      "A": 0.2791,
+      "B": 0.8492,
+      "C": 0.6026
+    },
+    "S1": {
+      "A": 0.2789,
+      "B": 0.7839,
+      "C": 0.8802
+    },
+    "S2": {
+      "A": 0.2968,
+      "B": 1.4335,
+      "C": 0.9406
+    },
+    "R1": {
+      "A": 0.4322,
+      "B": 1.3004,
+      "C": 1.1765
+    },
+    "R2": {
+      "A": 0.3797,
+      "B": 1.6484,
+      "C": 1.2113
+    },
+    "C1": {
+      "A": 0.3378,
+      "B": 1.0187,
+      "C": 0.7795
+    },
+    "C2": {
+      "A": 2.9656,
+      "B": 8.8652,
+      "C": 8.1699
+    }
+  },
+  "hard_failures": {}
+}

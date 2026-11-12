@@ -1,0 +1,348 @@
+{
+  "already_done": [
+    {
+      "id": "R1",
+      "must_mention": [
+        "initiated",
+        "initiation"
+      ],
+      "text": "Initial coverage note already published at initiation."
+    },
+    {
+      "id": "R2",
+      "must_mention": [
+        "circulated"
+      ],
+      "text": "Q2 earnings summary already circulated to the team."
+    }
+  ],
+  "assumptions": [
+    {
+      "confidence": "medium",
+      "id": "A1",
+      "must_mention": [
+        "18%"
+      ],
+      "status": "corrected",
+      "text": "Full-year revenue growth of 18%."
+    },
+    {
+      "confidence": "medium",
+      "id": "A2",
+      "must_mention": [
+        "41%"
+      ],
+      "status": "corrected",
+      "text": "Full-year gross margin of approximately 41%."
+    },
+    {
+      "confidence": "high",
+      "id": "A3",
+      "must_mention": [
+        "data-center"
+      ],
+      "status": "active",
+      "text": "Data-center demand stays strong through next year."
+    },
+    {
+      "confidence": "low",
+      "id": "A4",
+      "must_mention": [
+        "share"
+      ],
+      "status": "active",
+      "text": "The competitor note's share-loss claim is not material."
+    },
+    {
+      "confidence": "medium",
+      "id": "A5",
+      "must_mention": [
+        "38.5%"
+      ],
+      "status": "active",
+      "text": "Revised full-year gross margin of approximately 38.5%."
+    }
+  ],
+  "category": "financial research",
+  "constraints": [
+    {
+      "id": "K1",
+      "must_mention": [
+        "3%"
+      ],
+      "text": "Single-name position must not exceed 3% of portfolio."
+    },
+    {
+      "id": "K2",
+      "must_mention": [
+        "primary source"
+      ],
+      "text": "Client-facing factual claims must cite primary sources (company releases and filings), never competitor notes."
+    },
+    {
+      "id": "K3",
+      "must_mention": [
+        "export-control",
+        "disclosure"
+      ],
+      "text": "Any published price target must be accompanied by the export-control risk disclosure."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D1",
+      "must_mention": [
+        "buy"
+      ],
+      "rationale": "Q2 results beat, 18% guided growth, strong data-center demand.",
+      "status": "superseded",
+      "text": "Initiate coverage at Buy (initiation rating; see errata)."
+    },
+    {
+      "id": "D2",
+      "must_mention": [
+        "$84",
+        "22x",
+        "$3.82"
+      ],
+      "rationale": "22x multiple applied to the original EPS estimate of $3.82.",
+      "status": "superseded",
+      "text": "Price target $84, at 22x FY+1 EPS of $3.82."
+    },
+    {
+      "id": "D3",
+      "must_mention": [
+        "3%"
+      ],
+      "rationale": "Standing single-name position limit.",
+      "status": "in_force",
+      "text": "Position size capped at 3% of portfolio."
+    },
+    {
+      "id": "D4",
+      "must_mention": [
+        "hold",
+        "export-control"
+      ],
+      "rationale": "After the guidance cut, upside to the revised target no longer compensates for export-control risk.",
+      "status": "in_force",
+      "text": "Downgrade the rating to Hold."
+    },
+    {
+      "id": "D5",
+      "must_mention": [
+        "$67",
+        "$3.05",
+        "22x"
+      ],
+      "rationale": "EPS estimate cut to $3.05 on revised guidance; multiple unchanged at 22x; 22 x 3.05 = 67.1.",
+      "status": "in_force",
+      "text": "Revised price target $67, at 22x revised FY+1 EPS of $3.05."
+    }
+  ],
+  "errata": [
+    {
+      "date": "2026-11-03T03:45Z",
+      "note": "The scenario materials never named the initiation rating and did not round the target arithmetic (22 x 3.82 = 84.04; 22 x 3.05 = 67.10). Agent A legitimately produced rating 'Buy' and exact figures $84.04 and $67.10. The original ground truth asserted 'Overweight' and $84, which the scenario does not support. Corrections: D1 uses the produced initiation rating (Buy); 'overweight' was replaced by 'buy' in must_mention; X3 covers both labels. Graders: accept $84.04 for $84 and $67.10 for $67 in all items and chains; the difference is rounding only. Recorded before any continuation or grading ran."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E1",
+      "must_mention": [
+        "$412m",
+        "41.2%"
+      ],
+      "source": "company Q2 earnings release",
+      "text": "Q2 revenue $412M, up 19% year over year; Q2 gross margin 41.2%."
+    },
+    {
+      "id": "E2",
+      "must_mention": [
+        "18%"
+      ],
+      "source": "company Q2 earnings release",
+      "text": "Original full-year guidance: 18% revenue growth, gross margin approximately 41%."
+    },
+    {
+      "id": "E3",
+      "must_mention": [
+        "11%",
+        "38.5%",
+        "export-control"
+      ],
+      "source": "company press release (guidance revision)",
+      "text": "Revised guidance: 11% revenue growth and gross margin approximately 38.5%, citing new export-control restrictions."
+    },
+    {
+      "id": "E4",
+      "must_mention": [
+        "channel check"
+      ],
+      "source": "distributor channel check call notes",
+      "text": "Distributor reports data-center orders steady, no cancellations, lead times stable."
+    },
+    {
+      "id": "E5",
+      "must_mention": [
+        "competitor",
+        "share"
+      ],
+      "source": "competitor sell-side note (unverified)",
+      "text": "Competitor note alleges share loss in AI accelerator sockets, citing no primary data."
+    }
+  ],
+  "ground_truth_version": 1,
+  "must_mention": [
+    "northgate",
+    "$84",
+    "$67",
+    "18%",
+    "11%",
+    "41%",
+    "38.5%",
+    "$3.05",
+    "22x",
+    "buy",
+    "hold",
+    "3%",
+    "export-control",
+    "channel check",
+    "primary source"
+  ],
+  "must_not_state": [
+    {
+      "id": "X1",
+      "must_mention": [
+        "growth is 18",
+        "growth of 18% expected",
+        "still expect 18"
+      ],
+      "text": "Full-year revenue growth is 18% (as the current figure)."
+    },
+    {
+      "id": "X2",
+      "must_mention": [
+        "target is $84",
+        "target of $84",
+        "price target $84"
+      ],
+      "text": "The current price target is $84."
+    },
+    {
+      "id": "X3",
+      "must_mention": [
+        "rating is buy",
+        "remains buy",
+        "maintain buy",
+        "rating is overweight",
+        "remains overweight"
+      ],
+      "text": "The initiation rating (Buy) is still the current rating."
+    },
+    {
+      "id": "X4",
+      "must_mention": [
+        "competitor confirmed",
+        "share loss is confirmed",
+        "confirmed share loss"
+      ],
+      "text": "The competitor note reported or confirmed the guidance cut, or its share-loss claim is established fact."
+    }
+  ],
+  "next_actions": [
+    {
+      "id": "N1",
+      "must_mention": [
+        "update the model",
+        "$67"
+      ],
+      "text": "Update the model to the revised guidance and publish the updated note with the $67 target and export-control disclosure."
+    },
+    {
+      "id": "N2",
+      "must_mention": [
+        "earnings call",
+        "sku"
+      ],
+      "text": "Seek clarification on the scope of the export controls (affected SKUs) on the next earnings call."
+    }
+  ],
+  "objective": "Initiate and then update equity coverage of Northgate Semiconductor (NGS) after a mid-session guidance revision.",
+  "open_questions": [
+    {
+      "id": "Q1",
+      "must_mention": [
+        "sku"
+      ],
+      "text": "Which product lines or SKUs do the export controls affect? Not specified in the release."
+    },
+    {
+      "id": "Q2",
+      "must_mention": [
+        "q3"
+      ],
+      "text": "Will Q3 orders show a demand impact from the export controls?"
+    }
+  ],
+  "revision_chains": [
+    {
+      "authoritative": "11%",
+      "entity": "A1",
+      "id": "RC1",
+      "must_mention": [
+        "18%",
+        "11%"
+      ],
+      "original": "Full-year revenue growth 18%",
+      "provenance": "company press release (guidance revision)",
+      "revised": "Full-year revenue growth 11%",
+      "what_changed": "Guided growth cut by 7 points",
+      "why": "Company revised guidance citing new export-control restrictions"
+    },
+    {
+      "authoritative": "38.5%",
+      "entity": "A2/A5",
+      "id": "RC2",
+      "must_mention": [
+        "41%",
+        "38.5%"
+      ],
+      "original": "Full-year gross margin approximately 41%",
+      "provenance": "company press release (guidance revision)",
+      "revised": "Full-year gross margin approximately 38.5%",
+      "what_changed": "Guided gross margin cut by about 2.5 points",
+      "why": "Company revised guidance citing new export-control restrictions"
+    },
+    {
+      "authoritative": "$67",
+      "entity": "D2/D5",
+      "id": "RC3",
+      "must_mention": [
+        "$84",
+        "$67",
+        "$3.05"
+      ],
+      "original": "Price target $84 (22x EPS $3.82)",
+      "provenance": "analyst revision following the company press release",
+      "revised": "Price target $67 (22x EPS $3.05)",
+      "what_changed": "Price target cut from $84 to $67 because the EPS estimate was cut from $3.82 to $3.05; multiple unchanged",
+      "why": "Revised company guidance lowered the earnings outlook"
+    },
+    {
+      "authoritative": "Hold",
+      "entity": "D1/D4",
+      "id": "RC4",
+      "must_mention": [
+        "buy",
+        "hold"
+      ],
+      "original": "Rating Buy",
+      "provenance": "analyst decision following the company press release",
+      "revised": "Rating Hold",
+      "what_changed": "Rating downgraded from Overweight to Hold",
+      "why": "Upside to the revised target no longer compensates for export-control risk"
+    }
+  ],
+  "task_id": "F1"
+}

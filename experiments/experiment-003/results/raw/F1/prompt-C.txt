@@ -1,0 +1,169 @@
+# Continuation assignment (F1)
+
+You are resuming equity coverage of Northgate Semiconductor (NGS) that a
+previous analyst agent started. Using only the handoff material provided,
+produce a Continuation Document with exactly these sections:
+
+1. **Where things stand:** the current rating, current price target, and
+   the current key figures for the thesis, as they stand now.
+2. **Decisions in force:** every decision that currently governs this
+   coverage, with the reason it was made. Separately list any decisions
+   that are no longer in force.
+3. **Assumptions and facts:** the assumptions the thesis rests on, labeled
+   as assumptions, with how confident the prior work was in each. Keep
+   established facts distinct from assumptions.
+4. **Constraints:** every standing constraint that binds what you may
+   recommend or publish.
+5. **What changed and why:** everything that changed during the prior
+   session (figures, estimates, decisions), what it changed from and to,
+   why it changed, which version is authoritative now, and where the change
+   came from.
+6. **Open questions and missing information:** what is still unknown or
+   undisclosed. Flag missing information; do not fill it in.
+7. **Next actions:** the concrete next steps, in order. Do not propose
+   redoing work the prior session already completed.
+8. **Draft client note:** a short updated client note (at most about 300
+   words) announcing the current rating and target, what changed and why,
+   the key assumptions, and the main risk, following the constraints in
+   section 4.
+
+----- HANDOFF MATERIAL FROM THE PREVIOUS SESSION -----
+
+# Work Journal: Northgate Semiconductor (NGS) Coverage Initiation
+
+Analyst session, Task F1. This journal is written in session order. Part 1 covers the initial materials. Part 2 covers the guidance revision that arrived mid-session and changed the figures and decisions below.
+
+## Part 1: Initial materials
+
+### Step 1: Read the Q2 earnings release
+
+First source read was the company Q2 earnings release, a primary source.
+
+Figures recorded, all from that release:
+
+- Q2 revenue: $412M, up 19% year over year.
+- Q2 gross margin: 41.2%.
+- Full-year guidance at that point: revenue growth of 18%.
+- Full-year gross margin guided to approximately 41%.
+- Management cited strong data-center demand as the driver.
+
+Initial read: growth and margin are consistent with each other. A company growing revenue 19% in the quarter, guiding to 18% for the full year, and holding gross margin near 41% is presenting a stable demand picture, at least on its own reported numbers.
+
+### Step 2: Read the distributor channel check
+
+Next I read my firm's distributor channel check, call notes from our channel contact at a major distributor.
+
+What it said:
+
+- Data-center orders were steady through the quarter.
+- No cancellations.
+- Lead times were stable.
+- The contact described end demand as "strong and boring".
+
+This supported the earnings release rather than contradicting it. Two different sources, one company and one channel, pointed the same way on data-center demand. I treated the channel check as supporting evidence, not as a primary source for client-facing factual claims, because it is call notes from a channel contact, not a company release or filing.
+
+### Step 3: Read the competitor sell-side note, and set it aside as a source
+
+I then read a competitor firm's note claiming Northgate is losing share in AI accelerator sockets to a rival and that "channel checks are turning".
+
+Problems with that note:
+
+- It cited no primary data.
+- Its channel claim conflicted with our own distributor check, which reported steady orders, no cancellations, and stable lead times.
+- Firm policy is explicit: competitor notes are not a citable source for client-facing claims.
+
+Decision at this point: do not cite the competitor note in any client-facing claim, and do not change the thesis on the basis of it. I did not discard it entirely. The share claim is an open question to test against primary evidence if any appears. It is a flag to monitor, not evidence.
+
+### Step 4: Checked the standing constraints before forming a recommendation
+
+Portfolio and compliance constraints recorded before any recommendation:
+
+- Single-name position limit: 3% of portfolio.
+- Client-facing factual claims must cite primary sources, meaning company releases and filings, never competitor notes.
+- Any published price target must be accompanied by the export-control risk disclosure section.
+
+The third constraint mattered for format, not just content. Whatever price target I published would need the export-control risk disclosure attached, even though at this stage export controls were a disclosed risk category rather than a reported event.
+
+### Step 5: Built the initial estimates and price target
+
+Working estimates at initiation:
+
+- FY+1 EPS estimate: $3.82.
+- Valuation convention for this coverage: 22x FY+1 EPS.
+
+Price target calculation: $3.82 multiplied by 22 equals $84.04.
+
+Initial price target: $84.04.
+
+### Step 6: Formed the initial thesis and rating
+
+Initial thesis: Northgate is a data-center led growth name with reported revenue growth near 19%, stable gross margin near 41%, and channel evidence of steady orders with no cancellations. On the initial materials, the growth guide of 18% looked supported rather than aspirational.
+
+Initial rating decision: Buy.
+
+Rationale recorded at the time: the primary source figures supported the guide, the channel check corroborated demand, and the only contrary claim came from an unverified competitor note with no primary data. I kept position sizing subject to the standing 3% single-name limit.
+
+That was the position at the end of Part 1. It did not survive Part 2 unchanged.
+
+## Part 2: Guidance revision update
+
+### Step 7: Read the guidance revision press release
+
+Mid-session, Northgate issued a press release revising full-year guidance. This is a primary source, so it overrides the earlier guide from the Q2 release.
+
+Revised figures, all from that press release:
+
+- Full-year revenue growth now expected at 11%, previously 18%.
+- Full-year gross margin now guided to approximately 38.5%, previously approximately 41%.
+- Reason given by the company: new export-control restrictions affecting shipments to two countries.
+- Not specified in the release: which product lines or SKUs are affected.
+
+Size of the change:
+
+- Revenue growth guide cut by 7 percentage points, from 18% to 11%.
+- Gross margin guide cut by about 2.5 percentage points, from approximately 41% to approximately 38.5%.
+- The Q2 reported figures themselves were not restated. Q2 revenue of $412M, Q2 growth of 19%, and Q2 gross margin of 41.2% remain the reported quarter. What changed is the forward guide, not the reported past.
+
+### Step 8: Revised the estimates and price target
+
+Revised working estimates after the update:
+
+- FY+1 EPS estimate revised to $3.05, down from $3.82.
+- Valuation multiple unchanged at 22x FY+1 EPS.
+
+That is an EPS cut of $0.77, or about 20.2%.
+
+Revised price target calculation: $3.05 multiplied by 22 equals $67.10.
+
+I did not change the multiple to soften the cut. The multiple convention is unchanged, so the full effect of the lower EPS flows into the target. The old target of $84.04 is superseded, not deleted. It was correct on the old guide and is wrong on the new one.
+
+Revised price target: $67.10, superseding $84.04.
+
+### Step 9: Re-examined the thesis, rating, and earlier assumptions
+
+The reason for the cut matters as much as its size. This was not described by the company as a demand collapse. The stated cause is export-control restrictions on shipments to two countries. That said, I cannot verify the full scope from the release, because the release does not specify which product lines or SKUs are affected. The margin cut to approximately 38.5% also means the restriction is not costless to mix or volume, whatever the exact scope turns out to be.
+
+What changed in my view:
+
+- The full-year growth assumption of 18% is corrected to 11%. It is no longer usable.
+- The full-year gross margin assumption of approximately 41% is corrected to approximately 38.5%. It is no longer usable.
+- The data-center demand picture from Q2 and the distributor check is not directly contradicted by the release, since the company attributed the cut to export controls rather than to end demand. But that attribution is the company's explanation in its own release, and I have no primary source in this session that independently confirms the scope of the restrictions.
+- The export-control risk, which in Part 1 was a disclosure requirement attached to any price target, is now a realised driver of guidance. The disclosure is no longer boilerplate for this name. It describes what just happened.
+
+Rating decision after the update: I moved the rating from Buy to Hold.
+
+Rationale: the thesis that supported a Buy was growth at 18% with margin near 41%, valued on EPS of $3.82. All three supports have been cut in one primary source update, the EPS estimate is down about 20.2%, and the scope of the restriction is unspecified, so I cannot yet judge whether 11% growth and $3.05 EPS are a floor or a first cut. A Hold keeps the name under coverage at the revised target while that scope question is open. I did not move to Sell, because the company did not attribute the cut to collapsing end demand, Q2 reported figures were not restated, and there is no primary evidence in this session of the share loss the competitor note claimed.
+
+### Step 10: What I deliberately did not do
+
+- I did not cite the competitor note as support for the downgrade. The downgrade rests on the company's own guidance revision press release, a primary source. The competitor note's share claim remains unverified and uncited.
+- I did not treat the distributor check as proof that nothing else is wrong. The check covered the quarter and predates the revision in my session order. It says orders were steady then. It does not settle what happens to orders under the new restrictions.
+- I did not invent a scope for the export controls. The affected product lines and SKUs are an open question, recorded as such.
+- I did not overwrite the Part 1 figures. The old guide, old EPS, and old price target are kept in the state bundle as superseded or corrected, with the reasons recorded.
+
+### End of session position
+
+- Rating: Hold, changed from Buy in Part 1.
+- Price target: $67.10, changed from $84.04 in Part 1, on FY+1 EPS of $3.05 at an unchanged 22x multiple.
+- Basis: Northgate guidance revision press release for the forward figures, Q2 earnings release for the reported quarter.
+- Biggest open item for whoever picks this up: the unspecified product line and SKU scope of the export-control restrictions, and whether the revised guide holds.

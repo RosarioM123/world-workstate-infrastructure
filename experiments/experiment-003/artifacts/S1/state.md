@@ -1,0 +1,384 @@
+# WORLD State Bundle: S1 API Rate Limiting
+
+Format: follows `docs/state-model.md` (Project, Decisions, Assumptions, Evidence, Questions, StateChange log, Handoff).
+Project ID: S1
+Produced by: Agent A, Experiment 003, Task S1
+Basis: Part 1 scenario materials, then the Part 2 update. Superseded items are kept visible. Nothing is overwritten.
+
+## Project
+
+- id: S1
+- name: API rate limiting implementation, gateway service
+- status: active
+- goal: Add rate limiting to the gateway service that is consistent across instances, stays within the latency budget, and does not reset client usage on deploys.
+- scope: Rate limit middleware for a multi-instance API, counter storage, the counting algorithm, and the default per client limit for this release.
+- definition_of_done: A rate limiting implementation is merged that enforces one per client limit consistently across all instances, survives deploys, stays within the latency budget, and has a green test suite with no unexplained intermittent failures.
+
+### Constraints
+
+- C1: No new external dependencies beyond what the service already uses. Redis is already a dependency.
+- C2: Rate limiting may add at most 5 ms at p99.
+- C3: Counters must survive deploys. A deploy must not reset clients' usage.
+- C4: Rate limiting must be consistent across instances. The service runs 6 instances behind a load balancer.
+
+## Tasks
+
+- T1: Rate limit middleware skeleton.
+  status: done
+  Note: written and merged behind a feature flag. Source: E2.
+- T2: Fix counter storage so counters are shared across instances and survive deploys.
+  status: done
+  Note: counters moved to Redis with a shared key per client, merged, covered by a regression test. Source: E2, E3.
+- T3: Replace fixed window algorithm with token bucket.
+  status: in_progress
+  Note: decision made, implementation exists on a prototype branch only. Not merged in the materials. Source: E4.
+- T4: Change default limit to 600 requests per minute per client for this release.
+  status: proposed
+  Note: product decision made, effective with this release, merge not stated in the materials. Source: E5.
+- T5: Find the root cause of the intermittent `test_burst_allowance` failure.
+  status: blocked
+  Note: blocked on diagnosis. Cause is unknown. Source: E6. Linked question: Q1.
+
+## Decisions
+
+### D1: Keep rate limit counters in process memory
+
+- statement: Counters are held in the memory of each gateway process.
+- rationale: This was the early implementation approach recorded in the work log. No fuller rationale is given in the materials.
+- status: superseded
+- superseded_by: D2
+- supersedes: none
+- evidence_ids: E2
+- provenance: Part 1 work log extracts, which describe this as the early bug.
+
+### D2: Store rate limit counters in Redis with a shared key per client
+
+- statement: Counters live in Redis, keyed by a shared key per client, instead of in process memory.
+- rationale: In process memory counters reset on every deploy and differed per instance. Redis gives a single shared counter per client across the 6 instances and persists usage across deploys. Redis is already a dependency and is operated in all environments, so this adds no new external dependency and satisfies C1, C3, and C4.
+- status: accepted
+- supersedes: D1
+- evidence_ids: E1, E2, E3
+- implementation_status: merged, covered by a regression test.
+- provenance: Part 1 service context and work log extracts.
+
+### D3: Use a fixed window counter algorithm
+
+- statement: Enforce the limit with a fixed window counter.
+- rationale: Simplest to implement. This was the initial algorithm choice at the start of the session.
+- status: superseded
+- superseded_by: D5
+- supersedes: none
+- evidence_ids: E2
+- provenance: Part 1 work log extracts, initial algorithm choice.
+
+### D4: Set the default limit to 100 requests per minute per client
+
+- statement: The default limit is 100 requests per minute per client.
+- rationale: Value taken from the original API spec. This was the default at the start of the session.
+- status: superseded
+- superseded_by: D6
+- supersedes: none
+- evidence_ids: E2
+- provenance: Part 1 work log extracts, citing the original API spec.
+
+### D5: Use a token bucket algorithm
+
+- statement: Enforce the limit with a token bucket algorithm instead of a fixed window counter.
+- rationale: A load test of the fixed window implementation showed clients can send 2x the limit around window edges, 100 requests at the end of one window plus 100 at the start of the next. The load test report recommends token bucket, and the prototype branch implementation passed the same load test without boundary bursts.
+- status: accepted
+- supersedes: D3
+- evidence_ids: E4
+- implementation_status: planned, not merged. Implementation exists on a prototype branch only, per E4.
+- provenance: Part 2 load test report.
+
+### D6: Set the default limit to 600 requests per minute per client
+
+- statement: The default limit becomes 600 requests per minute per client, effective with this release.
+- rationale: Support reported that a legitimate batch client is being throttled at 100 requests per minute. The product review meeting decided on 600 requests per minute per client in response.
+- status: accepted
+- supersedes: D4
+- evidence_ids: E5
+- implementation_status: planned, not merged. The materials state the decision and that it is effective with this release, but do not state that the change is merged.
+- provenance: Part 2 product review meeting notes.
+
+## Assumptions
+
+### A1: Redis is available in every environment this service runs in
+
+- statement: Redis is operated in all environments and is already a service dependency, so Redis backed counters can be used everywhere the gateway runs.
+- confidence: high
+- status: active
+- source: E1
+- provenance: Part 1 service context.
+
+### A2: A shared Redis key per client gives one consistent count across instances and across deploys
+
+- statement: Moving counters to Redis with a shared key per client makes counting consistent across the 6 instances and prevents a deploy from resetting client usage.
+- confidence: high
+- status: validated
+- validated_by_evidence_id: E3
+- note: Validated in the record only to the extent that the fix is merged and covered by a regression test. No test output values are given in the materials.
+- provenance: Part 1 work log extracts.
+
+### A3: The token bucket implementation meets the 5 ms p99 latency budget
+
+- statement: Token bucket, as implemented on the prototype branch, adds no more than 5 ms at p99.
+- confidence: low
+- status: active
+- note: No latency measurement for token bucket is given in the materials. The load test evidence in E4 covers boundary bursts only. This assumption is unverified and must not be treated as a result.
+- provenance: Constraint C2 from Part 1 service context, applied to the D5 algorithm change in Part 2.
+
+### A4: A default of 600 requests per minute per client resolves the throttling of the legitimate batch client
+
+- statement: Raising the default to 600 requests per minute per client stops the reported legitimate batch client from being throttled, without further changes for that client.
+- confidence: medium
+- status: active
+- note: Based on the support report and product decision in E5. The materials give no usage figures for that client beyond the fact that it is throttled at 100, and no data on other clients.
+- provenance: Part 2 product review meeting notes.
+
+### A5: Everything in the test suite other than `test_burst_allowance` is currently passing
+
+- statement: Apart from the one intermittent failure, the suite is green.
+- confidence: medium
+- status: active
+- note: This is a reported status, not a test run reproduced in this bundle. No run identifier or full output is given in the materials.
+- provenance: Part 2 remaining test status note, recorded as E6.
+
+## Evidence
+
+### E1: Service context
+
+- kind: document
+- reference: scenario.md, Part 1, Service context
+- summary: The gateway fronts a multi-instance API with 6 instances behind a load balancer. Rate limiting must be consistent across instances. The team operates Redis in all environments. Rate limiting may add at most 5 ms at p99.
+- captured_by: Agent A, from Part 1 materials
+- provenance: Part 1, Service context section.
+
+### E2: Work log extracts
+
+- kind: document
+- reference: scenario.md, Part 1, Work log extracts (given facts)
+- summary: A rate limit middleware skeleton is written and merged behind a feature flag. An early bug kept counters in process memory, so they reset on every deploy and differed per instance. The fix moved counters to Redis with a shared key per client, was merged, and is covered by a regression test. The initial algorithm choice was a fixed window counter, as the simplest to implement. The default limit at the start of the session was 100 requests per minute per client, from the original API spec.
+- captured_by: Agent A, from Part 1 materials
+- provenance: Part 1, Work log extracts section.
+
+### E3: Regression test for the Redis counter fix
+
+- kind: data
+- reference: Regression test covering the Redis counter fix. Test name and run identifier are not given in the materials.
+- summary: The Redis counter fix described in E2 is covered by a regression test. No pass count, output, or measurement from that test is given in the materials.
+- captured_by: Agent A, from Part 1 materials
+- provenance: Part 1, Work log extracts section.
+
+### E4: Load test report on the fixed window implementation
+
+- kind: data
+- reference: scenario.md, Part 2, Load test report
+- summary: A load test of the fixed window implementation shows a boundary burst problem: clients can send 2x the limit around window edges, 100 requests at the end of one window plus 100 at the start of the next. The report recommends a token bucket algorithm. A prototype branch already implements token bucket and passed the same load test without boundary bursts. No latency figures are given in this report summary.
+- captured_by: Agent A, from Part 2 materials
+- provenance: Part 2, Load test report section.
+
+### E5: Product review meeting notes
+
+- kind: document
+- reference: scenario.md, Part 2, Product review meeting notes
+- summary: Support reports that a legitimate batch client is being throttled at 100 requests per minute. Product decision in the meeting: the default limit becomes 600 requests per minute per client, effective with this release.
+- captured_by: Agent A, from Part 2 materials
+- provenance: Part 2, Product review meeting notes section.
+
+### E6: Remaining test suite status
+
+- kind: observation
+- reference: scenario.md, Part 2, Remaining test status (given fact)
+- summary: The test suite currently has one intermittently failing test, `test_burst_allowance`, which fails roughly one run in five. Its root cause is not yet identified. Everything else is green. No run identifier is given.
+- captured_by: Agent A, from Part 2 materials
+- provenance: Part 2, Remaining test status section.
+
+## Questions (open)
+
+### Q1: What is the root cause of the intermittent `test_burst_allowance` failure?
+
+- status: open
+- blocks_task_id: T5
+- detail: The test fails roughly one run in five. Cause: unknown. It has not yet been identified in the materials, and no cause is asserted in this bundle.
+- provenance: E6.
+
+### Q2: Does the token bucket implementation stay within the 5 ms p99 latency budget?
+
+- status: open
+- detail: No latency measurement for token bucket is given in the materials. E4 addresses boundary bursts only. This needs a measurement before the budget in C2 can be called met for the new algorithm.
+- provenance: C2 in E1, algorithm change in E4.
+
+### Q3: Have the token bucket branch and the 600 limit been merged and released?
+
+- status: open
+- detail: D5 is recorded as prototype branch only and D6 as effective with this release. Neither is stated as merged in the materials. A successor should verify merge and release state from the repository, not assume it from this bundle.
+- provenance: E4 for D5, E5 for D6.
+
+### Q4: Is 600 requests per minute per client the right default for clients other than the reported batch client?
+
+- status: open
+- detail: E5 gives a support report about one legitimate batch client and the product decision that followed. No wider client usage data is given, so the effect on other clients is unassessed.
+- provenance: E5.
+
+## StateChange Log
+
+Append only log, in order. Current state above is the projection of this log.
+
+- seq: 1
+  entity_type: Project
+  entity_id: S1
+  change: created
+  after: Project context recorded: multi-instance gateway, 6 instances behind a load balancer, Redis operated in all environments, constraints C1 to C4 including the 5 ms p99 budget and counters surviving deploys.
+  actor: Agent A
+  reason: Session start, from Part 1 service context and standing constraints (E1).
+
+- seq: 2
+  entity_type: Decision
+  entity_id: D1
+  change: created
+  after: Counters kept in process memory, as in the early implementation.
+  actor: Agent A, recording prior work
+  reason: Recorded from Part 1 work log extracts so the later fix has visible history (E2).
+
+- seq: 3
+  entity_type: Task
+  entity_id: T1
+  change: status_changed
+  after: done. Rate limit middleware skeleton written and merged behind a feature flag.
+  actor: Agent A, recording prior work
+  reason: Given as merged in Part 1 work log extracts (E2).
+
+- seq: 4
+  entity_type: Decision
+  entity_id: D2
+  change: created
+  after: Counters stored in Redis with a shared key per client.
+  actor: Agent A, recording prior work
+  reason: Fix for the bug in D1: in process memory counters reset on every deploy and differed per instance. Fix merged and covered by a regression test (E2, E3).
+
+- seq: 5
+  entity_type: Decision
+  entity_id: D1
+  change: superseded
+  before: accepted as the early implementation approach
+  after: superseded by D2
+  actor: Agent A, recording prior work
+  reason: Redis storage replaces in process memory storage (E2).
+
+- seq: 6
+  entity_type: Task
+  entity_id: T2
+  change: status_changed
+  after: done. Redis counter fix merged.
+  actor: Agent A, recording prior work
+  reason: Given as fixed and merged in Part 1 work log extracts (E2).
+
+- seq: 7
+  entity_type: Decision
+  entity_id: D3
+  change: created
+  after: Fixed window counter chosen as the algorithm.
+  actor: Agent A
+  reason: Initial choice at the start of the session, recorded as the simplest to implement (E2).
+
+- seq: 8
+  entity_type: Decision
+  entity_id: D4
+  change: created
+  after: Default limit set to 100 requests per minute per client.
+  actor: Agent A
+  reason: Default at the start of the session, from the original API spec (E2).
+
+- seq: 9
+  entity_type: Decision
+  entity_id: D5
+  change: created
+  after: Token bucket chosen as the algorithm. Status accepted, implementation on a prototype branch, not merged.
+  actor: Agent A
+  reason: Part 2 update. Load test showed a 2x boundary burst with fixed window and recommends token bucket, which the prototype branch passed the same load test without boundary bursts (E4).
+
+- seq: 10
+  entity_type: Decision
+  entity_id: D3
+  change: superseded
+  before: accepted
+  after: superseded by D5
+  actor: Agent A
+  reason: Fixed window boundary burst evidence in the load test report (E4).
+
+- seq: 11
+  entity_type: Decision
+  entity_id: D6
+  change: created
+  after: Default limit set to 600 requests per minute per client, effective with this release. Status accepted, merge not stated.
+  actor: Agent A
+  reason: Part 2 update. Product review decision after support reported a legitimate batch client throttled at 100 requests per minute (E5).
+
+- seq: 12
+  entity_type: Decision
+  entity_id: D4
+  change: superseded
+  before: accepted
+  after: superseded by D6
+  actor: Agent A
+  reason: Product review decision raising the default limit (E5).
+
+- seq: 13
+  entity_type: Question
+  entity_id: Q1
+  change: created
+  after: Open. Root cause of the intermittent `test_burst_allowance` failure is unknown. The test fails roughly one run in five, and everything else is green.
+  actor: Agent A
+  reason: Part 2 remaining test status, recorded at the end of the session (E6).
+
+- seq: 14
+  entity_type: Question
+  entity_id: Q2, Q3, Q4
+  change: created
+  after: Open. Token bucket latency against the 5 ms p99 budget is unmeasured in the materials, merge state of D5 and D6 is unstated, and the wider effect of the 600 default is unassessed.
+  actor: Agent A
+  reason: Gaps identified when closing the session against constraints C1 to C4 and evidence E4 and E5.
+
+## Handoff
+
+For the next participant continuing S1.
+
+### Context snapshot
+
+Gateway rate limiting for a 6 instance API behind a load balancer. Counters are in Redis with a shared key per client, and that fix is merged. The algorithm decision has changed from fixed window to token bucket on load test evidence, and the default limit decision has changed from 100 to 600 requests per minute per client on a product decision. Both new decisions are accepted but are not recorded as merged. One test fails intermittently for an unknown reason.
+
+### Start here
+
+1. Read Q1 first. `test_burst_allowance` fails roughly one run in five and the cause is unknown. Do not assume it is caused by the algorithm change, the limit change, or timing, because the materials give no cause.
+2. Check the real merge state of the token bucket prototype branch (D5, T3) and of the 600 limit (D6, T4) in the repository. This bundle records both as not merged, based only on the materials.
+3. Get a latency measurement for token bucket before claiming the 5 ms p99 budget in C2 is met for the new algorithm (Q2, A3).
+
+### Accepted decisions to honour
+
+- D2: Redis counters, shared key per client. Merged.
+- D5: Token bucket algorithm. Supersedes D3. Not merged.
+- D6: Default limit 600 requests per minute per client, effective with this release. Supersedes D4. Not merged.
+
+### Superseded decisions, do not revive without new evidence
+
+- D1: Counters in process memory. Superseded by D2.
+- D3: Fixed window counter. Superseded by D5, on the boundary burst evidence in E4.
+- D4: Default limit 100 requests per minute per client. Superseded by D6, on the product decision in E5.
+
+### Active assumptions to recheck
+
+- A3: Token bucket meets the 5 ms p99 budget. Confidence low, unverified.
+- A4: The 600 default resolves the reported batch client throttling. Confidence medium.
+- A5: The rest of the suite is green. Confidence medium, reported status only.
+
+### Key evidence
+
+- E2 and E3: middleware skeleton merged, Redis counter fix merged and covered by a regression test.
+- E4: Load test report, fixed window 2x boundary burst, token bucket prototype passed the same load test without boundary bursts.
+- E5: Product review notes, batch client throttled at 100, default becomes 600 for this release.
+- E6: `test_burst_allowance` intermittent failure, roughly one run in five, cause unknown, everything else green.
+
+### Recent state changes
+
+Seq 9 to 14: D5 created and D3 superseded on load test evidence, D6 created and D4 superseded on the product decision, and Q1 to Q4 opened at session close.

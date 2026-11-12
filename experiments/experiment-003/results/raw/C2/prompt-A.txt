@@ -1,0 +1,70 @@
+# Continuation assignment (C2)
+
+You are picking up the weekly status record for a website redesign
+project from a previous agent. Using only the handoff material provided,
+produce a Continuation Document with exactly these sections:
+
+1. **Where things stand:** the project's current status.
+2. **Decisions in force:** any decisions in effect, with reasons; if there
+   are none of consequence, say so.
+3. **Assumptions and facts:** any assumptions, labeled as such with
+   confidence, distinct from the given facts.
+4. **Constraints:** any standing constraints; if there are none beyond the
+   recorded schedule, say so.
+5. **What changed and why:** anything that changed; if nothing of
+   substance changed, say so.
+6. **Open questions and missing information:** what is still unknown.
+   Flag it; do not invent a confirmation.
+7. **Next actions:** the concrete next steps.
+8. **Status update draft:** a short status update (at most about 150
+   words) for the team, covering this week's progress and next steps.
+
+----- HANDOFF MATERIAL FROM THE PREVIOUS SESSION -----
+
+# Task C2: WORLD State Bundle
+
+## Project context
+
+- Project: Website redesign.
+- Role of this record: Weekly status record for the project.
+- Launch target: Still the end of next month. Nothing this week changes that.
+- Status: Active.
+- Next meeting: Next week's status meeting is on Tuesday at 10:00.
+
+## Decisions
+
+- D1: Homepage design draft approved by the marketing lead on Tuesday. Status: accepted.
+
+## Tasks
+
+- Homepage copy: Being written by Dana, due Friday. Status: in progress.
+- Team photoshoot: Done, and the edited photos are delivered. Status: done.
+
+## Assumptions
+
+- No new assumptions are recorded in the materials for this week.
+
+## Evidence
+
+- E1: Approval of the homepage design draft by the marketing lead on Tuesday, as given in the scenario materials.
+- E2: Team photoshoot completed, with edited photos delivered, as given in the scenario materials.
+
+## Questions
+
+- Q1: Will the new logo file from the brand team arrive this week? Status: open. Nobody has confirmed it. It is unconfirmed and not recorded as arrived.
+
+## StateChange log
+
+- Homepage design draft: status changed to approved on Tuesday, by the marketing lead.
+- Team photoshoot: status changed to done, with edited photos delivered.
+- Homepage copy: task in progress with Dana, due Friday.
+- Next status meeting: scheduled for Tuesday at 10:00 next week.
+- Launch target: no change recorded.
+
+## Handoff
+
+- Current state is as listed above.
+- Continue the homepage copy with Dana for the Friday deadline.
+- Follow up on the open logo file question in Q1.
+- Attend next week's status meeting on Tuesday at 10:00.
+- Launch target remains the end of next month.
