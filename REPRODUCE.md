@@ -12,9 +12,9 @@ aspirational: a command that was not run is not documented here.
 - OS: Linux 7.0.0-39-generic x86_64, glibc 2.39 (Ubuntu userland)
 - CPU: x86_64, 4 cores (virtualized host; timings are indicative only)
 - Python: 3.12.3 (repository virtualenv `.venv`)
-- Repository state: commit `cbcbc66` plus uncommitted Prompt 3
-  changes (F1 to F6) and the uncommitted `experiments/experiment-003/`
-  directory. The suite count below corresponds to that tree.
+- Repository state: local main `2c5c3b2` / remote main `b2d63c4`
+  (2026-11-11, content-identical trees). The suite count below
+  corresponds to that tree.
 
 Timing values vary by host. Counts, state totals, and pass/fail
 outcomes are the reproducible content; wall-clock numbers are not.

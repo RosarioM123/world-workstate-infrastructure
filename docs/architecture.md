@@ -1,7 +1,8 @@
 # WORLD architecture
 
 This document describes the architecture as implemented in
-`src/world/` at version 0.1.0 plus the uncommitted Prompt 3 changes.
+`src/world/` at version 0.1.0 plus the Prompt 3 changes (committed
+locally 2026-11-11 as `8288dd4`, pushed to remote main as `db5b477`).
 Every component named here exists in the code; the legacy
 `world_engine` package is a separate frozen prototype and is not
 part of this diagram. The editable diagram source is

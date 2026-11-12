@@ -4,23 +4,26 @@
 `research/RESEARCH_OVERVIEW.md` and the evidence register in
 `research/EVIDENCE_REGISTER.md`.
 
-**Updated 2026-11-05** (Prompt 6). **Version:** 0.1.0.
+**Updated 2026-11-12** (Mission Day 1 audit). **Version:** 0.1.0.
 **License:** MIT. **Not deployed, not production-ready, no external
 users.**
 
 **Tests:** 409 passing, 0 failing (full suite run locally
-2026-11-05, Python 3.12.3; earlier same-day runs consistent).
+2026-11-12, Python 3.12.3, on the mission Day 1 branch tree).
 **Model checker:** 1,220,255 states explored (three
 configurations), properties P1 to P6 hold; mutation test catches
 the injected P4 violation. **CI:** pytest on Python 3.11, 3.12,
 3.13; ruff and mypy in a separate lint job on Python 3.12
 (unpinned tool installs, a known weakness, see open items).
 
-**Uncommitted work in this tree:** Prompt 3 (below) and
-Experiment #003 are implemented and verified locally but not
-committed or pushed; remote main (`073ac26` at last sync) still
-carries the 377-test, pre-Prompt-3 state. Every Prompt 3 line
-below describes the working tree, not the public repo.
+**Committed and pushed 2026-11-11:** Prompt 3 (below) and
+Experiment #003 were committed locally as `0dca725` (Experiment #003),
+`8288dd4` (Prompt 3), and `9ef3591` (Prompt 6), and pushed to remote
+main (remote commits `44b0ff2`, `db5b477`, `5e38886`, plus CI follow-ups
+to `b2d63c4`). Local main (`2c5c3b2`) and remote main (`b2d63c4`) have
+diverged histories but content-identical trees (verified by the mission
+Day 1 audit, 2026-11-12). The work is unreviewed; every Prompt 3 line
+below describes the shipped tree, not a working-tree-only state.
 
 ---
 
@@ -34,7 +37,8 @@ winner), idempotent retries, checkpoints, committed-only time
 travel via full snapshots, `blame`, `update_many` batches,
 atomic `read()`. Documented in `docs/adr/0008-world-primitive.md`.
 
-**Prompt 3 architecture strengthening (2026-11-04, uncommitted).**
+**Prompt 3 architecture strengthening (2026-11-04, committed locally
+2026-11-11 as `8288dd4`, pushed as `db5b477`).**
 
 - F1: handoff schema upgrade (`Assumption`, decision `id`,
   `status`, `supersedes`, `evidence_ids`, referential-integrity
@@ -74,7 +78,8 @@ Core dependency-free (stdlib only).
   all); unverifiable additions only under A (12); bundles cost
   2.7x to 3.3x the words. PRELIMINARY, single model family.
   Condition A was hand-authored Markdown; the `World` class was
-  never exercised. Untracked in this tree.
+  never exercised. Committed locally 2026-11-11 as `0dca725`, pushed
+  as `44b0ff2`.
 - **Prompt 3 revalidation (2026-11-04):** first runs through the
   shipped code path (R1, R2, C1, n=3 per cell). Preservation at
   or near the #003 structured level; no revision regression
@@ -121,8 +126,8 @@ Core dependency-free (stdlib only).
 - **External validation: pending.** The protocol is written
   (`experiments/prompt6/VALIDATION_PROTOCOL.md`); zero external
   reviewers have completed it.
-- **Release blockers:** Prompt 3 and #003 uncommitted and
-  unreviewed; no release approval. See
+- **Release blockers:** Prompt 3 and #003 unreviewed; no release
+  approval. See
   `experiments/prompt6/RELEASE_READINESS.md`.
 - **Legacy `world_engine` package** still ships in the repo;
   retire-or-merge is a roadmap item.
