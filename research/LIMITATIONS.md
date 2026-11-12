@@ -17,6 +17,18 @@ and the experiment folders under `experiments/`.
   to preserve. In the replication, the raw-journal continuation scored
   4 on the same metric. This is a replicated failure on one of the four
   things the hypothesis claims structured state preserves.
+  Amendment (2026-11-05, Prompt 6): Experiment #003 (2026-11-03)
+  scored revision history at 1.000 in all three conditions, a ceiling
+  that cannot discriminate between representations, and the Prompt 3
+  revalidation found no revision regression from the projection view.
+  The current status is therefore unresolved, not a settled failure:
+  #002 says structured state lost revision history when the task
+  demanded old-to-new-to-trigger chains; #003's parity gate on
+  revision elements likely compressed the differences. The
+  discriminating experiment (harder chains, no parity gate on
+  revision elements, human grading) has not been run. Sources:
+  `experiments/experiment-003/REPORT.md`,
+  `experiments/prompt3/revalidation/RESULTS.md`.
 - **Near summary parity in one run.** In the Disney replication, an
   independently written, schema-free summary came within 0.36 of the
   WORLD continuation on the reference mean (4.09 vs 4.45). The
@@ -37,8 +49,11 @@ and the experiment folders under `experiments/`.
 
 ## Experiment methodology limits
 
-- **n=1 per run.** Each run is a single task performed once per
-  condition. Results are exploratory and are not statistically
+The bullets in this section are scoped to Experiments #001 and #002
+unless a bullet says otherwise; the #003 bullet set follows them.
+
+- **n=1 per run (#001, #002).** Each run is a single task performed
+  once per condition. Results are exploratory and are not statistically
   significant; means of metrics 1 to 10 plus 14 are reported as
   reference values only, per the protocol, which forbids collapsing
   them into a single score prematurely.
@@ -61,6 +76,30 @@ and the experiment folders under `experiments/`.
   planned but blocked because no model API credential was available
   when it was run (2026-10-15).
 
+Experiment #003 methodology limits (2026-11-03, from
+`experiments/experiment-003/REPORT.md`):
+
+- **Condition A never exercised the shipped code.** The structured
+  bundles were hand-authored Markdown built to `docs/state-model.md`,
+  not produced by `save_state`. #003 measures the representation,
+  not the implementation; the Prompt 3 revalidation is the first
+  code-path run and covers only 3 of the 8 tasks at n=3 per cell.
+- **Grading was blind agent grading, not human grading.** Eight
+  grader sessions, anchored rubrics; no human has graded any #003
+  output. A 25 percent subset (18 continuations) is preserved for
+  future human grading.
+- **The parity gate may have compressed revision differences.** M5
+  scored 1.000 in all conditions (33 chain instances per condition);
+  the gate enforced information parity on revision elements, which
+  the #003 report itself flags as the likely cause of the ceiling.
+- **Single model family, no significance tests.** n=24 per condition
+  for most metrics (21 for M3, 18 for M5); means are reported
+  descriptively, and paired deltas are small-sample.
+- **Unverifiable additions appeared only under structured state.**
+  12 under A vs 0 under B and C (fabrications were 0 everywhere);
+  a real negative finding for the structured condition, not yet
+  explained.
+
 ## System limits (the primitive)
 
 - **Tamper-evident, not immutable.** The SHA-256 hash chain detects
@@ -71,7 +110,14 @@ and the experiment folders under `experiments/`.
   third-party witnessing by default. `docs/SECURITY.md` lists exactly
   which attacks `verify()` does and does not detect, including tested
   undetected cases (for example, tail truncation and fully recomputed
-  chain rewrites).
+  chain rewrites). One former limit narrowed (Prompt 3 F3a,
+  2026-11-04): checkpoints now record the pinned row's hash and
+  `state()` / `resume()` verify it before serving, so repointing a
+  checkpoint's seq is detected at serve time. `verify()` itself
+  still does not cover the checkpoints table, the idempotency table
+  remains outside the chain (its deletion still enables a double
+  apply, undetected), and an attacker who rewrites both a
+  checkpoint's seq and its pinned hash defeats the pin check.
 - **Invariants are code, not data.** The database cannot name the rule
   set that judged a historical version. Two handles on one world can
   judge by different rules; `world serve` is the uniform-enforcement
@@ -79,7 +125,11 @@ and the experiment folders under `experiments/`.
   roadmap, not built.
 - **No per-actor identity.** The `actor` field is self-asserted. The
   HTTP API-key gate authenticates the deployment, not the writer.
-  There is no RBAC.
+  There is no RBAC. Two partial changes (Prompt 3, 2026-11-04): the
+  HTTP server now fails closed when no API key is configured (writes
+  return 401 unless unauthenticated writes were explicitly allowed),
+  and a server configured with a fixed `actor` overrides body-supplied
+  actor labels on writes. Neither identifies an individual writer.
 - **Single-writer serialization.** Appends serialize on SQLite's write
   lock by design. Measured contention behavior
   (`docs/benchmarks/contention.md`, 2026-10-15): throughput plateaus
@@ -89,10 +139,15 @@ and the experiment folders under `experiments/`.
   a transaction across documents.
 - **Local-first.** One SQLite file per world. No replication, no sync
   protocol; multi-machine sharing is out of scope for the primitive.
-- **`verify()` is O(n) in time and memory.** In the 1.06M-row soak
+- **`verify()` is O(n) in time.** In the 1.06M-row soak
   (`experiments/soak/RESULTS.md`), full-chain verification took 14.0s
-  and 659 MB RSS because it loads the whole chain. Correct at that
-  scale; a streaming verifier is future work.
+  and 659 MB RSS because it loaded the whole chain. The memory half
+  is fixed (Prompt 3 F5, 2026-11-04): `verify()` now streams rows
+  from the cursor, and on a 20,000-row chain the peak-RSS delta fell
+  from 19.7 MB to about 1 MB (`experiments/prompt3/BENCHMARKS.md`).
+  The 1.06M-row soak has not been re-run at that scale, so the
+  at-scale memory figure remains the 2026-10-15 record. Verification
+  time is still linear in chain length.
 - **Model checking is bounded.** The protocol verification explores
   2 to 3 writers with 2 to 3 operations each (1,220,255 states total).
   That is exhaustive for those configurations, not a proof for all N.

@@ -7,6 +7,19 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Experiment #003 (2026-11-03, preregistered): 8 tasks, 3 conditions,
+  72 continuations, blind graded. Assumption retention was the one
+  consistent structured-state advantage (A 0.721 vs B 0.500 vs
+  C 0.488); revision history tied at ceiling; unverifiable additions
+  only under A (12). PRELIMINARY. Full record:
+  `experiments/experiment-003/REPORT.md`.
+- Prompt 6 release-preparation artifacts (2026-11-05):
+  `REPRODUCE.md` (verified reproduction workflow and clean-install
+  test), `research/PAPER.md` (unpublished manuscript draft),
+  `research/EVIDENCE_REGISTER.md`, `docs/architecture.md` and
+  `docs/architecture.mmd`, `demo/` (two-process demonstration), and
+  the audit, release-readiness, and validation-protocol documents
+  in `experiments/prompt6/`. Nothing in this entry is a release.
 - Versioned API under `/api/v1` with deprecated `/api/*` aliases,
   uniform JSON error envelope, and request-ID plus structured logging
   middleware.
@@ -68,6 +81,28 @@ Versions follow [Semantic Versioning](https://semver.org/).
   `research/RESEARCH_OVERVIEW.md`, `research/HYPOTHESIS.md`,
   `research/LIMITATIONS.md`, `research/RELATED_WORK.md`, and a
   refreshed `STATUS.md`.
+- Prompt 3 (2026-11-04): handoff schema brought up to the research
+  state model. `AgentState` gains an `assumptions` section;
+  `Decision` gains `id`, `status`, `supersedes`, and `evidence_ids`;
+  `Evidence` gains `id` and `kind`; a new `Assumption` type carries
+  `confidence`, `status`, and `validated_by`. `save_state` validates
+  the revision graph's referential integrity before proposing.
+  All additive: pre-F1 stored handoffs load with defaults.
+- Prompt 3 (2026-11-04): `world.handoff.revision_chain(world,
+  decision_id)` derives one decision's revision history (original,
+  changes, actor, reason, evidence links, current status) from the
+  committed snapshots.
+- Prompt 3 (2026-11-04): `world.handoff.project_state(state)` builds
+  a continuation-ready projection: live decisions and assumptions in
+  full, superseded/reversed/invalidated items as compact
+  status-marked entries, evidence filtered to referenced items.
+- Prompt 3 (2026-11-04): checkpoints record the pinned row's hash;
+  `state(checkpoint=...)` and `resume()` verify it before serving
+  and refuse repointed checkpoints (`InvariantViolation`). Existing
+  databases gain the column additively; pre-F3a checkpoints carry no
+  pin and are served unverified.
+- Prompt 3 (2026-11-04): the HTTP server accepts a fixed `actor`
+  configuration that overrides body-supplied actor labels on writes.
 
 ### Changed
 - Python dependencies are now declared only in `pyproject.toml`
@@ -77,6 +112,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - `docs/SECURITY.md` expanded with a tested threat model for the
   `src/world` primitive, and updated again when signed checkpoints
   closed its top two stated limits.
+- Prompt 3 (2026-11-04): the HTTP server fails closed. With no API
+  key configured, write routes return 401 unless unauthenticated
+  writes were explicitly allowed (`allow_unauthenticated_writes` /
+  `world serve --allow-unauthenticated`). The previous fail-open
+  default (startup warning, then open writes) is removed.
+- Prompt 3 (2026-11-04): `World.verify()` and `World.blame()` stream
+  rows instead of materializing the chain; verification memory no
+  longer grows with chain length.
 
 ### Fixed
 - `World.update` re-validates `expected_version` inside the write

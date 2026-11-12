@@ -110,3 +110,11 @@ supersession, but the revision mechanism is unproven. The next experiment
 should test revision-chain preservation explicitly before any broader
 infrastructure claim is made.
 
+Amendment (2026-11-05, Prompt 6): Experiment #003 (2026-11-03) has
+since run; its revision metric tied at ceiling in all conditions, so
+the revision question is unresolved rather than answered, and its one
+consistent structured-state advantage was assumption retention. The
+#003 verdicts are recorded in `research/HYPOTHESIS.md` and
+`experiments/experiment-003/REPORT.md`; this file's pre-#003 evidence
+text is kept as the historical record.
+
