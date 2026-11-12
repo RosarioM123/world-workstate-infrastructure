@@ -11,7 +11,6 @@ Outputs: analysis/results.json and analysis/tables.md.
 """
 
 import json
-import math
 from pathlib import Path
 from statistics import mean, stdev
 

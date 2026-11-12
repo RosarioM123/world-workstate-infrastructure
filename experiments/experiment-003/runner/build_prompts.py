@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from prompts import CONDITION_ARTIFACTS, SYSTEM_PROMPT, compose  # noqa: E402
+from prompts import CONDITION_ARTIFACTS, SYSTEM_PROMPT, compose
 
 ROOT = Path(__file__).resolve().parent.parent
 TASKS = ["F1", "F2", "S1", "S2", "R1", "R2", "C1", "C2"]
