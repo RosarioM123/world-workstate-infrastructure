@@ -148,20 +148,35 @@ def create_app(
                     "detail": "version or checkpoint, not both",
                 },
             )
-        seq = work.version
         if checkpoint is not None:
-            cps = {c["name"]: c["seq"] for c in work.checkpoints()}
-            if checkpoint not in cps:
+            # Route through state(checkpoint=...) so the F3a pin check
+            # runs: resolving the checkpoint to a seq here and reading
+            # by version would serve a repointed checkpoint silently.
+            try:
+                state = work.state(checkpoint=checkpoint)
+            except KeyError as e:
                 return JSONResponse(
                     status_code=404,
+                    content={"error": "not_found", "detail": str(e)},
+                )
+            except InvariantViolation as e:
+                return JSONResponse(
+                    status_code=422,
                     content={
-                        "error": "not_found",
-                        "detail": f"unknown checkpoint {checkpoint!r}",
+                        "error": "checkpoint_pin_mismatch",
+                        "detail": str(e),
                     },
                 )
-            seq = cps[checkpoint]
-        elif version is not None:
-            seq = version
+            seq = next(c["seq"] for c in work.checkpoints() if c["name"] == checkpoint)
+            return JSONResponse(
+                status_code=200, content={"version": seq, "state": state}
+            )
+        if version is None and work.version == 0:
+            # An empty world has no committed row; state() with no
+            # version returns {} in core, so mirror that over HTTP
+            # instead of 404ing on version 0.
+            return JSONResponse(status_code=200, content={"version": 0, "state": {}})
+        seq = work.version if version is None else version
         try:
             state = work.state(version=seq)
         except KeyError as e:
