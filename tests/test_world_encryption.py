@@ -161,6 +161,27 @@ def test_redact_field_all_versions(tmp_path):
     assert w.verify()
 
 
+def test_redact_field_covers_rejected_rows(tmp_path):
+    # C-2: redact_field used to stop at the latest COMMITTED version,
+    # so a REJECTED row appended after it kept a decryptable envelope
+    # while the receipt implied the field was shredded everywhere.
+    from world import InvariantViolation
+    from world.invariants import monotonic
+
+    w = World("vault", dir=str(tmp_path), invariants=[monotonic("n")])
+    w.update_encrypted(MASTER, {"n": 1, "ssn": "aaa"}, ["ssn"])
+    with pytest.raises(InvariantViolation):
+        w.update_encrypted(MASTER, {"n": 0, "ssn": "bbb"}, ["ssn"])
+    receipts = w.redact_field("ssn", MASTER)
+    assert {r["seq"] for r in receipts} == {1, 2}
+    assert w.redaction_status(1, "ssn") == "redacted"
+    assert w.redaction_status(2, "ssn") == "redacted"
+    # The rejected attempt no longer decrypts; the chain still verifies.
+    with pytest.raises(RedactedError):
+        w.decrypt_fields(MASTER, w.proposal(2)["state"])
+    assert w.verify()
+
+
 def test_rejected_proposal_envelopes_stay_decryptable(tmp_path):
     from world import InvariantViolation
     from world.invariants import monotonic
