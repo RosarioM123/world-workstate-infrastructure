@@ -1255,8 +1255,13 @@ class World:
         return out
 
     def _envelope_at(self, seq: int, field: str) -> tuple[dict, str]:
+        # Resolve through proposal(), not state(version=): REJECTED rows
+        # are never part of committed time travel, but their envelopes
+        # are real ciphertext with escrowed keys, and redaction must
+        # shred them too. Otherwise redact_field would report a field
+        # shredded everywhere while a rejected attempt still decrypts.
         try:
-            state = self.state(version=seq)
+            state = self.proposal(seq)["state"]
         except KeyError:
             raise ValueError(f"no committed version {seq}") from None
         value = _get_path(state, field)
@@ -1316,14 +1321,20 @@ class World:
         """Redact ``field`` at every version where it is encrypted.
 
         Returns one receipt per shredded key. Already-redacted versions
-        are skipped.
+        are skipped. The sweep covers REJECTED rows as well as
+        committed ones: a rejected attempt's envelope is still
+        decryptable evidence, so stopping at the latest committed
+        version would leave it shreddable in name only.
         """
         receipts: list[dict[str, Any]] = []
-        for seq in range(1, self.version + 1):
+        with closing(self._connect()) as cx:
+            row = cx.execute("SELECT MAX(seq) AS m FROM versions").fetchone()
+            max_seq = int(row["m"]) if row is not None and row["m"] is not None else 0
+        for seq in range(1, max_seq + 1):
             try:
                 self._envelope_at(seq, field)
             except ValueError:
-                continue  # not encrypted here (or not committed)
+                continue  # not encrypted here
             try:
                 receipts.append(self.redact(seq, field, master_key))
             except RedactedError:
