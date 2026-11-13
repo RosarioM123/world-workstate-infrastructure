@@ -1,6 +1,7 @@
 """Tests for the `world` CLI, the HTTP server, and the transcript producer."""
 
 import json
+import sqlite3
 
 import pytest
 
@@ -196,6 +197,37 @@ def test_server_conflict_checkpoint_resume(store):
     assert c.get("/v1/state", params={"version": 2}).json()["state"] == {"n": 5}
     assert c.post("/v1/resume", json={"name": "nope"}).status_code == 404
     assert len(c.get("/v1/checkpoints").json()["checkpoints"]) == 1
+
+
+def test_server_checkpoint_pin_verified_over_http(store):
+    # C-1: GET /v1/state used to resolve the checkpoint to a seq itself
+    # and read by version, skipping the F3a pin check the core performs.
+    c = make_client(store, allow_unauthenticated_writes=True)
+    c.post("/v1/update", json={"state": {"n": 1}})
+    c.post("/v1/checkpoint", json={"name": "c1"})
+    c.post("/v1/update", json={"state": {"n": 2}})
+    assert c.get("/v1/state", params={"checkpoint": "c1"}).json() == {
+        "version": 1,
+        "state": {"n": 1},
+    }
+    # Repoint the checkpoint at seq 2 by direct DB edit, as an attacker
+    # with file access would. The core refuses it; the server must too.
+    db = sqlite3.connect(f"{store}/srv.db")
+    db.execute("UPDATE checkpoints SET seq = 2 WHERE name = 'c1'")
+    db.commit()
+    db.close()
+    r = c.get("/v1/state", params={"checkpoint": "c1"})
+    assert r.status_code == 422
+    assert r.json()["error"] == "checkpoint_pin_mismatch"
+    # Plain version reads are unaffected by the repoint.
+    assert c.get("/v1/state", params={"version": 2}).json()["state"] == {"n": 2}
+
+
+def test_server_state_empty_world(store):
+    # C-4: an empty world has no committed row; GET /v1/state used to
+    # 404 on version 0 instead of returning the empty document.
+    c = make_client(store, allow_unauthenticated_writes=True)
+    assert c.get("/v1/state").json() == {"version": 0, "state": {}}
 
 
 def test_server_rate_limit(store):
