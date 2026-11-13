@@ -122,6 +122,19 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- `GET /v1/state?checkpoint=...` now verifies the checkpoint pin (Prompt 3
+  F3a) through `World.state(checkpoint=...)` instead of resolving the
+  checkpoint to a seq and reading by version, which served repointed
+  checkpoints silently over HTTP. A mismatched pin returns 422
+  `checkpoint_pin_mismatch`. (Mission Day 2, audit finding C-1.)
+- `GET /v1/state` on an empty world returns `{"version": 0, "state": {}}`
+  instead of 404. (Mission Day 2, audit finding C-4.)
+- `World.redact_field` now shreds encrypted fields in REJECTED rows too:
+  it stopped at the latest committed version, so a rejected attempt's
+  envelope stayed decryptable while the receipt implied the field was
+  shredded everywhere. `World.redact` and `World.redaction_status`
+  resolve envelopes through `proposal(seq)` for the same reason.
+  (Mission Day 2, audit finding C-2.)
 - `World.update` re-validates `expected_version` inside the write
   transaction, closing a lost-update race where two writers that both
   passed the pre-lock check could overwrite each other. Without
