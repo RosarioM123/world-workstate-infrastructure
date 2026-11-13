@@ -141,4 +141,9 @@ needed for today's work.
 the last P0 item; H-1 needs Rosario's decision.
 
 **Day 2 commits:**
-- (see SHAs below; this line updated in the final commit)
+- `8a4683f` fix: verify checkpoint pin on GET /v1/state and serve empty
+  world (C-1, C-4)
+- `0f88e0b` fix: redact_field shreds encrypted fields in REJECTED rows
+  too (C-2)
+- `91035ca` docs: Day 2 mission log, changelog entries for C-1, C-2, C-4
+- `LOG.md` SHA line updated in the commit below (this line).
