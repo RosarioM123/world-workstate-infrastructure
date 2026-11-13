@@ -82,3 +82,63 @@ rationales in `experiments/mission-90/AUDIT.md` section 9.
 - `fce7ab4` docs: correct stale uncommitted/pushed state in STATUS,
   REPRODUCE, architecture, overview, security
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 2 - 2026-11-13 (Foundation phase)
+
+**Branch:** `mission/day-2` (from `mission/day-1` tip `cfee56e`).
+Nothing pushed, nothing merged to main.
+
+**Objectives:** close the two P0 audit findings that are code fixes on
+the primitive: C-1 (server checkpoint pin bypass) and C-2
+(`redact_field` REJECTED-row gap). C-4 (empty-world state over HTTP)
+rode along because it is the same `get_state` function and a three-line
+fix with its own test.
+
+**Baseline (measured, clean sequential run):** 409 passed, 0 failed,
+1 warning, 64.54 s, Python 3.12.3. Slowest tests recorded this run:
+`test_protocol_three_writers_race_focused` 20.86 s,
+`test_stateful_world_matches_reference_model` 4.06 s,
+`test_verify_detects_random_mutations` 3.91 s.
+
+**GitHub (read-only):** unchanged since Day 1: 12 open Dependabot PRs
+(newest #27, hypothesis bump, Nov 9), 1 open issue (#4, already
+addressed by Experiment #003). No human-filed issues, nothing new to
+act on.
+
+**Changes:**
+- C-1 (`src/world/server.py`): `GET /v1/state?checkpoint=...` now calls
+  `work.state(checkpoint=...)` so the F3a pin check runs; a repointed
+  checkpoint returns 422 `checkpoint_pin_mismatch` instead of serving
+  the wrong snapshot. Regression test repoints the checkpoint by direct
+  DB edit and asserts the 422; the test fails on pre-fix code.
+- C-4 (`src/world/server.py`): `GET /v1/state` on an empty world
+  returns `{"version": 0, "state": {}}` instead of 404. Regression
+  test added; fails on pre-fix code.
+- C-2 (`src/world/core.py`): `_envelope_at` now resolves envelopes
+  through `proposal(seq)` instead of committed-only
+  `state(version=seq)`, so `redact` and `redaction_status` work on
+  REJECTED rows; `redact_field` sweeps `MAX(seq)` from the versions
+  table instead of stopping at the latest committed version.
+  Regression test: committed seq 1 plus rejected seq 2, both with
+  encrypted `ssn`; `redact_field` returns receipts for both seqs, both
+  report `redacted`, the rejected envelope no longer decrypts, and
+  `verify()` stays green. Fails on pre-fix code.
+- Docs: CHANGELOG.md Fixed entries for C-1, C-2, C-4; STATUS.md test
+  line re-dated to the 2026-11-13 run (412 passing).
+
+**Verification:** affected files pass first (39 passed), then full
+suite 412 passed, 0 failed, 1 warning, 61.64 s. Ruff check and format
+clean on all four changed files; mypy on `src/world` clean. All three
+new tests were run against the pre-fix code (via a temporary stash)
+and failed there, confirming they catch the bugs they guard.
+
+**Unresolved issues / decisions for Rosario:** unchanged from Day 1
+(H-1 history divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8
+version string and top-level exports; L-6/F3b). No new decisions
+needed for today's work.
+
+**Next (P0 remainder):** T-1 (soak timing test load-insensitivity) is
+the last P0 item; H-1 needs Rosario's decision.
+
+**Day 2 commits:**
+- (see SHAs below; this line updated in the final commit)
