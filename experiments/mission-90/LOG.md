@@ -220,3 +220,11 @@ except H-1, which needs her decision.
 **Next (P1):** C-8, C-15, C-6, C-7, T-2, T-3, D-3, D-11, in audit
 priority order; T-2 (pinned ruff/mypy in CI) and T-3 (lint/typecheck
 scope) are the natural next picks.
+
+**Day 3 commits:**
+- `23c6e80` test: make soak latency gate load-insensitive via CPU time
+  and row-count scaling (T-1)
+- `3cd1e92` fix: return 400 for malformed POST bodies instead of 500
+  (C-3)
+- `d250c21` docs: Day 3 mission log, changelog entries for T-1 and C-3
+- `LOG.md` SHA line updated in the commit below (this line).
