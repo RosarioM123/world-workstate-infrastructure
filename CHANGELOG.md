@@ -122,6 +122,22 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- `test_soak_no_latency_drift` is now load-insensitive (Mission Day 3,
+  audit finding T-1): latencies are measured with `time.process_time()`
+  (per-process CPU time) instead of wall clock, and the drift check is a
+  row-count scaling check (per-update cost at a 20k-row chain within 5x
+  of the cost at a 2k-row chain) instead of a same-window comparison
+  that could not catch linear growth. The old test failed 2 of 3 runs
+  under two concurrent suites; the new test passed 3 of 3 under the
+  same load, and a scratch simulation of an O(n) append path (a full
+  history scan per update) trips the scaling gate at 5.9x.
+- Malformed POST bodies on `/v1/update`, `/v1/checkpoint`, and
+  `/v1/resume` now return 400 `bad_request` instead of 500 (Mission
+  Day 3, audit finding C-3): malformed JSON, a non-object JSON body,
+  and mistyped `actor`, `note`, `idempotency_key`, `name`, or
+  `expected_version` fields (including a boolean `expected_version`,
+  which used to surface as a misleading 409) are validated before
+  reaching the core.
 - `GET /v1/state?checkpoint=...` now verifies the checkpoint pin (Prompt 3
   F3a) through `World.state(checkpoint=...)` instead of resolving the
   checkpoint to a seq and reading by version, which served repointed
