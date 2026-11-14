@@ -147,3 +147,76 @@ the last P0 item; H-1 needs Rosario's decision.
   too (C-2)
 - `91035ca` docs: Day 2 mission log, changelog entries for C-1, C-2, C-4
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 3 - 2026-11-14 (Foundation phase)
+
+**Branch:** `mission/day-3` (from `mission/day-2` tip `8ee0136`).
+Nothing pushed, nothing merged to main.
+
+**Objectives:** close T-1, the last P0 audit finding (flaky soak
+timing test), and C-3, the next P1 (unvalidated POST bodies return
+500 instead of 400). Both are small, independently testable
+correctness fixes on the primitive and its HTTP surface.
+
+**Baseline (measured, clean sequential run):** 412 passed, 0 failed,
+1 warning, 70.35 s, Python 3.12.3.
+
+**GitHub (read-only):** unchanged since Day 2: 12 open Dependabot PRs
+(newest #27, hypothesis bump, Nov 9), 1 open issue (#4, already
+addressed by Experiment #003). No human-filed issues, nothing new to
+act on.
+
+**Changes:**
+- T-1 (`tests/test_soak.py`): the soak latency gate is now
+  load-insensitive. Latencies are measured with `time.process_time()`
+  (CPU time consumed by this process) instead of wall clock, and the
+  drift check is a row-count scaling check: per-update p99 at a 20k-row
+  chain must stay within 5x of the p99 at a 2k-row chain, plus the
+  existing same-window 5x check and the 50 ms absolute cap (now on CPU
+  time). The old same-window check could not catch linear growth: the
+  chain grows only 10% across its window, so even a truly O(n) append
+  path slows only about 10% there. The scaling check gives a 10x chain
+  growth, so linear per-append cost shows up as roughly a 10x ratio.
+- C-3 (`src/world/server.py`): new `_read_body` helper parses POST
+  bodies as JSON objects (malformed JSON or a non-object body returns
+  400 `bad_request`) and the three POST routes validate field types
+  before calling the core: `actor`/`note`/`idempotency_key`/`name`
+  strings or null, `expected_version` an integer or null (booleans
+  rejected explicitly, since JSON `true` used to surface as a
+  misleading 409). Regression test covers malformed JSON, an array
+  body, each mistyped field, and a valid checkpoint/resume round trip.
+
+**Verification:**
+- T-1 reproduced pre-fix: the old test failed 2 of 3 runs under two
+  concurrent full suites (the Day 1 failure condition).
+- T-1 fixed: the new test passed 3 of 3 runs under the same load,
+  and both concurrent suites passed (412 each). Clean sequential runs:
+  6 of 6.
+- T-1 sensitivity: a scratch simulation of an O(n) append path (a
+  full history scan per update) trips the new scaling gate at 5.9x
+  (and the 50 ms cap at 56.1 ms). The same simulation against the old
+  same-window check did not fire (ratio 1.01), confirming the old
+  check was vacuous for linear growth; the scratch scripts live only
+  in /tmp and were not committed.
+- C-3 regression test fails on pre-fix code (verified via temporary
+  stash) and passes with the fix.
+- Full suite: 413 passed, 0 failed, 1 warning, 61.79 s. Ruff check
+  and format clean on all three changed files; mypy on `src/world`
+  clean.
+- Incidental finding, not a code change: /tmp (512M tmpfs) filled to
+  100% during the concurrent-suite runs (194M `pytest-of-root` plus
+  roughly 300M of `crash-*` debris from repeated full-suite runs),
+  which killed background suites with empty logs before the cause was
+  identified. Cleaned per the AGENTS.md rule before the final runs.
+  Two concurrent full suites leave /tmp about 65% full; worth
+  watching if future load reproductions add a third.
+
+**Unresolved issues / decisions for Rosario:** unchanged from Day 2
+(H-1 history divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8
+version string and top-level exports; L-6/F3b). No new decisions
+needed for today's work. With T-1 closed, all P0 items are done
+except H-1, which needs her decision.
+
+**Next (P1):** C-8, C-15, C-6, C-7, T-2, T-3, D-3, D-11, in audit
+priority order; T-2 (pinned ruff/mypy in CI) and T-3 (lint/typecheck
+scope) are the natural next picks.
