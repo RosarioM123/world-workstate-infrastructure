@@ -323,3 +323,42 @@ def test_cli_proposal_audits_any_seq(store, tmp_path, capsys):
     p = json.loads(capsys.readouterr().out)
     assert p["status"] == "COMMITTED" and p["state"] == {"bal": 10}
     assert cli(store, "proposal", "t", "99") == 1
+
+
+def test_server_malformed_bodies_are_400_not_500(store):
+    # C-3: unvalidated POST bodies used to return 500 (malformed JSON,
+    # a JSON array body, a non-string note) or a misleading 409 (a
+    # mistyped expected_version). All are client errors: 400.
+    c = make_client(store, allow_unauthenticated_writes=True)
+    r = c.post(
+        "/v1/update",
+        content="{not json",
+        headers={"Content-Type": "application/json"},
+    )
+    assert r.status_code == 400
+    assert r.json()["error"] == "bad_request"
+    r = c.post("/v1/update", json=[1, 2, 3])
+    assert r.status_code == 400
+    assert r.json()["error"] == "bad_request"
+    for field, bad in [
+        ("note", 123),
+        ("actor", 123),
+        ("expected_version", "x"),
+        ("expected_version", True),
+        ("idempotency_key", 123),
+    ]:
+        r = c.post("/v1/update", json={"state": {"a": 1}, field: bad})
+        assert r.status_code == 400, field
+        assert r.json()["error"] == "bad_request"
+    # A string state is still 400 (unchanged behavior), and a valid
+    # update still commits.
+    assert c.post("/v1/update", json={"state": "nope"}).status_code == 400
+    assert c.post("/v1/update", json={"state": {"a": 1}}).status_code == 200
+    # The checkpoint and resume routes validate their bodies too.
+    assert c.post("/v1/checkpoint", json=[1]).status_code == 400
+    assert c.post("/v1/checkpoint", json={"name": 123}).status_code == 400
+    assert c.post("/v1/resume", json=[1]).status_code == 400
+    assert c.post("/v1/resume", json={"name": "c1", "note": 5}).status_code == 400
+    # And a valid checkpoint/resume round trip still works.
+    assert c.post("/v1/checkpoint", json={"name": "c1"}).status_code == 200
+    assert c.post("/v1/resume", json={"name": "c1"}).status_code == 200

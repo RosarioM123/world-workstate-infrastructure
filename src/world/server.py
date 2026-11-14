@@ -38,6 +38,36 @@ from .core import ConflictError, Invariant, InvariantViolation, World
 log = logging.getLogger("world.server")
 
 
+def _bad_request(detail: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=400, content={"error": "bad_request", "detail": detail}
+    )
+
+
+async def _read_body(request: Request) -> dict[str, Any] | JSONResponse:
+    """Parse a POST body as a JSON object, or return the 400 to send.
+
+    Unvalidated bodies used to reach the core and fail there with 500s
+    (malformed JSON, a JSON array body, a non-string ``note``); a
+    mistyped ``expected_version`` surfaced as a misleading 409.
+    """
+    try:
+        body = await request.json()
+    except ValueError:
+        return _bad_request("body must be valid JSON")
+    if not isinstance(body, dict):
+        return _bad_request("body must be a JSON object")
+    return body
+
+
+def _is_str_or_null(value: Any) -> bool:
+    return value is None or isinstance(value, str)
+
+
+def _is_int_or_null(value: Any) -> bool:
+    return value is None or (isinstance(value, int) and not isinstance(value, bool))
+
+
 def create_app(
     name: str,
     *,
@@ -190,12 +220,19 @@ def create_app(
         denied = await _guard(request)
         if denied is not None:
             return denied
-        body = await request.json()
+        body = await _read_body(request)
+        if isinstance(body, JSONResponse):
+            return body
         if not isinstance(body.get("state"), dict):
-            return JSONResponse(
-                status_code=400,
-                content={"error": "bad_request", "detail": "state must be an object"},
-            )
+            return _bad_request("state must be an object")
+        if not _is_str_or_null(body.get("actor")):
+            return _bad_request("actor must be a string")
+        if not _is_str_or_null(body.get("note")):
+            return _bad_request("note must be a string")
+        if not _is_int_or_null(body.get("expected_version")):
+            return _bad_request("expected_version must be an integer")
+        if not _is_str_or_null(body.get("idempotency_key")):
+            return _bad_request("idempotency_key must be a string")
         try:
             seq = work.update(
                 body["state"],
@@ -222,7 +259,11 @@ def create_app(
         denied = await _guard(request)
         if denied is not None:
             return denied
-        body = await request.json()
+        body = await _read_body(request)
+        if isinstance(body, JSONResponse):
+            return body
+        if not _is_str_or_null(body.get("name")):
+            return _bad_request("name must be a string")
         cp_name = body.get("name", "")
         try:
             seq = work.checkpoint(cp_name)
@@ -237,7 +278,15 @@ def create_app(
         denied = await _guard(request)
         if denied is not None:
             return denied
-        body = await request.json()
+        body = await _read_body(request)
+        if isinstance(body, JSONResponse):
+            return body
+        if not _is_str_or_null(body.get("name")):
+            return _bad_request("name must be a string")
+        if not _is_str_or_null(body.get("actor")):
+            return _bad_request("actor must be a string")
+        if not _is_str_or_null(body.get("note")):
+            return _bad_request("note must be a string")
         try:
             seq = work.resume(
                 body.get("name", ""),
