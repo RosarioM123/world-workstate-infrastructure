@@ -23,7 +23,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import DEMO_TIP_KEY, WORLD_NAME, demo_dir, spend_cap_invariant
 
 from world import World
-from world.handoff import Decision, load_state, project_state, revision_chain, save_state
+from world.handoff import (
+    Decision,
+    load_state,
+    project_state,
+    revision_chain,
+    save_state,
+)
 
 
 def main() -> int:
@@ -39,7 +45,9 @@ def main() -> int:
     tip_path = data_dir / "tip.json"
     if tip_path.exists():
         tip = json.loads(tip_path.read_text())
-        print(f"verify_tip(signed tip from seq {tip['seq']}): {work.verify_tip(DEMO_TIP_KEY, tip)}")
+        print(
+            f"verify_tip(signed tip from seq {tip['seq']}): {work.verify_tip(DEMO_TIP_KEY, tip)}"
+        )
 
     # 2. Reconstruct the task context.
     state = load_state(work)
@@ -62,7 +70,9 @@ def main() -> int:
         print(f"      text: {e['text']}")
     successor = next(d for d in state.decisions if d.supersedes == "D1")
     ev = {e.id: e for e in state.evidence}
-    print(f"  authoritative successor: {successor.id} [{successor.status}] {successor.text}")
+    print(
+        f"  authoritative successor: {successor.id} [{successor.status}] {successor.text}"
+    )
     print(f"      why it changed: {successor.rationale}")
     for eid in successor.evidence_ids:
         print(f"      evidence {eid}: {ev[eid].claim} (source: {ev[eid].source})")
@@ -75,19 +85,27 @@ def main() -> int:
 
     # 5. The constraint, and its recorded enforcement.
     spend = work.state()["spend"]
-    print(f"\nConstraint on record: committed spend {spend['committed_usd']} USD, cap {spend['cap_usd']} USD")
+    print(
+        f"\nConstraint on record: committed spend {spend['committed_usd']} USD, cap {spend['cap_usd']} USD"
+    )
     for row in work.history():
         if row["status"] == "REJECTED":
-            print(f"  enforcement on record: seq {row['seq']} REJECTED by {row['actor']}: {row['note']}")
+            print(
+                f"  enforcement on record: seq {row['seq']} REJECTED by {row['actor']}: {row['note']}"
+            )
 
     # 6. The projection view, measured on this state.
     full = json.dumps(state.to_dict())
     projected = project_state(state)
     proj = json.dumps(projected.to_dict())
-    print(f"\nProjection view: full state {len(full)} chars, projected {len(proj)} chars")
+    print(
+        f"\nProjection view: full state {len(full)} chars, projected {len(proj)} chars"
+    )
     for d in projected.decisions:
         if d.status in ("superseded", "reversed"):
-            print(f"  projected {d.id} is a compact status-marked entry: [{d.status}] {d.text}")
+            print(
+                f"  projected {d.id} is a compact status-marked entry: [{d.status}] {d.text}"
+            )
 
     # 7. What a conventional summary of this same state would carry.
     print("\nFor contrast, a plain summary of this state would read:")
@@ -100,8 +118,12 @@ def main() -> int:
     print("  " + " ".join(summary_bits))
     print("  What that summary cannot carry, computed from the state above:")
     for a in state.assumptions:
-        print(f"    {a.id}: confidence level {a.confidence!r} (Experiment #003 metric 3:")
-        print("         summaries recovered assumption substance but lost exactly this)")
+        print(
+            f"    {a.id}: confidence level {a.confidence!r} (Experiment #003 metric 3:"
+        )
+        print(
+            "         summaries recovered assumption substance but lost exactly this)"
+        )
     print(f"    D1 vs {successor.id}: which decision is authoritative, and that one")
     print("         superseded the other, with the reason and the evidence link")
 
@@ -117,7 +139,9 @@ def main() -> int:
         )
     )
     continued.next_actions = ["Write the memo draft on the D3 basis"]
-    seq = save_state(work, continued, actor="agent-b", note="continuing: base case set from D3")
+    seq = save_state(
+        work, continued, actor="agent-b", note="continuing: base case set from D3"
+    )
     print(f"\nAgent B continued the work: committed seq {seq} (decision D4 added)")
 
     # 9. Final verification and the full verdict log.

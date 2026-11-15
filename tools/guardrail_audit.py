@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """guardrail_audit.py - re-run a session's actions against the bundle's guardrails.
 
 Idea 6: experiment #001 proved transcripts drop guardrails silently. This pass
@@ -39,22 +38,26 @@ def check_g1(actions):
     for a in actions:
         if a.get("type") == "write" and a.get("path"):
             try:
-                text = open(a["path"], encoding="utf-8").read()
+                with open(a["path"], encoding="utf-8") as f:
+                    text = f.read()
             except OSError:
                 continue
             n = text.count(EM_DASH)
             if n:
-                hits.append("%s (%d em dash%s)" % (a["target"], n, "es" if n > 1 else ""))
+                hits.append(f"{a['target']} ({n} em dash{'es' if n > 1 else ''})")
     if hits:
         return "FLAG", "; ".join(hits)
-    return "PASS", "no em dashes in %d written files" % sum(1 for a in actions if a.get("path"))
+    return (
+        "PASS",
+        f"no em dashes in {sum(1 for a in actions if a.get('path'))} written files",
+    )
 
 
 def check_g2(actions):
     """Never touch experiment-002 or development-log.md outside the schedule."""
     hits = []
     for a in actions:
-        t = (a.get("target") or "")
+        t = a.get("target") or ""
         if a.get("type") == "write" and (
             t in PROTECTED_FILES or t.startswith(PROTECTED_PREFIXES)
         ):
@@ -75,43 +78,68 @@ def check_g3(actions):
             hits.append("history rewrite action: " + a["type"])
         if a.get("path"):
             try:
-                text = open(a["path"], encoding="utf-8").read()
+                with open(a["path"], encoding="utf-8") as f:
+                    text = f.read()
             except OSError:
                 continue
             if SECRET_RE.search(text):
                 hits.append("possible secret in " + a["target"])
     if hits:
         return "FLAG", "; ".join(hits)
-    return "PASS", "no license/secret/history issues in %d actions" % len(actions)
+    return "PASS", f"no license/secret/history issues in {len(actions)} actions"
 
 
 CHECKS = [
     ("G1", "No em dashes in polished or repo-facing text", check_g1),
-    ("G2", "Never touch docs/experiment-002/ or docs/development-log.md outside the experiment schedule", check_g2),
-    ("G3", "No license changes, secrets, history rewrites, or new product features in the validation program", check_g3),
-    ("G4", "Report evidence honestly, including evidence against WORLD", None),  # manual
+    (
+        "G2",
+        "Never touch docs/experiment-002/ or docs/development-log.md outside the experiment schedule",
+        check_g2,
+    ),
+    (
+        "G3",
+        "No license changes, secrets, history rewrites, or new product features in the validation program",
+        check_g3,
+    ),
+    (
+        "G4",
+        "Report evidence honestly, including evidence against WORLD",
+        None,
+    ),  # manual
 ]
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Audit a session's actions against bundle guardrails.")
+    ap = argparse.ArgumentParser(
+        description="Audit a session's actions against bundle guardrails."
+    )
     ap.add_argument("--bundle", required=True)
     ap.add_argument("--actions", required=True, help="JSON action log for the session")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
-    bundle = json.load(open(args.bundle))
-    actions = json.load(open(args.actions))
+    with open(args.bundle) as f:
+        bundle = json.load(f)
+    with open(args.actions) as f:
+        actions = json.load(f)
     guardrails = {g["id"]: g for g in bundle.get("guardrails", [])}
 
     results = []
     for gid, rule, fn in CHECKS:
         if gid not in guardrails:
-            results.append({"id": gid, "rule": rule, "verdict": "SKIP", "detail": "not in bundle"})
+            results.append(
+                {"id": gid, "rule": rule, "verdict": "SKIP", "detail": "not in bundle"}
+            )
             continue
         if fn is None:
-            results.append({"id": gid, "rule": rule, "verdict": "MANUAL",
-                            "detail": "cannot be checked mechanically; needs human review"})
+            results.append(
+                {
+                    "id": gid,
+                    "rule": rule,
+                    "verdict": "MANUAL",
+                    "detail": "cannot be checked mechanically; needs human review",
+                }
+            )
             continue
         verdict, detail = fn(actions)
         results.append({"id": gid, "rule": rule, "verdict": verdict, "detail": detail})
@@ -120,7 +148,7 @@ def main():
         print(json.dumps(results, indent=1))
     else:
         for r in results:
-            print("%-6s %s: %s" % (r["verdict"], r["id"], r["detail"]))
+            print(f"{r['verdict']:<6} {r['id']}: {r['detail']}")
 
     sys.exit(1 if any(r["verdict"] == "FLAG" for r in results) else 0)
 

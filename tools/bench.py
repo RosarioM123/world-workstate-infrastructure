@@ -19,7 +19,7 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from world_engine.core import engine  # noqa: E402
+from world_engine.core import engine
 
 logger = logging.getLogger(__name__)
 

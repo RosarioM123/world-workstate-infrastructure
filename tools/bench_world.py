@@ -23,7 +23,7 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from world.core import World  # noqa: E402
+from world.core import World
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +135,12 @@ def main() -> int:
     world = World("bench", dir=d, invariants=[_must_be_non_negative])
     assert world.version == 0
 
-    logger.info("machine: %s / %s / python %s", platform.system(), platform.machine(), platform.python_version())
+    logger.info(
+        "machine: %s / %s / python %s",
+        platform.system(),
+        platform.machine(),
+        platform.python_version(),
+    )
     logger.info("appending %d versions ...", n)
     append_s = bench_updates(world, n)
     logger.info("appending %d versions with expected_version ...", n)

@@ -25,8 +25,8 @@ import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from world import World  # noqa: E402
-from world.core import ConflictError  # noqa: E402
+from world import World
+from world.core import ConflictError
 
 LEVELS = [1, 2, 4, 8, 16]
 
@@ -97,20 +97,26 @@ def main() -> int:
     ap.add_argument("--ops-per-thread", type=int, default=200)
     args = ap.parse_args()
 
-    print(f"machine: {platform.system()} / {platform.machine()} / "
-          f"python {platform.python_version()}")
-    print(f"workload: OCC read-modify-write with retry, "
-          f"{args.ops_per_thread} ops/thread\n")
+    print(
+        f"machine: {platform.system()} / {platform.machine()} / "
+        f"python {platform.python_version()}"
+    )
+    print(
+        f"workload: OCC read-modify-write with retry, "
+        f"{args.ops_per_thread} ops/thread\n"
+    )
     print("| threads | throughput | p50 | p90 | p99 | conflict rate | correct |")
     print("| ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
     results = []
     for nthreads in LEVELS:
         r = run_level(nthreads, args.ops_per_thread)
         results.append(r)
-        print(f"| {r['threads']} | {r['throughput']:.0f} ops/s "
-              f"| {r['p50_ms']:.2f} ms | {r['p90_ms']:.2f} ms "
-              f"| {r['p99_ms']:.2f} ms | {r['conflict_rate']:.3f} "
-              f"| {'yes' if r['correct'] else 'NO'} |")
+        print(
+            f"| {r['threads']} | {r['throughput']:.0f} ops/s "
+            f"| {r['p50_ms']:.2f} ms | {r['p90_ms']:.2f} ms "
+            f"| {r['p99_ms']:.2f} ms | {r['conflict_rate']:.3f} "
+            f"| {'yes' if r['correct'] else 'NO'} |"
+        )
         assert r["correct"], f"correctness check failed at {nthreads} threads"
     means = statistics.mean(r["throughput"] for r in results)
     print(f"\nmean aggregate throughput: {means:.0f} ops/s")

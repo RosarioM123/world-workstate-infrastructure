@@ -6,7 +6,7 @@ public names so ``python import_transcript.py`` keeps working.
 New code should ``from world_engine.ingestion.transcript import ...``.
 """
 
-from world_engine.ingestion.transcript import *  # noqa: F401,F403
+from world_engine.ingestion.transcript import *
 
 if __name__ == "__main__":
-    main()  # noqa: F405
+    main()

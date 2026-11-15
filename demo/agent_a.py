@@ -100,7 +100,9 @@ def main() -> int:
         next_actions=["Draft the cost-curve section", "Interview two cell makers"],
     )
     v1 = save_state(work, state_v1, actor="agent-a", note="initial handoff state")
-    print(f"committed seq {v1}: handoff state saved (decisions D1, D2; assumptions A1, A2)")
+    print(
+        f"committed seq {v1}: handoff state saved (decisions D1, D2; assumptions A1, A2)"
+    )
 
     # 4. New evidence arrives and the primary decision is revised.
     #    D1 is marked superseded; D3 replaces it, names what it
