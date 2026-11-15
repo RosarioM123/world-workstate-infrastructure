@@ -228,3 +228,123 @@ scope) are the natural next picks.
   (C-3)
 - `d250c21` docs: Day 3 mission log, changelog entries for T-1 and C-3
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 4 - 2026-11-15 (Foundation phase)
+
+**Branch:** `mission/day-4` (from local main `f95510d`, which is the
+Day 3 tip; Days 1 to 3 are on remote main as `e748764` after Rosario's
+Nov 15 push approval, trees identical). Nothing pushed, nothing merged
+to main.
+
+**Objectives:** close T-2 (pinned ruff/mypy in CI, pinned setuptools)
+and T-3 (lint/typecheck scope extended to `spec/`, `tools/`, `demo/`,
+root shims), the two remaining high-priority test/CI findings and the
+natural next picks from Day 3. Both are CI/test-infra only; no runtime
+behavior change except the B023 binding fix below, which preserves the
+synchronous semantics.
+
+**Baseline (measured, clean sequential run):** 413 passed, 0 failed,
+1 warning, 66.11 s, Python 3.12.3.
+
+**GitHub (read-only):** unchanged since Day 3: 12 open Dependabot PRs
+(newest #27, hypothesis bump, Nov 9), 1 open issue (#4, already
+addressed by Experiment #003). No human-filed issues, nothing new to
+act on. Note: the bundled `gh.py` CLI only supports `whoami` and
+`create-repo` and its import path is stale; the check used a small
+read-only script with the same credential helper instead.
+
+**Changes:**
+- T-2 (`.github/workflows/ci.yml`, `pyproject.toml`): the lint job now
+  installs `ruff==0.17.5` and `mypy==2.4.1`; `[build-system] requires`
+  is now `setuptools==84.2.1` (was `setuptools>=68`). Pin versions
+  chosen by verification, not by latest: local ruff 0.16.9 flags
+  DTZ001 on the two intentionally naive datetimes in
+  `test_naive_datetimes_rejected` (their naivety is the point of the
+  test), while 0.17.x accepts them, matching the Nov 3 cleanup
+  `cbcbc66` which removed the `# noqa: DTZ001` comments as stale under
+  ruff 0.17.3. Pinning 0.16.9 would have reintroduced a lint failure
+  that 0.17.3 had already cleaned up.
+- T-2 verification: in fresh scratch venvs, `setuptools==84.2.1`
+  builds and installs the package (`pip install --no-build-isolation
+  -e .`), and a `World` smoke test (`update` then `verify()`) passes;
+  `ruff==0.17.5` check and format pass over the full scope; `mypy
+  ==2.4.1` passes the combined scope (62 files) with the package
+  installed, as CI does. A bare-venv mypy run reports 13
+  `import-not-found` errors for fastapi/pydantic/pytest/starlette;
+  those are artifacts of the missing install, not real findings.
+- T-3 (`.github/workflows/ci.yml`): `ruff check`, `ruff format
+  --check`, and `mypy` now also cover `spec/`, `tools/`, `demo/`,
+  `app.py`, `engine.py`, `import_transcript.py`.
+- T-3 fixes (46 ruff findings in the new scope, all fixed): 19 by
+  `ruff check --fix` (unused noqa directives, import sorting,
+  `Optional` to `X | None`, `collections.abc.Callable`), the rest by
+  hand: B023 loop-variable capture in `spec/detsim.py` (see below),
+  SIM115 context managers and UP031 f-strings in
+  `tools/guardrail_audit.py`, `tools/staleness.py`,
+  `tools/write_cost.py`; EXE001 shebangs removed from those three tools
+  (all are invoked as `python3 tools/x.py`, none executed directly);
+  PLW1510 in `staleness.py` resolved with explicit `check=False` (both
+  call sites inspect `returncode`); `ruff format` applied to 10 files.
+- T-3 mypy (4 errors in the new scope, all fixed): `init` in
+  `spec/model_check.py` gained a state-tuple annotation;
+  `spec/detsim.py` monkeypatch ignores corrected to the error codes
+  mypy actually reports (`assignment` for `_connect`, `method-assign`
+  for the `unpatch` restores). One more mypy issue surfaced only when
+  the scopes were combined: `tools/bench.py` and
+  `experiments/prompt3/bench.py` share the module name `bench`, so the
+  preserved Prompt 3 copy is now excluded in `pyproject.toml`, same
+  pattern as the existing Experiment #003 exclusion.
+- Tools smoke-tested after the edits with identical output to the
+  recorded sessions: `write_cost.py` record/report round trip;
+  `guardrail_audit.py` on the 2026-09-21-02 actions (G1-G3 PASS, G4
+  MANUAL); `staleness.py` on the trial bundle (2 ok, 11 uncheckable,
+  0 stale).
+
+**B023 fix, first attempt deadlocked (negative finding, kept
+visible):** the first `_wait_for` helper acquired the condition lock
+itself (`with self.cv:` inside the helper). Called from `run`'s
+scheduler loop, which already holds the lock, that re-acquired a
+`Condition` wrapping a plain `Lock` (`Scheduler.__init__` uses
+`threading.Lock()`, not an `RLock`), and the lock can never be
+acquired twice: `test_detsim.py` hung. Evidence: the spec-test command
+ran over 9 minutes with no output and had to be killed by `timeout
+240`; a rerun of just the two test files also exceeded 120 s. The
+fix: `_wait_for` requires the caller to hold the lock (documented in
+its docstring), the startup loop wraps the call in `with self.cv:`,
+and the scheduler-loop call site already holds it. After the fix the
+detsim and linearizability tests pass in 1.29 s. A nested-`wait_for`
+probe with a default `Condition` (RLock) had passed, which is why the
+first version looked safe; the plain-`Lock` detail is what mattered.
+
+**Verification:**
+- Spec tests: `test_detsim.py` + `test_linearizability.py`, 7 passed,
+  1.29 s; `test_protocol_model.py`, 4 passed, 26.03 s (model checker
+  still explores the full 1.2M-state space).
+- Full suite: 413 passed, 0 failed, 1 warning, 66.20 s. Examples
+  suite: 7 passed, 0.43 s. Test count unchanged (no new tests; this
+  day is infra only).
+- Pinned tools in clean venvs: ruff 0.17.5 check and format clean over
+  all 506 files; mypy 2.4.1 clean over 62 files with the package
+  installed. Local ruff 0.16.9 still flags the 2 DTZ001s in
+  `tests/test_sdk.py:291,293`; that is expected (see T-2 note) and CI
+  uses the pinned 0.17.5.
+- Full diff reviewed: 19 files, +436/-135. No behavior change besides
+  the B023 binding fix and the documented no-op refactors.
+
+**Unresolved issues / decisions for Rosario:** unchanged from Day 3
+(H-1 history divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8
+version string and top-level exports; L-6/F3b). No new decisions
+needed for today's work. With T-2 and T-3 closed, the P0/P1
+test/CI findings are all done; remaining P1 is code and docs: C-8,
+C-15, C-6, C-7, D-3, D-11.
+
+**Next (P1):** C-8/C-15 (encrypt/decrypt list-nested field paths, one
+settled path notation) is the natural next pick; C-7 (transcript
+import lost-update race) after that.
+
+**Day 4 commits:**
+- `bc40111` fix: resolve lint and type findings in newly covered scope
+  (T-3)
+- `0248e76` ci: pin lint tools and build dependency, extend lint scope
+  (T-2, T-3)
+- `LOG.md` SHA line updated in the commit below (this line).

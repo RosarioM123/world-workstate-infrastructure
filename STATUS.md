@@ -9,7 +9,7 @@
 users.**
 
 **Tests:** 413 passing, 0 failing (full suite run locally
-2026-11-14, Python 3.12.3, on the mission Day 3 branch tree).
+2026-11-15, Python 3.12.3, on the mission Day 4 branch tree).
 **Model checker:** 1,220,255 states explored (three
 configurations), properties P1 to P6 hold; mutation test catches
 the injected P4 violation. **CI:** pytest on Python 3.11, 3.12,
@@ -121,8 +121,6 @@ Core dependency-free (stdlib only).
   the rule set that judged a historical version. Persisted
   registry is designed, not built.
 - **No per-actor identity:** `actor` is self-asserted; no RBAC.
-- **CI lint pinning:** the lint job installs unpinned ruff and
-  mypy. Recommend pins; not changed under Prompt 6.
 - **External validation: pending.** The protocol is written
   (`experiments/prompt6/VALIDATION_PROTOCOL.md`); zero external
   reviewers have completed it.

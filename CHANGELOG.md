@@ -122,6 +122,22 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- CI lint tools are now pinned and the lint scope covers the whole repo
+  (Mission Day 4, audit findings T-2 and T-3): the lint job installs
+  `ruff==0.17.5` and `mypy==2.4.1` instead of floating latest, and
+  `ruff check`, `ruff format --check`, and `mypy` now run over `spec/`,
+  `tools/`, `demo/`, and the root shims (`app.py`, `engine.py`,
+  `import_transcript.py`) in addition to `src/`, `tests/`, `examples/`,
+  and `experiments/`. The build dependency is pinned as
+  `setuptools==84.2.1` in `pyproject.toml`. The newly covered scope
+  needed 46 ruff findings fixed plus formatting, and 4 mypy errors
+  fixed. The preserved `experiments/prompt3/bench.py` is excluded from
+  mypy because it shares the module name `bench` with `tools/bench.py`
+  in one run (same pattern as the existing Experiment #003 exclusion).
+- `Scheduler` in `spec/detsim.py` no longer closes over loop variables
+  (Mission Day 4, audit finding T-3, B023): the two `wait_for`
+  predicates that captured the loop variables `cid` and `nxt` are now a
+  `_wait_for` helper taking the client id as a parameter.
 - `test_soak_no_latency_drift` is now load-insensitive (Mission Day 3,
   audit finding T-1): latencies are measured with `time.process_time()`
   (per-process CPU time) instead of wall clock, and the drift check is a
