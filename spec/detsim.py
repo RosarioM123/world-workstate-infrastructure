@@ -31,7 +31,8 @@ from __future__ import annotations
 
 import random
 import threading
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from world import World
 
@@ -41,7 +42,7 @@ _tls = threading.local()
 class _SimConnection:
     """Proxy tracking atomic-section entry/exit for the simulator."""
 
-    def __init__(self, real: Any, sim: "Simulation"):
+    def __init__(self, real: Any, sim: Simulation):
         self._real = real
         self._sim = sim
 
@@ -133,6 +134,16 @@ class Scheduler:
         finally:
             self.finish(cid)
 
+    def _wait_for(self, cid: int) -> None:
+        """Block until client cid is waiting or finished.
+
+        Caller must already hold ``self.cv``: the condition wraps a
+        plain ``Lock`` (not an ``RLock``), so this must not re-acquire
+        it. ``cid`` is a method parameter here, so the wait predicate
+        never closes over a loop variable (B023).
+        """
+        self.cv.wait_for(lambda: cid in self.waiting or cid in self.finished)
+
     def run(self, clients: list[tuple[int, Callable[[int], None]]]) -> None:
         self.nclients = len(clients)
         threads = []
@@ -142,12 +153,14 @@ class Scheduler:
             t.start()
             threads.append(t)
             with self.cv:
-                self.cv.wait_for(lambda: cid in self.waiting or cid in self.finished)
+                self._wait_for(cid)
         with self.cv:
             while len(self.finished) < self.nclients:
                 self.cv.wait_for(
-                    lambda: (bool(self.waiting) and self.running is None)
-                    or len(self.finished) == self.nclients
+                    lambda: (
+                        (bool(self.waiting) and self.running is None)
+                        or len(self.finished) == self.nclients
+                    )
                 )
                 if len(self.finished) == self.nclients:
                     break
@@ -156,7 +169,7 @@ class Scheduler:
                 self.running = nxt
                 self.granted.add(nxt)
                 self.cv.notify_all()
-                self.cv.wait_for(lambda: nxt in self.waiting or nxt in self.finished)
+                self._wait_for(nxt)
                 self.running = None
         for t in threads:
             t.join()
@@ -199,20 +212,33 @@ class Simulation:
 
             return check
 
-        w._connect = sim_connect  # type: ignore[method-assign]
+        w._connect = sim_connect  # type: ignore[assignment]
         w._latest_committed = sim_latest  # type: ignore[method-assign]
         w._invariants = tuple(wrap_inv(i) for i in orig_invariants)
 
     def unpatch(self, w: World) -> None:
-        w._connect = self._saved["_connect"]
-        w._latest_committed = self._saved["_latest_committed"]
+        w._connect = self._saved["_connect"]  # type: ignore[method-assign]
+        w._latest_committed = self._saved["_latest_committed"]  # type: ignore[method-assign]
         w._invariants = self._saved["_invariants"]
         self._saved = {}
 
-    def record_op(self, cid: int, invoke: int, resp: int,
-                  expected: int | None, k: int, result: tuple) -> None:
+    def record_op(
+        self,
+        cid: int,
+        invoke: int,
+        resp: int,
+        expected: int | None,
+        k: int,
+        result: tuple,
+    ) -> None:
         with self._op_lock:
-            self.ops.append({
-                "cid": cid, "invoke": invoke, "resp": resp,
-                "expected": expected, "k": k, "result": result,
-            })
+            self.ops.append(
+                {
+                    "cid": cid,
+                    "invoke": invoke,
+                    "resp": resp,
+                    "expected": expected,
+                    "k": k,
+                    "result": result,
+                }
+            )

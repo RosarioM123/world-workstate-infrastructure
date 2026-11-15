@@ -6,7 +6,7 @@ re-exports its public names so ``python engine.py``, ``import engine``,
 New code should ``from world_engine.core.engine import ...``.
 """
 
-from world_engine.core.engine import *  # noqa: F401,F403
+from world_engine.core.engine import *
 
 if __name__ == "__main__":
     # `python engine.py` still runs the original Day 1 demo. The module is

@@ -37,7 +37,6 @@ non-idempotent path (idempotency was model-checked separately).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -46,13 +45,13 @@ class Op:
 
     invoke: int  # global event index of invocation
     resp: int  # global event index of response
-    expected: Optional[int]  # expected_version passed by the client
+    expected: int | None  # expected_version passed by the client
     k: int  # proposed n value
     # ("ok", new_version) | ("rejected",) | ("conflict",)
     result: tuple
 
 
-def _step(version: int, n: Optional[int], op: Op):
+def _step(version: int, n: int | None, op: Op):
     """Apply the sequential spec; return the new (version, n) or None."""
     e = op.expected
     kind = op.result[0]
@@ -72,9 +71,9 @@ def _step(version: int, n: Optional[int], op: Op):
     raise AssertionError(f"unknown result {op.result!r}")
 
 
-def is_linearizable(history: list[Op],
-                    initial_version: int = 0,
-                    initial_n: Optional[int] = None) -> bool:
+def is_linearizable(
+    history: list[Op], initial_version: int = 0, initial_n: int | None = None
+) -> bool:
     """Search for a linearization of ``history`` via backtracking.
 
     Complete for the given history: returns True iff some total order
@@ -88,15 +87,12 @@ def is_linearizable(history: list[Op],
     n = len(history)
     if n == 0:
         return True
-    pred = [
-        {j for j, q in enumerate(history) if q.resp < op.invoke}
-        for op in history
-    ]
+    pred = [{j for j, q in enumerate(history) if q.resp < op.invoke} for op in history]
     # Try earlier-responding ops first: they are the most constrained.
     order = sorted(range(n), key=lambda i: history[i].resp)
-    dead: set[tuple[frozenset, int, Optional[int]]] = set()
+    dead: set[tuple[frozenset, int, int | None]] = set()
 
-    def rec(placed: frozenset, version: int, cur_n: Optional[int]) -> bool:
+    def rec(placed: frozenset, version: int, cur_n: int | None) -> bool:
         if len(placed) == n:
             return True
         key = (placed, version, cur_n)

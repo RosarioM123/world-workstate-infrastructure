@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """write_cost.py - measure the WORLD record transition.
 
 The record transition is the end-of-session work: updating WORLD.md,
@@ -17,10 +16,11 @@ import argparse
 import json
 import os
 import statistics
-import sys
 
-DEFAULT_LOG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "write-cost.jsonl")
-TRIAL_TARGET = 300   # write-side trial pass/fail: under 5 minutes
+DEFAULT_LOG = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "write-cost.jsonl"
+)
+TRIAL_TARGET = 300  # write-side trial pass/fail: under 5 minutes
 PRODUCT_TARGET = 60  # idea 5 aspiration: under 60 seconds of agent time
 
 
@@ -33,33 +33,40 @@ def cmd_record(args):
     }
     with open(args.log, "a") as f:
         f.write(json.dumps(entry) + "\n")
-    print("recorded: session %s, %ds, %d entities -> %s" % (args.session, args.seconds, args.entities, args.log))
+    print(
+        f"recorded: session {args.session}, {args.seconds}s, {args.entities} entities -> {args.log}"
+    )
 
 
 def cmd_report(args):
     if not os.path.exists(args.log):
-        print("no data yet at %s" % args.log)
+        print(f"no data yet at {args.log}")
         return
-    rows = [json.loads(line) for line in open(args.log) if line.strip()]
+    with open(args.log) as f:
+        rows = [json.loads(line) for line in f if line.strip()]
     if not rows:
-        print("no data yet at %s" % args.log)
+        print(f"no data yet at {args.log}")
         return
     secs = [r["seconds"] for r in rows]
     under_product = sum(1 for s in secs if s <= PRODUCT_TARGET)
     under_trial = sum(1 for s in secs if s <= TRIAL_TARGET)
-    print("sessions: %d" % len(rows))
-    print("mean: %.0fs  median: %.0fs  min: %ds  max: %ds" % (
-        statistics.mean(secs), statistics.median(secs), min(secs), max(secs)))
-    print("under %ds (product bar): %d/%d" % (PRODUCT_TARGET, under_product, len(rows)))
-    print("under %ds (trial bar):   %d/%d" % (TRIAL_TARGET, under_trial, len(rows)))
+    print(f"sessions: {len(rows)}")
+    print(
+        f"mean: {statistics.mean(secs):.0f}s  median: {statistics.median(secs):.0f}s"
+        f"  min: {min(secs)}s  max: {max(secs)}s"
+    )
+    print(f"under {PRODUCT_TARGET}s (product bar): {under_product}/{len(rows)}")
+    print(f"under {TRIAL_TARGET}s (trial bar):   {under_trial}/{len(rows)}")
     for r in rows:
         flag = ""
         if r["seconds"] > TRIAL_TARGET:
             flag = "  OVER TRIAL BAR"
         elif r["seconds"] > PRODUCT_TARGET:
             flag = "  over product bar"
-        print("  %s: %ds (%d entities)%s%s" % (
-            r["session"], r["seconds"], r["entities_changed"], " " + r["note"] if r["note"] else "", flag))
+        note = " " + r["note"] if r["note"] else ""
+        print(
+            f"  {r['session']}: {r['seconds']}s ({r['entities_changed']} entities){note}{flag}"
+        )
 
 
 def main():
@@ -70,7 +77,9 @@ def main():
     rec = sub.add_parser("record", help="log one session's record-transition time")
     rec.add_argument("--session", required=True)
     rec.add_argument("--seconds", required=True, type=int)
-    rec.add_argument("--entities", required=True, type=int, help="entities added/changed/retired")
+    rec.add_argument(
+        "--entities", required=True, type=int, help="entities added/changed/retired"
+    )
     rec.add_argument("--note", default="")
     rec.set_defaults(fn=cmd_record)
 

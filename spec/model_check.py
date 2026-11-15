@@ -149,7 +149,14 @@ def check(config: Config, max_states: int = 2_000_000) -> dict[str, int]:
     # pending: None | (read_seq, snapshot, ev|None, key, token, verdict).
     init_writers = tuple((0, 0, None) for _ in wids)
     # state = (rows, idem, writers, winners, n_committed, n_rejected)
-    init = ((), (), init_writers, frozenset(), 0, 0)
+    init: tuple[
+        tuple[Any, ...],
+        tuple[Any, ...],
+        tuple[tuple[int, int, Any], ...],
+        frozenset[Any],
+        int,
+        int,
+    ] = ((), (), init_writers, frozenset(), 0, 0)
     seen = {init}
     parent: dict[Any, tuple[Any, str]] = {}
     queue: deque[Any] = deque([init])
@@ -202,9 +209,11 @@ def check(config: Config, max_states: int = 2_000_000) -> dict[str, int]:
                         cur = _latest_committed_seq(rows)
                         snap = _latest_committed_token(rows)
                         ev = {"fresh": cur, "stale": -1}.get(ev_spec, None)
-                        base = (f"{wid}/op{op_idx}: READ_JUDGE "
-                                f"(ev_spec={ev_spec}->ev={ev}, key={key}, "
-                                f"read_seq={cur})")
+                        base = (
+                            f"{wid}/op{op_idx}: READ_JUDGE "
+                            f"(ev_spec={ev_spec}->ev={ev}, key={key}, "
+                            f"read_seq={cur})"
+                        )
                         if ev is not None and ev != cur:
                             # Fast-path ConflictError: never judged, no row.
                             new_w = list(writers_t)
@@ -212,17 +221,22 @@ def check(config: Config, max_states: int = 2_000_000) -> dict[str, int]:
                             transitions += 1
                             record(
                                 (rows, idem_t, tuple(new_w), winners, n_c, n_r),
-                                state, base + " -> CONFLICT (fast path)",
+                                state,
+                                base + " -> CONFLICT (fast path)",
                             )
                             continue
                         for verdict in ("pass", "fail"):
                             new_w = list(writers_t)
                             new_w[wi] = (
-                                1, op_idx, (cur, snap, ev, key, token, verdict))
+                                1,
+                                op_idx,
+                                (cur, snap, ev, key, token, verdict),
+                            )
                             transitions += 1
                             record(
                                 (rows, idem_t, tuple(new_w), winners, n_c, n_r),
-                                state, base + f" -> {verdict.upper()}",
+                                state,
+                                base + f" -> {verdict.upper()}",
                             )
             else:  # phase == 1: ATOMIC_COMMIT, one indivisible transition.
                 assert pending is not None
@@ -231,22 +245,31 @@ def check(config: Config, max_states: int = 2_000_000) -> dict[str, int]:
                 new_rows, new_idem_t = rows, idem_t
                 new_winners, dn_c, dn_r = winners, 0, 0
                 if not config.inject_bug and ev is not None and ev != cur2:
-                    action = (f"{wid}/op{op_idx}: COMMIT -> CONFLICT "
-                              f"(ev={ev} != cur={cur2})")
+                    action = (
+                        f"{wid}/op{op_idx}: COMMIT -> CONFLICT (ev={ev} != cur={cur2})"
+                    )
                 elif verdict == "fail":
                     seq = len(rows) + 1
                     prev_hash = rows[-1][4] if rows else GENESIS
                     new_rows = rows + (
-                        (seq, "REJECTED", token, prev_hash,
-                         _hash(seq, prev_hash, "REJECTED", token), key),
+                        (
+                            seq,
+                            "REJECTED",
+                            token,
+                            prev_hash,
+                            _hash(seq, prev_hash, "REJECTED", token),
+                            key,
+                        ),
                     )
                     dn_r = 1
                     action = f"{wid}/op{op_idx}: COMMIT -> REJECTED seq={seq}"
                 elif key is not None and key in idem:
                     # Short-circuit: return the mapped seq, append nothing.
                     # (P5 proper is the state property in _check_properties.)
-                    action = (f"{wid}/op{op_idx}: COMMIT -> IDEMPOTENT "
-                              f"seq={idem[key]} (key={key!r})")
+                    action = (
+                        f"{wid}/op{op_idx}: COMMIT -> IDEMPOTENT "
+                        f"seq={idem[key]} (key={key!r})"
+                    )
                 else:
                     # P4 transition assertion: exactly one winner per V.
                     if ev is not None:
@@ -260,8 +283,14 @@ def check(config: Config, max_states: int = 2_000_000) -> dict[str, int]:
                     seq = len(rows) + 1
                     prev_hash = rows[-1][4] if rows else GENESIS
                     new_rows = rows + (
-                        (seq, "COMMITTED", token, prev_hash,
-                         _hash(seq, prev_hash, "COMMITTED", token), key),
+                        (
+                            seq,
+                            "COMMITTED",
+                            token,
+                            prev_hash,
+                            _hash(seq, prev_hash, "COMMITTED", token),
+                            key,
+                        ),
                     )
                     if key is not None:
                         # P5: table always tracks the latest committed seq.
@@ -272,9 +301,16 @@ def check(config: Config, max_states: int = 2_000_000) -> dict[str, int]:
                 new_w[wi] = nxt
                 transitions += 1
                 record(
-                    (new_rows, new_idem_t, tuple(new_w), new_winners,
-                     n_c + dn_c, n_r + dn_r),
-                    state, action,
+                    (
+                        new_rows,
+                        new_idem_t,
+                        tuple(new_w),
+                        new_winners,
+                        n_c + dn_c,
+                        n_r + dn_r,
+                    ),
+                    state,
+                    action,
                 )
 
     return {"states": states, "transitions": transitions}
@@ -284,30 +320,42 @@ def main() -> int:
     import time
 
     configs = [
-        ("2 writers x 2 ops (full domains)",
-         Config({"w0": 2, "w1": 2})),
-        ("3 writers x 2 ops (race-focused)",
-         Config({"w0": 2, "w1": 2, "w2": 2},
-                ev_domain=(None, "fresh"), key_domain=(None,))),
-        ("2 writers x 3 ops (sequential)",
-         Config({"w0": 3, "w1": 3},
-                ev_domain=(None, "fresh"), key_domain=(None,))),
+        ("2 writers x 2 ops (full domains)", Config({"w0": 2, "w1": 2})),
+        (
+            "3 writers x 2 ops (race-focused)",
+            Config(
+                {"w0": 2, "w1": 2, "w2": 2},
+                ev_domain=(None, "fresh"),
+                key_domain=(None,),
+            ),
+        ),
+        (
+            "2 writers x 3 ops (sequential)",
+            Config({"w0": 3, "w1": 3}, ev_domain=(None, "fresh"), key_domain=(None,)),
+        ),
     ]
     for name, cfg in configs:
         start = time.perf_counter()
         stats = check(cfg)
         elapsed = time.perf_counter() - start
-        print(f"{name}: OK "
-              f"({stats['states']} states, {stats['transitions']} transitions, "
-              f"{elapsed:.1f}s)")
+        print(
+            f"{name}: OK "
+            f"({stats['states']} states, {stats['transitions']} transitions, "
+            f"{elapsed:.1f}s)"
+        )
     print("all properties P1..P6 hold on every reachable state")
 
     # Mutation test: without the re-validation the checker must find the
     # P4 violation, proving it has teeth.
     try:
-        check(Config({"w0": 1, "w1": 1},
-                     ev_domain=("fresh",), key_domain=(None,),
-                     inject_bug=True))
+        check(
+            Config(
+                {"w0": 1, "w1": 1},
+                ev_domain=("fresh",),
+                key_domain=(None,),
+                inject_bug=True,
+            )
+        )
     except AssertionError as e:
         first = str(e).splitlines()[1]
         print(f"mutation test: bug injected -> checker found it ({first})")

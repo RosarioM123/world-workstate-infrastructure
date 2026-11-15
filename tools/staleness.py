@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """staleness.py - flag WORLD bundle entities whose recorded state contradicts repo reality.
 
 Reads a world-state.json bundle and checks every entity's `source` field:
@@ -44,6 +43,7 @@ def sha_exists(repo, sha):
         ["git", "cat-file", "-e", sha],
         cwd=repo,
         capture_output=True,
+        check=False,  # returncode is inspected by the caller
     )
     return r.returncode == 0
 
@@ -57,6 +57,7 @@ def changed_since(repo, source, created_at):
         cwd=repo,
         capture_output=True,
         text=True,
+        check=False,  # returncode is inspected below
     )
     if r.returncode != 0:
         return None
@@ -67,7 +68,13 @@ def check_entity(repo, kind, entity):
     eid = entity.get("id", "?")
     source = entity.get("source", "")
     created_at = entity.get("created_at", "")
-    result = {"id": eid, "kind": kind, "source": source, "verdict": "uncheckable", "detail": ""}
+    result = {
+        "id": eid,
+        "kind": kind,
+        "source": source,
+        "verdict": "uncheckable",
+        "detail": "",
+    }
 
     if not source:
         result["detail"] = "no source recorded"
@@ -103,9 +110,15 @@ def check_entity(repo, kind, entity):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Detect reference rot in a WORLD state bundle.")
+    ap = argparse.ArgumentParser(
+        description="Detect reference rot in a WORLD state bundle."
+    )
     ap.add_argument("--bundle", required=True, help="path to world-state.json")
-    ap.add_argument("--repo", required=True, help="path to a checkout of the repo the bundle describes")
+    ap.add_argument(
+        "--repo",
+        required=True,
+        help="path to a checkout of the repo the bundle describes",
+    )
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     args = ap.parse_args()
 
@@ -123,13 +136,17 @@ def main():
         print(json.dumps(results, indent=1))
     else:
         for r in results:
-            print("%-4s %-12s %-40s %s" % (r["verdict"].upper(), r["id"], r["source"][:40], r["detail"]))
+            print(
+                f"{r['verdict'].upper():<4} {r['id']:<12} {r['source'][:40]:<40} {r['detail']}"
+            )
 
     counts = {}
     for r in results:
         counts[r["verdict"]] = counts.get(r["verdict"], 0) + 1
     if not args.json:
-        print("\n%d entities: %s" % (len(results), ", ".join("%d %s" % (v, k) for k, v in sorted(counts.items()))))
+        print(
+            f"\n{len(results)} entities: {', '.join(f'{v} {k}' for k, v in sorted(counts.items()))}"
+        )
 
     sys.exit(1 if counts.get("stale", 0) else 0)
 

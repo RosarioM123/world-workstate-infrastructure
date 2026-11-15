@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from engine import get_ledger, init_db  # noqa: E402
+from engine import get_ledger, init_db
 
 
 def main() -> None:
