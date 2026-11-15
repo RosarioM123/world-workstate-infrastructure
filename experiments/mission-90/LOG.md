@@ -347,4 +347,5 @@ import lost-update race) after that.
   (T-3)
 - `0248e76` ci: pin lint tools and build dependency, extend lint scope
   (T-2, T-3)
+- `f96a4b0` docs: Day 4 mission log, changelog entries for T-2 and T-3
 - `LOG.md` SHA line updated in the commit below (this line).
