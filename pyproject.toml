@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools==84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -97,7 +97,12 @@ warn_unused_ignores = true
 # the #003 runner resolves "prompts" to the #002 module and errors.
 # Exclude the #003 runner and its analyze.py from checking rather than
 # renaming preserved experiment code; everything else stays checked.
-exclude = '(experiments/experiment-003/runner/.*|experiments/experiment-003/analysis/analyze\.py)$'
+# Same collision for bench.py: tools/bench.py and
+# experiments/prompt3/bench.py share the module name "bench" in one
+# run, so the preserved Prompt 3 copy is excluded (the live tool in
+# tools/ stays checked). Added when the lint scope was extended to
+# tools/ on Mission Day 4 (audit finding T-3).
+exclude = '(experiments/experiment-003/runner/.*|experiments/experiment-003/analysis/analyze\.py|experiments/prompt3/bench\.py)$'
 
 # uvicorn is an optional server dependency, imported lazily inside
 # functions (cli.cmd_serve, api.main.serve). It has no type stubs;

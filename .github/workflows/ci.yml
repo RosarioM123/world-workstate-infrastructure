@@ -35,15 +35,20 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install package and lint tools
+        # Pinned to the versions verified against the full lint scope:
+        # ruff 0.16.9 flags DTZ001 on the intentionally naive datetimes
+        # in test_naive_datetimes_rejected (their naivety is the point
+        # of the test); 0.17.x accepts them, matching the Nov 3 cleanup
+        # in cbcbc66. Bump deliberately and re-verify, never float.
         run: |
           pip install -e ".[test]"
-          pip install ruff mypy
+          pip install ruff==0.17.5 mypy==2.4.1
       - name: Ruff lint
-        run: ruff check src/ tests/ examples/ experiments/
+        run: ruff check src/ tests/ examples/ experiments/ spec/ tools/ demo/ app.py engine.py import_transcript.py
       - name: Ruff format check
-        run: ruff format --check src/ tests/ examples/ experiments/
+        run: ruff format --check src/ tests/ examples/ experiments/ spec/ tools/ demo/ app.py engine.py import_transcript.py
       - name: Mypy type check
-        run: mypy src/ examples/ experiments/
+        run: mypy src/ examples/ experiments/ spec/ tools/ demo/ app.py engine.py import_transcript.py
 
   frontend:
     runs-on: ubuntu-latest
