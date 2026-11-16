@@ -213,3 +213,53 @@ def test_absent_and_already_encrypted_fields_skipped(tmp_path):
     state3, records3 = w.encrypt_fields(MASTER, state2, ["s"])
     assert state3 == state2 and records3 == []
     assert len(records2) == 1
+
+
+def test_list_nested_field_roundtrip(tmp_path):
+    # C-8: fields nested in lists used to be silently skipped.
+    w = World("vault", dir=str(tmp_path))
+    state = {"items": [{"secret": "one"}, {"secret": "two"}], "plain": "x"}
+    w.update_encrypted(MASTER, state, ["items.0.secret", "items.1.secret"])
+    stored = w.state()
+    assert stored["plain"] == "x"
+    assert fieldcrypto.is_envelope(stored["items"][0]["secret"])
+    assert fieldcrypto.is_envelope(stored["items"][1]["secret"])
+    assert w.decrypt_fields(MASTER, stored) == state
+    assert w.verify()
+
+
+def test_list_nested_absent_index_skipped(tmp_path):
+    w = World("vault", dir=str(tmp_path))
+    state, records = w.encrypt_fields(
+        MASTER,
+        {"items": [{"secret": "x"}]},
+        ["items.5.secret", "items.x.secret", "items.-1.secret"],
+    )
+    assert state == {"items": [{"secret": "x"}]} and records == []
+
+
+def test_list_nested_decrypt_error_names_dot_path(tmp_path):
+    # C-15: the field in the error must match the dot notation used by
+    # encrypt_fields and redact_field, not the old "a[0].secret" form.
+    # Tamper the envelope ciphertext (not the key) so the failure
+    # surfaces at the envelope-decrypt step that names the field.
+    w = World("vault", dir=str(tmp_path))
+    w.update_encrypted(MASTER, {"items": [{"secret": "x"}]}, ["items.0.secret"])
+    stored, _ = w.read()
+    env = stored["items"][0]["secret"]
+    ct = bytearray(fieldcrypto._unb64(env["ct"]))
+    ct[0] ^= 0xFF
+    env["ct"] = fieldcrypto._b64(bytes(ct))
+    with pytest.raises(fieldcrypto.DecryptionError, match=r"items\.0\.secret"):
+        w.decrypt_fields(MASTER, stored)
+
+
+def test_list_nested_redact_field(tmp_path):
+    w = World("vault", dir=str(tmp_path))
+    w.update_encrypted(MASTER, {"items": [{"secret": "x"}]}, ["items.0.secret"])
+    receipts = w.redact_field("items.0.secret", MASTER)
+    assert len(receipts) == 1 and receipts[0]["field"] == "items.0.secret"
+    assert w.redaction_status(1, "items.0.secret") == "redacted"
+    with pytest.raises(RedactedError) as exc:
+        w.decrypt_fields(MASTER, w.state())
+    assert exc.value.field == "items.0.secret"
