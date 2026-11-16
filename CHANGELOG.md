@@ -122,6 +122,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- Field paths now use one dot notation with numeric parts for list
+  indices (`"items.0.secret"`) across encrypt, decrypt, redact, and
+  blame (Mission Day 5, audit findings C-8 and C-15): `_get_path`
+  descends through lists, `encrypt_fields` swaps envelopes via a new
+  `_set_path` helper instead of a dict-only loop, and
+  `decrypt_fields` builds list paths as `items.0.secret` instead of
+  `items[0].secret`, so the AAD matches encryption and the `field` in
+  decrypt errors matches the identifier `redact_field` expects.
+  Previously `encrypt_fields` silently skipped list-nested fields and
+  a hand-built list-nested envelope failed authentication on decrypt.
+  Five new tests cover the list-nested roundtrip, out-of-range and
+  non-numeric indices, the dot-form error name, redaction, and blame.
 - CI lint tools are now pinned and the lint scope covers the whole repo
   (Mission Day 4, audit findings T-2 and T-3): the lint job installs
   `ruff==0.17.5` and `mypy==2.4.1` instead of floating latest, and
