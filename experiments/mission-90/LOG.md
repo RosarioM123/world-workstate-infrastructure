@@ -366,13 +366,13 @@ change outside per-field encryption, decryption, redaction, and
 **Baseline (measured, clean sequential run):** 413 passed, 0 failed,
 1 warning, 63.67 s, Python 3.12.3.
 
-**GitHub (read-only):** not re-checked today; Day 4 recorded 12 open
-Dependabot PRs (newest #27, hypothesis bump, Nov 9) and 1 open issue
-(#4, already addressed by Experiment #003). No human-filed issues.
-The bundled `gh.py` CLI only supports `whoami` and `create-repo`
-and its import path is stale; earlier days used a small read-only
-script with the same credential helper instead. No GitHub state is
-needed for today's code fix.
+**GitHub (read-only, verified via the API):** unchanged since Day 3:
+12 open Dependabot PRs (newest #27, hypothesis bump, Nov 9) and 1
+open issue (#4, already addressed by Experiment #003). No
+human-filed issues, nothing new to act on. The bundled `gh.py` CLI
+only supports `whoami` and `create-repo` and its import path is
+stale; the check used a small read-only script with the same
+credential helper instead.
 
 **Changes:**
 - C-8/C-15 (`src/world/core.py`): field paths now use one dot
