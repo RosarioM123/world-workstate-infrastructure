@@ -451,4 +451,5 @@ C-6 (`world import` plus field keys) after that.
 **Day 5 commits:**
 - `21aa480` fix: one dot path notation for list-nested encrypted
   fields (C-8, C-15)
+- `efc353e` docs: Day 5 mission log, changelog entry for C-8 and C-15
 - `LOG.md` SHA line updated in the commit below (this line).
