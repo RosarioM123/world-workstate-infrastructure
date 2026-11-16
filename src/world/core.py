@@ -129,13 +129,63 @@ _MISSING: Any = object()  # sentinel: path absent (distinct from JSON null)
 
 
 def _get_path(doc: Any, path: str) -> Any:
-    """Resolve a dot-separated path; ``_MISSING`` when absent."""
+    """Resolve a dot-separated path; ``_MISSING`` when absent.
+
+    Numeric parts index into lists (``"items.0.secret"``), so one
+    notation covers dicts and lists everywhere a field path is used
+    (encrypt, decrypt, redact, blame). A dict is always tried first,
+    so a dict with a numeric string key keeps its existing meaning.
+    Negative indices are not supported and resolve to missing.
+    """
     cur = doc
     for part in path.split("."):
-        if not isinstance(cur, dict) or part not in cur:
+        if isinstance(cur, dict):
+            if part not in cur:
+                return _MISSING
+            cur = cur[part]
+        elif isinstance(cur, list):
+            if not part.isdigit():
+                return _MISSING
+            idx = int(part)
+            if idx >= len(cur):
+                return _MISSING
+            cur = cur[idx]
+        else:
             return _MISSING
-        cur = cur[part]
     return cur
+
+
+def _set_path(doc: Any, path: str, value: Any) -> None:
+    """Set the value at a dot-separated path (lists by numeric index).
+
+    The path must already exist (use :func:`_get_path` to check first);
+    raises ``ValueError`` if any part does not resolve and
+    ``TypeError`` if a part traverses a non-container value.
+    """
+    parts = path.split(".")
+    cur = doc
+    for part in parts[:-1]:
+        if isinstance(cur, dict):
+            if part not in cur:
+                raise ValueError(f"path {path!r} does not exist")
+            cur = cur[part]
+        elif isinstance(cur, list):
+            if not part.isdigit() or int(part) >= len(cur):
+                raise ValueError(f"path {path!r} does not exist")
+            cur = cur[int(part)]
+        else:
+            raise TypeError(f"path {path!r} traverses a non-container value")
+    last = parts[-1]
+    if isinstance(cur, dict):
+        if last not in cur:
+            raise ValueError(f"path {path!r} does not exist")
+        cur[last] = value
+    elif isinstance(cur, list):
+        if not last.isdigit() or int(last) >= len(cur):
+            raise ValueError(f"path {path!r} does not exist")
+        cur[int(last)] = value
+    else:
+        raise TypeError(f"path {path!r} traverses a non-container value")
 
 
 def _genesis_prev_hash(name: str) -> str:
@@ -690,7 +740,8 @@ class World:
             return [dict(r) for r in cx.execute(query, params).fetchall()]
 
     def blame(self, path: str, *, version: int | None = None) -> dict[str, Any] | None:
-        """Who last changed the value at ``path`` (dot-separated).
+        """Who last changed the value at ``path`` (dot-separated;
+        numeric parts index into lists, e.g. ``"items.0.secret"``).
 
         Walks committed versions back from ``version`` (default: latest),
         comparing the value at ``path`` between consecutive versions, and
@@ -1076,7 +1127,8 @@ class World:
     ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         """Encrypt fields of a state; returns ``(new_state, key_records)``.
 
-        Each named field (dot-separated path, e.g. ``"payment.card"``)
+        Each named field (dot-separated path, e.g. ``"payment.card"``;
+        numeric parts index into lists, e.g. ``"items.0.secret"``)
         is replaced by an authenticated-encryption envelope; the row
         hash is computed over the ciphertext, so :meth:`verify` works
         without the key and encryption composes with tamper-evidence.
@@ -1107,12 +1159,9 @@ class World:
             env["key_id"] = key_id
             env["key_fp"] = _fieldcrypto.key_fingerprint(data_key)
             wrapped = _fieldcrypto.encrypt(master, data_key, f"wrap:{key_id}".encode())
-            # Swap the plaintext for the envelope at the dot path.
-            parts = field.split(".")
-            node = new_state
-            for part in parts[:-1]:
-                node = node[part]
-            node[parts[-1]] = env
+            # Swap the plaintext for the envelope at the dot path
+            # (numeric parts index into lists, same as _get_path).
+            _set_path(new_state, field, env)
             records.append(
                 {
                     "key_id": key_id,
@@ -1221,7 +1270,10 @@ class World:
 
         A wrong master key fails the envelope authentication (no silent
         garbage). A shredded key raises :class:`RedactedError` carrying
-        the ``key_id`` and ``field``.
+        the ``key_id`` and ``field``. The ``field`` in errors uses the
+        same dot notation as :meth:`encrypt_fields` (numeric parts for
+        list indices, e.g. ``"items.0.secret"``), so it can be passed
+        straight to :meth:`redact_field`.
         """
         import copy
 
@@ -1249,7 +1301,7 @@ class World:
                         walk(v, p)
             elif isinstance(node, list):
                 for i, v in enumerate(node):
-                    walk(v, f"{path}[{i}]")
+                    walk(v, f"{path}.{i}")
 
         walk(out, "")
         return out
@@ -1319,6 +1371,10 @@ class World:
 
     def redact_field(self, field: str, master_key: bytes) -> list[dict[str, Any]]:
         """Redact ``field`` at every version where it is encrypted.
+
+        ``field`` is a dot-separated path (numeric parts index into
+        lists, e.g. ``"items.0.secret"``), the same notation
+        :meth:`encrypt_fields` and :meth:`decrypt_fields` use.
 
         Returns one receipt per shredded key. Already-redacted versions
         are skipped. The sweep covers REJECTED rows as well as

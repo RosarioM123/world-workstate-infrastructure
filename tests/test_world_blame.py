@@ -89,3 +89,15 @@ def test_cli_blame(tmp_path, capsys):
     assert hit["old"] == 1 and hit["new"] == 9
     assert cli(store, "blame", "b", "missing") == 0
     assert json.loads(capsys.readouterr().out) is None
+
+
+def test_blame_list_nested_path(tmp_path):
+    # _get_path (shared with encrypt/decrypt) indexes lists by numeric
+    # parts, so blame works on list-nested values too.
+    w = World("b", dir=str(tmp_path))
+    w.update({"items": [{"secret": "one"}]}, actor="ada")
+    w.update({"items": [{"secret": "two"}]}, actor="bob")
+    hit = w.blame("items.0.secret")
+    assert hit["seq"] == 2 and hit["actor"] == "bob"
+    assert hit["old"] == "one" and hit["new"] == "two"
+    assert w.blame("items.5.secret") is None
