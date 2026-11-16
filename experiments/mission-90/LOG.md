@@ -349,3 +349,106 @@ import lost-update race) after that.
   (T-2, T-3)
 - `f96a4b0` docs: Day 4 mission log, changelog entries for T-2 and T-3
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 5 - 2026-11-16 (Foundation phase)
+
+**Branch:** `mission/day-5` (from local main `bb4c6fa`, the Day 4 tip;
+Days 1 to 3 are on remote main as `e748764`, Day 4 is on local main
+only, awaiting Rosario's push approval). Nothing pushed, nothing
+merged to main.
+
+**Objectives:** close C-8/C-15 (encrypt/decrypt list-nested field
+paths, one settled path notation), the next P1 code finding from the
+Day 1 audit and the pick named at the end of Day 4. No behavior
+change outside per-field encryption, decryption, redaction, and
+`blame` path resolution.
+
+**Baseline (measured, clean sequential run):** 413 passed, 0 failed,
+1 warning, 63.67 s, Python 3.12.3.
+
+**GitHub (read-only):** not re-checked today; Day 4 recorded 12 open
+Dependabot PRs (newest #27, hypothesis bump, Nov 9) and 1 open issue
+(#4, already addressed by Experiment #003). No human-filed issues.
+The bundled `gh.py` CLI only supports `whoami` and `create-repo`
+and its import path is stale; earlier days used a small read-only
+script with the same credential helper instead. No GitHub state is
+needed for today's code fix.
+
+**Changes:**
+- C-8/C-15 (`src/world/core.py`): field paths now use one dot
+  notation with numeric parts for list indices
+  (`"items.0.secret"`) everywhere a field path is used.
+  - `_get_path` descends through lists: a numeric part indexes the
+    list, a non-numeric or out-of-range part resolves to missing
+    (absent-field skip behavior preserved), a dict is always tried
+    first so a dict with a numeric string key keeps its meaning,
+    and negative indices are unsupported (resolve to missing).
+  - New `_set_path` helper mirrors the same traversal and sets the
+    value at an existing path (`ValueError` for a missing part,
+    `TypeError` for traversing a non-container); `encrypt_fields`
+    swaps envelopes through it instead of the old dict-only loop,
+    which would have raised `TypeError` on a list node.
+  - `decrypt_fields` builds list paths as `items.0.secret` instead
+    of `items[0].secret`, so the AAD matches the field string
+    encryption used and the `field` in decrypt errors matches the
+    identifier `redact_field` expects. This closes the C-8 AAD
+    mismatch (a hand-built list-nested envelope failed
+    authentication on decrypt) and the C-15 error-path mismatch.
+  - Docstrings for `encrypt_fields`, `decrypt_fields`,
+    `redact_field`, and `blame` now state the notation. No storage
+    format change: envelopes, key records, and the hash chain are
+    untouched, so existing encrypted worlds decrypt as before.
+- Tests (5 new, 418 total): `test_list_nested_field_roundtrip`
+  (encrypt both list items, envelopes present in stored state,
+  decrypt restores the original, `verify()` passes),
+  `test_list_nested_absent_index_skipped` (out-of-range,
+  non-numeric, and negative indices skipped with no records),
+  `test_list_nested_decrypt_error_names_dot_path` (tampered
+  list-nested envelope raises `DecryptionError` naming
+  `items.0.secret`), `test_list_nested_redact_field` (receipt field
+  is `items.0.secret`, status redacted, decrypt raises
+  `RedactedError` with `field == "items.0.secret"`), and
+  `test_blame_list_nested_path` (`blame` resolves list-nested
+  values through the same `_get_path`).
+
+**Negative finding, kept visible:** the first version of the
+error-path test used a wrong master key and expected the
+`DecryptionError` to name the field. It does not: a wrong master
+key fails at the key-unwrap step (`_field_data_key`, "cannot unwrap
+field key ..."), before the envelope-decrypt step that names the
+field. That is pre-existing behavior, not part of C-15 (the audit
+finding is about the walk's path format), so the test tampers the
+envelope ciphertext instead, which reaches the field-naming step.
+Residual observation, not fixed today: neither the unwrap failure
+nor the `RedactedError` from `_field_data_key` carries the field
+name. Worth a small follow-up if field-named errors are wanted on
+every decrypt failure path.
+
+**Verification:**
+- Targeted: `tests/test_world_encryption.py` +
+  `tests/test_world_blame.py`, 25 passed.
+- Full suite: 418 passed, 0 failed, 1 warning, 64.32 s.
+- Ruff (local 0.16.9) clean over the changed files; `ruff format
+  --check` clean; mypy clean on `src/world/core.py`. Two ruff
+  findings in the first draft were fixed, not suppressed: TRY004
+  (non-container traversal in `_set_path` now raises `TypeError`)
+  and F841 (unused `seq` in the roundtrip test). The 2 DTZ001s in
+  `tests/test_sdk.py:291,293` are the known Day 4 item (local ruff
+  0.16.9 flags them; pinned CI ruff 0.17.5 accepts them).
+- Full diff reviewed: 3 files, +130/-13 (code and tests);
+  CHANGELOG and STATUS updates in the docs commit below.
+
+**Unresolved issues / decisions for Rosario:** unchanged from Day 4
+(H-1 history divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8
+version string and top-level exports; L-6/F3b). No new decisions
+needed for today's work. With C-8/C-15 closed, remaining P1 code
+and docs items are C-6, C-7, D-3, D-11.
+
+**Next (P1):** C-7 (transcript import lost-update race:
+`expected_version` retry plus a two-thread concurrent-import test);
+C-6 (`world import` plus field keys) after that.
+
+**Day 5 commits:**
+- `21aa480` fix: one dot path notation for list-nested encrypted
+  fields (C-8, C-15)
+- `LOG.md` SHA line updated in the commit below (this line).
