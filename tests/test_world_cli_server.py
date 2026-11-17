@@ -2,6 +2,7 @@
 
 import json
 import sqlite3
+import threading
 
 import pytest
 
@@ -9,7 +10,7 @@ pytest.importorskip("fastapi")
 pytest.importorskip("httpx")
 from fastapi.testclient import TestClient
 
-from world import World
+from world import ConflictError, World
 from world.cli import main
 from world.invariants import no_negative
 from world.producers import import_transcript
@@ -129,6 +130,77 @@ def test_import_transcript_is_idempotent(store):
 def test_import_transcript_empty_text_is_noop(store):
     w = World("empty", dir=store)
     assert import_transcript(w, "hi") == 0
+    assert w.version == 0
+
+
+def test_import_transcript_retries_after_conflict(store):
+    # C-7: a concurrent writer committing between the import's read and
+    # its update must not lose either writer's items. The first attempt
+    # conflicts; the retry re-reads and converges.
+    w = World("notes-conflict", dir=store)
+    w.update({"seed": True})
+    calls = {"n": 0}
+    real_update = w.update
+
+    def flaky_update(state, **kw):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            real_update({"seed": True, "other": "writer"})
+        return real_update(state, **kw)
+
+    w.update = flaky_update  # type: ignore[method-assign]
+    text = "Agent A: Decision: we will use sqlite for storage.\n"
+    seq = import_transcript(w, text, actor="agent-a")
+    assert seq == 3
+    assert calls["n"] == 2
+    doc = w.state()
+    assert doc["other"] == "writer"
+    assert doc["transcript"]["decisions"][0]["speaker"] == "Agent A"
+    assert "sqlite" in doc["transcript"]["decisions"][0]["text"]
+
+
+def test_concurrent_imports_of_different_transcripts_keep_both(store):
+    # C-7: two threads importing different transcripts at the same time
+    # must both land; without the expected_version retry the second
+    # writer would silently overwrite the first's merged items.
+    w = World("notes-race", dir=store)
+    text_a = "Agent A: Decision: we will use sqlite for storage.\n"
+    text_b = "Agent B: Note: remember to add tests for the new module.\n"
+    barrier = threading.Barrier(2)
+    errors = []
+
+    def worker(text):
+        try:
+            barrier.wait()
+            import_transcript(w, text, actor="racer")
+        except Exception as exc:  # noqa: BLE001
+            errors.append(exc)
+
+    threads = [threading.Thread(target=worker, args=(t,)) for t in (text_a, text_b)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not errors, f"importer threads raised: {errors}"
+    assert w.version == 2
+    doc = w.state()
+    assert len(doc["transcript"]["decisions"]) == 1
+    assert len(doc["transcript"]["notes"]) == 1
+    assert w.verify() is True
+
+
+def test_import_transcript_gives_up_after_repeated_conflicts(store, monkeypatch):
+    # Retries are bounded: under sustained contention the import raises
+    # ConflictError instead of spinning forever, and nothing is written.
+    w = World("notes-stuck", dir=store)
+
+    def always_conflict(state, **kw):
+        raise ConflictError("stale")
+
+    monkeypatch.setattr(w, "update", always_conflict)
+    with pytest.raises(ConflictError, match="aborted after 10 conflicting attempts"):
+        import_transcript(w, "Agent A: Decision: we will use sqlite.\n")
     assert w.version == 0
 
 
