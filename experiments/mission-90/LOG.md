@@ -453,3 +453,59 @@ C-6 (`world import` plus field keys) after that.
   fields (C-8, C-15)
 - `efc353e` docs: Day 5 mission log, changelog entry for C-8 and C-15
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 6 - 2026-11-17 (Foundation phase)
+
+**Branch:** `mission/day-6` (from Day 5 tip `bb6a87b`). Nothing pushed,
+nothing merged to main.
+
+**Objectives:** close C-7 (transcript import lost-update race:
+`expected_version` retry plus a two-thread concurrent-import test),
+the next P1 from Day 5.
+
+**What changed:** `src/world/producers/transcript.py` now runs the
+optimistic concurrency loop: `World.read()` for `(state, version)`,
+then `update()` with `expected_version=version`. A concurrent writer
+makes the update raise `ConflictError` before anything is appended,
+so the import re-reads and retries (bounded at 10 attempts, then it
+raises `ConflictError`) instead of silently overwriting the other
+writer's merged items. The merge is factored into `_merge_items`,
+which deep-copies the freshly read state each attempt so a retry
+never accumulates duplicate items. Idempotency is preserved: two
+threads importing the same text still dedupe to one row via the
+existing key. Three new tests in `tests/test_world_cli_server.py`:
+retry after an injected conflicting write, a two-thread concurrent
+import of different transcripts (both land, chain verifies), and
+bounded-retry exhaustion (raises after 10 attempts, nothing written).
+
+**Verification:**
+- Baseline before changes: 418 passed, 0 failed, 1 warning, 72.55 s.
+- Targeted: `tests/test_world_cli_server.py`, 22 passed.
+- Regression proof: the two new race tests fail on the pre-fix code
+  (verified by stashing the fix and re-running: 2 failed) and pass
+  with it.
+- Full suite: 421 passed, 0 failed, 1 warning, 65.38 s.
+- Ruff check and `ruff format --check` clean over the changed files;
+  mypy clean on `src/world/producers/transcript.py`.
+- Full diff reviewed: 2 files, +117/-18 (code and tests); CHANGELOG
+  and STATUS updates in the docs commit below.
+- GitHub check (read-only): 13 open issues, 12 open PRs, all
+  Dependabot bumps except issue #4 ("Run and publish
+  experiment-handoff results"), a pre-existing roadmap item. Nothing
+  new to act on.
+
+**Unresolved issues / decisions for Rosario:** unchanged from Day 5
+(H-1 history divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8
+version string and top-level exports; L-6/F3b). No new decisions
+needed for today's work. With C-7 closed, remaining P1 code and
+docs items are C-6, D-3, D-11.
+
+**Next (P1):** C-6 (`world import` plus field keys: export/import
+`field_keys` rows alongside the JSONL, or refuse/warn when an
+imported row contains an envelope with no escrowed key); D-3, D-11
+after that.
+
+**Day 6 commits:**
+- `8c72180` fix: transcript import retries on conflict instead of
+  losing updates (C-7)
+- `LOG.md` SHA line updated in the commit below (this line).

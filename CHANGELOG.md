@@ -122,6 +122,15 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- Transcript import no longer has a lost-update race (Mission Day 6,
+  audit finding C-7): `import_transcript` now runs the optimistic
+  concurrency loop, reading `(state, version)` with `World.read()` and
+  passing `expected_version=version` to `update()`, re-reading and
+  retrying (bounded at 10 attempts) on `ConflictError`. Two different
+  transcripts imported concurrently both land; previously the second
+  writer silently overwrote the first's merged items. Three new tests
+  cover the retry after an injected conflict, a two-thread concurrent
+  import of different transcripts, and bounded-retry exhaustion.
 - Field paths now use one dot notation with numeric parts for list
   indices (`"items.0.secret"`) across encrypt, decrypt, redact, and
   blame (Mission Day 5, audit findings C-8 and C-15): `_get_path`
