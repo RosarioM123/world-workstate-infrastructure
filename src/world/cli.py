@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from . import fieldcrypto as _fieldcrypto
 from .core import ConflictError, Invariant, InvariantViolation, World
 
 
@@ -200,10 +201,45 @@ def cmd_diff(args: argparse.Namespace) -> int:
     return 0
 
 
+def _envelope_key_ids(state: Any, prefix: str = "") -> list[tuple[str, str]]:
+    """``(dot path, key_id)`` for every encryption envelope in a state.
+
+    Paths use the same dot notation as :meth:`World.decrypt_fields`
+    (numeric parts for list indices).
+    """
+    found: list[tuple[str, str]] = []
+    if isinstance(state, dict):
+        for key, value in state.items():
+            path = f"{prefix}.{key}" if prefix else str(key)
+            if _fieldcrypto.is_envelope(value):
+                found.append((path, str(value.get("key_id", ""))))
+            else:
+                found.extend(_envelope_key_ids(value, path))
+    elif isinstance(state, list):
+        for i, value in enumerate(state):
+            found.extend(_envelope_key_ids(value, f"{prefix}.{i}"))
+    return found
+
+
 def cmd_export(args: argparse.Namespace) -> int:
-    """Dump every proposal row as JSONL (committed and rejected)."""
+    """Dump every proposal row as JSONL (committed and rejected).
+
+    The first line names the source world; wrapped field keys follow
+    the rows as ``{"type": "field_key", ...}`` lines, so an import into
+    a world with the same name restores decryptability. The wrapped
+    keys are useless without the master key, which is never stored in
+    the world and must be carried separately. Envelopes are bound to
+    this world's name (AAD), so importing into a differently named
+    world keeps the ciphertext but decryption fails authentication
+    there by design; see ``cmd_import``.
+    """
     w = _world(args)
-    lines = [json.dumps(w.proposal(r["seq"]), sort_keys=True) for r in w.history()]
+    lines = [json.dumps({"type": "world", "name": w.name}, sort_keys=True)]
+    lines += [json.dumps(w.proposal(r["seq"]), sort_keys=True) for r in w.history()]
+    lines += [
+        json.dumps({"type": "field_key", **record}, sort_keys=True)
+        for record in w.field_keys()
+    ]
     text = "\n".join(lines) + ("\n" if lines else "")
     if args.file and args.file != "-":
         Path(args.file).write_text(text)
@@ -218,23 +254,97 @@ def cmd_import(args: argparse.Namespace) -> int:
     The import builds a fresh hash chain (new timestamps, new hashes);
     use ``export`` + ``verify`` on the source for audit fidelity. Rejected
     rows are skipped: they were never state, only evidence.
+
+    Escrowed field keys from the export are stored alongside the
+    replay, each re-tagged with the new seq of the first imported
+    version whose state holds its envelope, so encrypted fields stay
+    decryptable when the target world has the same name as the source
+    (envelopes are bound to the source world name). Two warnings, both
+    on stderr, cover the cases where decryptability does not survive:
+    an imported envelope with no escrowed key (the export predates
+    key export, or the field was redacted in the source), and an
+    import into a differently named world.
     """
     w = _world(args)
     text = sys.stdin.read() if args.file == "-" else Path(args.file).read_text()
-    imported = skipped = 0
+    source_name: str | None = None
+    key_records: list[dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
     for line in text.splitlines():
         if not line.strip():
             continue
         row = json.loads(line)
+        if not isinstance(row, dict):
+            raise TypeError("export line must be a JSON object")
+        line_type = row.get("type")
+        if line_type == "world":
+            source_name = row.get("name")
+            if not isinstance(source_name, str):
+                raise ValueError("malformed export header: missing world name")
+        elif line_type == "field_key":
+            for field in ("key_id", "field", "wrapped_key", "key_fp", "created_at"):
+                if field not in row:
+                    raise ValueError(f"malformed field_key record: missing {field!r}")
+            key_records.append(
+                {
+                    "key_id": row["key_id"],
+                    "seq": row.get("seq"),
+                    "field": row["field"],
+                    "wrapped_key": row["wrapped_key"],
+                    "key_fp": row["key_fp"],
+                    "created_at": row["created_at"],
+                }
+            )
+        elif line_type is not None:
+            raise ValueError(f"unknown export line type {line_type!r}")
+        else:
+            rows.append(row)
+    imported = skipped = 0
+    envelopes: list[tuple[str, str]] = []
+    key_id_to_new_seq: dict[str, int] = {}
+    for row in rows:
         if row.get("status") != "COMMITTED":
             skipped += 1
             continue
         note = f"imported seq {row.get('seq')}"
         if row.get("note"):
             note += f": {row['note']}"
-        w.update(row["state"], actor=row.get("actor"), note=note)
+        new_seq = w.update(row["state"], actor=row.get("actor"), note=note)
+        for path, key_id in _envelope_key_ids(row["state"]):
+            envelopes.append((path, key_id))
+            key_id_to_new_seq.setdefault(key_id, new_seq)
         imported += 1
-    print(f"imported {imported} versions, skipped {skipped} rejected")
+    stored = 0
+    if key_records:
+        remapped = [
+            {
+                **record,
+                "seq": key_id_to_new_seq.get(record["key_id"], record.get("seq")),
+            }
+            for record in key_records
+        ]
+        w.store_field_keys(remapped)
+        stored = len(remapped)
+    escrowed = {record["key_id"] for record in w.field_keys()}
+    for path, key_id in sorted({(p, k) for p, k in envelopes if k not in escrowed}):
+        print(
+            f"warning: field {path!r} (key {key_id}) has no escrowed key in"
+            " this world, so it cannot be decrypted here (the export"
+            " predates key export, or the field was redacted in the source)",
+            file=sys.stderr,
+        )
+    if source_name is not None and source_name != w.name and envelopes:
+        print(
+            f"warning: this export is from world {source_name!r} but this"
+            f" world is {w.name!r}; encrypted fields are bound to the"
+            " source world name and will not decrypt here. Import into a"
+            f" world named {source_name!r} to restore them.",
+            file=sys.stderr,
+        )
+    summary = f"imported {imported} versions, skipped {skipped} rejected"
+    if stored:
+        summary += f", {stored} field keys"
+    print(summary)
     return 0
 
 

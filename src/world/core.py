@@ -1205,6 +1205,26 @@ class World:
             )
             cx.commit()
 
+    def field_keys(self) -> list[dict[str, Any]]:
+        """All escrowed wrapped field keys, in creation order.
+
+        Each record carries ``key_id``, ``seq`` (the version whose
+        envelope references it; NULL for keys whose proposal was
+        rejected), ``field``, ``wrapped_key`` (the data key wrapped
+        with the master key), ``key_fp``, and ``created_at``. Wrapped
+        keys are useless without the master key, which is never stored
+        in the world; export them alongside the ledger (see
+        ``world export``) and carry the master key separately.
+        """
+        with closing(self._connect()) as cx:
+            return [
+                dict(r)
+                for r in cx.execute(
+                    "SELECT key_id, seq, field, wrapped_key, key_fp,"
+                    " created_at FROM field_keys ORDER BY rowid"
+                ).fetchall()
+            ]
+
     def update_encrypted(
         self,
         master_key: bytes,
