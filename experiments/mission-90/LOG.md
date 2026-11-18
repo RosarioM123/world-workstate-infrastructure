@@ -509,3 +509,95 @@ after that.
 - `8c72180` fix: transcript import retries on conflict instead of
   losing updates (C-7)
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 7 - 2026-11-18 (Foundation phase)
+
+**Branch:** `mission/day-7` (from Day 6 tip `93a75a3`). Nothing pushed,
+nothing merged to main.
+
+**Objectives:** close C-6 (`world import` plus field keys: export/import
+`field_keys` rows alongside the JSONL, or refuse/warn when an imported
+row contains an envelope with no escrowed key), the next P1 from Day 6.
+No behavior change outside `world export` / `world import` and the new
+`World.field_keys()` accessor.
+
+**Baseline (measured, clean sequential run):** 421 passed, 0 failed,
+1 warning, 69.48 s, Python 3.12.3.
+
+**GitHub (read-only):** 13 open issues, 12 open PRs. All Dependabot
+bumps except issue #4 (pre-existing roadmap item). New since Day 6:
+#28, fastapi 0.141.1 to 0.162.7 (2026-11-16). No human-filed issues,
+nothing new to act on.
+
+**Changes:**
+- C-6 (`src/world/core.py`): new `World.field_keys()` returns all
+  escrowed wrapped field keys in creation order (`key_id`, `seq`,
+  `field`, `wrapped_key`, `key_fp`, `created_at`). The `seq` column is
+  write-only today (nothing reads it for logic), so import re-tagging
+  is informational fidelity, not a behavior dependency.
+- C-6 (`src/world/cli.py`): `world export` now writes a first line
+  naming the source world (`{"type": "world", "name": ...}`), then the
+  proposal rows as before, then one `{"type": "field_key", ...}` line
+  per escrowed key. `world import` parses the typed lines, replays
+  committed rows, stores the key records re-tagged with the new seq of
+  the first imported version whose state holds each envelope (keys for
+  skipped rejected rows keep their exported seq, NULL), and warns on
+  stderr in two cases: an imported envelope with no escrowed key
+  (pre-fix export, or a field redacted in the source), and an import
+  into a differently named world. Malformed typed lines fail loudly
+  (`ValueError`/`TypeError`, which `main()` reports as `error: ...`,
+  exit 1); unknown line types are rejected rather than silently
+  dropped. Legacy exports (proposal rows only) still import, with the
+  orphan warning where it applies.
+- AAD name binding, found while fixing C-6 and kept visible: envelopes
+  bind the world name (`_enc_aad`), so carrying the keys alone does not
+  restore decryptability across a rename; that is the documented
+  transplant protection, not a bug, and the name-mismatch warning
+  exists so a same-key import into `vault-copy` does not look like a
+  wrong master key at decrypt time. The honest restore path is an
+  import into a world with the source name.
+- Tests (3 new, 424 total): same-name export/import round trip
+  (decrypt restores the original, chain verifies, keys re-tagged to
+  seq 1), legacy export without keys (warns naming field `ssn`,
+  decrypt raises `RedactedError: never escrowed`), cross-name import
+  (warns naming both worlds, key escrowed, decrypt raises
+  `DecryptionError` on the AAD check). Existing export test updated
+  for the header line. Test-side note: the first draft of the new
+  tests called `capsys.readouterr()` twice, so the stderr assertions
+  read an empty second capture; fixed to capture once.
+
+**Verification:**
+- Baseline before changes: 421 passed, 0 failed, 1 warning, 69.48 s.
+- Targeted: `tests/test_world_cli.py` + `tests/test_world_encryption.py`,
+  28 passed.
+- Regression proof: all 3 new tests fail on the pre-fix code (verified
+  by stashing the fix and re-running) and pass with it.
+- Full suite: 424 passed, 0 failed, 1 warning, 63.53 s.
+- Ruff check and `ruff format --check` clean over the changed files;
+  mypy clean on `src/world/core.py` and `src/world/cli.py`. Two ruff
+  findings in the first draft were fixed, not suppressed: TRY004 (a
+  non-object export line now raises `TypeError`) and two format
+  nits.
+- Full diff reviewed: 3 files, +242/-10 (code and tests); CHANGELOG
+  and STATUS updates in the docs commit below.
+- Incidental finding, not a code change: a mid-day full-suite run
+  went red (179 failed, 143 errors, `database or disk is full`) because
+  /tmp had filled to 100% with crash-consistency debris from the day's
+  two full suites (about 300M `crash-*` plus 130M `pytest-of-root`).
+  Cleaned per the AGENTS.md rule and re-ran: 424 passed. Same cause as
+  the Day 3 incident; the debris accumulates roughly one full-suite
+  run per 150M, so a cleanup before each full suite is now routine.
+
+**Unresolved issues / decisions for Rosario:** unchanged from Day 6
+(H-1 history divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8
+version string and top-level exports; L-6/F3b). No new decisions
+needed for today's work. With C-6 closed, remaining P1 items are
+D-3 and D-11 (docs).
+
+**Next (P1):** D-3, D-11 (docs findings from the Day 1 audit); then
+the P2 code items C-9, C-14, C-12, C-13.
+
+**Day 7 commits:**
+- `f8cacae` fix: export/import carries field keys so encrypted fields
+  survive (C-6)
+- `LOG.md` SHA line updated in the commit below (this line).
