@@ -122,6 +122,20 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- `world export` now carries wrapped field keys and `world import`
+  stores them, so encrypted fields survive an export/import round trip
+  (Mission Day 7, audit finding C-6): the export gains a first line
+  naming the source world plus one `{"type": "field_key", ...}` line per
+  escrowed key, and import re-tags each key with the new seq of the
+  first imported version whose state holds its envelope. Wrapped keys
+  are useless without the master key, which is never stored in the
+  world and must be carried separately. Import warns on stderr when an
+  imported envelope has no escrowed key (a pre-fix export, or a field
+  redacted in the source) and when the export comes from a differently
+  named world (envelopes are bound to the source world name, so they
+  will not decrypt in the new name by design). Three new tests cover
+  the same-name round trip, the orphan warning on a legacy export, and
+  the name-mismatch warning. `World.field_keys()` lists the escrow.
 - Transcript import no longer has a lost-update race (Mission Day 6,
   audit finding C-7): `import_transcript` now runs the optimistic
   concurrency loop, reading `(state, version)` with `World.read()` and
