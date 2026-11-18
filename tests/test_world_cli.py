@@ -65,14 +65,16 @@ def test_cli_export_roundtrip(store, tmp_path, capsys):
     out_file = tmp_path / "dump.jsonl"
     assert cli(store, "export", "e", "--file", str(out_file)) == 0
     rows = [json.loads(line) for line in out_file.read_text().splitlines()]
-    assert [r["seq"] for r in rows] == [1, 2, 3]
-    assert [r["status"] for r in rows] == ["COMMITTED", "REJECTED", "COMMITTED"]
-    assert rows[0]["state"] == {"a": 1}
-    assert rows[0]["actor"] == "ann"
+    assert rows[0] == {"type": "world", "name": "e"}
+    proposals = rows[1:]
+    assert [r["seq"] for r in proposals] == [1, 2, 3]
+    assert [r["status"] for r in proposals] == ["COMMITTED", "REJECTED", "COMMITTED"]
+    assert proposals[0]["state"] == {"a": 1}
+    assert proposals[0]["actor"] == "ann"
 
     capsys.readouterr()
     assert cli(store, "export", "e") == 0  # stdout form
-    assert len(capsys.readouterr().out.strip().splitlines()) == 3
+    assert len(capsys.readouterr().out.strip().splitlines()) == 4
 
 
 def test_cli_import_rebuilds_committed_timeline(store, tmp_path, capsys):
@@ -122,3 +124,103 @@ def test_cli_read_returns_version_and_state(store, capsys):
     w.update({"a": 2})
     assert cli(store, "read", "r") == 0
     assert json.loads(capsys.readouterr().out) == {"version": 2, "state": {"a": 2}}
+
+
+MASTER = b"master-key-32-bytes-for-tests-0000"
+
+
+def _encrypted_world(store, name, state, fields):
+    w = World(name, dir=store)
+    w.update_encrypted(MASTER, state, fields)
+    return w
+
+
+def test_cli_export_import_carries_field_keys(tmp_path, capsys):
+    """C-6: export/import restores decryptability in a same-named world."""
+    from world import fieldcrypto
+
+    src_dir, dst_dir = str(tmp_path / "src"), str(tmp_path / "dst")
+    state = {"user": "ada", "payment": {"card": "4111-1111", "cvv": "123"}}
+    _encrypted_world(src_dir, "vault", state, ["payment.card", "payment.cvv"])
+
+    dump = tmp_path / "dump.jsonl"
+    assert cli(src_dir, "export", "vault", "--file", str(dump)) == 0
+    lines = [json.loads(line) for line in dump.read_text().splitlines()]
+    assert lines[0] == {"type": "world", "name": "vault"}
+    key_lines = [r for r in lines if r.get("type") == "field_key"]
+    assert len(key_lines) == 2
+    assert {r["field"] for r in key_lines} == {"payment.card", "payment.cvv"}
+
+    capsys.readouterr()
+    assert cli(dst_dir, "import", "vault", "--file", str(dump)) == 0
+    captured = capsys.readouterr()
+    out, err = captured.out, captured.err
+    assert "imported 1 versions, skipped 0 rejected, 2 field keys" in out
+    assert "warning" not in err
+
+    dst = World("vault", dir=dst_dir)
+    assert dst.verify()
+    assert dst.decrypt_fields(MASTER, dst.state()) == state
+    # Keys are re-tagged with the new seq of the imported version.
+    assert {r["seq"] for r in dst.field_keys()} == {1}
+    assert {r["field"] for r in dst.field_keys()} == {
+        "payment.card",
+        "payment.cvv",
+    }
+    assert fieldcrypto.is_envelope(dst.state()["payment"]["card"])
+
+
+def test_cli_import_warns_on_orphaned_envelope(tmp_path, capsys):
+    """C-6: an export without keys imports but warns, and stays orphaned."""
+    from world import RedactedError
+
+    src_dir, dst_dir = str(tmp_path / "src"), str(tmp_path / "dst")
+    _encrypted_world(src_dir, "vault", {"ssn": "000-00-0000"}, ["ssn"])
+
+    dump = tmp_path / "dump.jsonl"
+    assert cli(src_dir, "export", "vault", "--file", str(dump)) == 0
+    # Simulate a pre-fix export: proposal rows only, no header, no keys.
+    legacy = [line for line in dump.read_text().splitlines() if '"status"' in line]
+    assert len(legacy) == 1
+    (tmp_path / "legacy.jsonl").write_text("\n".join(legacy) + "\n")
+
+    capsys.readouterr()
+    assert (
+        cli(dst_dir, "import", "vault", "--file", str(tmp_path / "legacy.jsonl")) == 0
+    )
+    captured = capsys.readouterr()
+    out, err = captured.out, captured.err
+    assert "imported 1 versions, skipped 0 rejected" in out
+    assert "field keys" not in out
+    assert "warning: field 'ssn'" in err
+    assert "no escrowed key" in err
+
+    dst = World("vault", dir=dst_dir)
+    assert dst.state()["ssn"]["key_id"]  # envelope present, key absent
+    with pytest.raises(RedactedError, match="never escrowed"):
+        dst.decrypt_fields(MASTER, dst.state())
+
+
+def test_cli_import_warns_on_world_name_mismatch(tmp_path, capsys):
+    """C-6: keys carry, but envelopes stay bound to the source world name."""
+    from world import fieldcrypto
+
+    src_dir, dst_dir = str(tmp_path / "src"), str(tmp_path / "dst")
+    _encrypted_world(src_dir, "vault", {"ssn": "000-00-0000"}, ["ssn"])
+
+    dump = tmp_path / "dump.jsonl"
+    assert cli(src_dir, "export", "vault", "--file", str(dump)) == 0
+    capsys.readouterr()
+    assert cli(dst_dir, "import", "vault-copy", "--file", str(dump)) == 0
+    captured = capsys.readouterr()
+    out, err = captured.out, captured.err
+    assert "imported 1 versions, skipped 0 rejected, 1 field keys" in out
+    assert "warning: this export is from world 'vault'" in err
+    assert "world is 'vault-copy'" in err
+
+    dst = World("vault-copy", dir=dst_dir)
+    assert dst.verify()
+    # The key is escrowed, but the AAD binds the envelope to "vault".
+    assert len(dst.field_keys()) == 1
+    with pytest.raises(fieldcrypto.DecryptionError):
+        dst.decrypt_fields(MASTER, dst.state())
