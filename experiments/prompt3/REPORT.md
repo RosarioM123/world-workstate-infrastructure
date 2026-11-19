@@ -263,3 +263,17 @@ PRELIMINARY, single model family, n=3 per cell, blind grading.
   research plan. The in-environment results here are PRELIMINARY.
 - Per the standing rule, this work is uncommitted in the working
   tree for review. No commit and no push has been made.
+
+## Addendum 2026-11-19 (Mission Day 8, audit finding D-3)
+
+The "uncommitted" statements in this report (the header and the
+closing note above) were accurate on 2026-11-04 and are stale now.
+The Prompt 3 work was committed locally on 2026-11-11 as `8288dd4`,
+and the same content was pushed to remote main as `db5b477`. Local
+and remote main have diverged histories (different SHAs) but
+content-identical trees; verified in the mission Day 1 audit
+(2026-11-12) and re-verified 2026-11-19 (both mains at 315 commits,
+identical tree `f6f8028dc978a4f26e6a2306f5a72e4d566cebc7`). The
+"unreviewed" half of the statement still stands. This addendum is
+appended, not edited into the body, so the report stays a dated
+record.

@@ -9,7 +9,7 @@
 users.**
 
 **Tests:** 424 passing, 0 failing (full suite run locally
-2026-11-18, Python 3.12.3, on the mission Day 7 branch tree).
+2026-11-19, Python 3.12.3, on the mission Day 8 branch tree).
 **Model checker:** 1,220,255 states explored (three
 configurations), properties P1 to P6 hold; mutation test catches
 the injected P4 violation. **CI:** pytest on Python 3.11, 3.12,

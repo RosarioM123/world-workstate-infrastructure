@@ -127,3 +127,19 @@ any first public release, once approved: version stays in the
 0.1.x line, labeled a research prototype, with the limitations and
 the pending external validation stated in the release notes
 themselves.
+
+## Addendum 2026-11-19 (Mission Day 8, audit finding D-3)
+
+Blocker 1 above ("the work is uncommitted and unreviewed") is half
+stale. The work it names was committed locally on 2026-11-11
+(Experiment #003 as `0dca725`, Prompt 3 as `8288dd4`, Prompt 6 as
+`9ef3591`) and the same content was pushed to remote main as
+`44b0ff2`, `db5b477`, and `5e38886`; local and remote main have
+diverged histories (different SHAs) but content-identical trees,
+verified in the mission Day 1 audit (2026-11-12) and re-verified
+2026-11-19 (both mains at 315 commits, identical tree
+`f6f8028dc978a4f26e6a2306f5a72e4d566cebc7`). The blocker itself stays
+open: the work is still unreviewed and there is still no release
+approval, and any push needed its own approval under the standing
+rule. This addendum is appended, not edited into the body, so the
+document stays a dated record.
