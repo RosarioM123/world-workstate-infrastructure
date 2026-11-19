@@ -601,3 +601,74 @@ the P2 code items C-9, C-14, C-12, C-13.
 - `f8cacae` fix: export/import carries field keys so encrypted fields
   survive (C-6)
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 8 - 2026-11-19 (Foundation phase)
+
+**Branch:** `mission/day-8` (from Day 7 tip `279d0cb`). Nothing pushed,
+nothing merged to main.
+
+**Objectives:** close D-3 and D-11, the last two P1 items: dated
+addenda on the stale "uncommitted" statements in the four dated
+reports (D-3) and in `research/EVIDENCE_REGISTER.md` (D-11). Docs
+only; no code touched, no behavior change.
+
+**Baseline (measured, clean sequential run):** 424 passed, 0 failed,
+1 warning, 71.25 s, Python 3.12.3.
+
+**GitHub (read-only):** 13 open issues, 12 open PRs, unchanged from
+Day 7. All Dependabot bumps except issue #4 (pre-existing roadmap
+item). Nothing new to act on. Incidental: the `gh.py` helper's
+hard-coded path to `dynamic_credentials.py`
+(`templates/skill/bin`) does not exist; the module lives at
+`/opt/muse/skills/custom-connector-setup/bin/`. The check ran by
+pre-importing it from the real path. Connector tooling, outside
+this repo; not fixed today.
+
+**Facts verified before writing the addenda (not taken from memory):**
+local main contains `0dca725`, `8288dd4`, `9ef3591` (2026-11-11);
+remote main contains the same content as `44b0ff2`, `db5b477`,
+`5e38886`; both mains have 315 commits and identical tree
+`f6f8028dc978a4f26e6a2306f5a72e4d566cebc7`. Note: the mission brief's
+base state ("the three 2026-11-11 commits are ahead of remote main
+and UNPUSHED") is stale; the content is on remote main, only the
+SHAs differ (H-1 divergence, recorded Day 1). Remote main tip is
+`e50015f` (2026-11-15), the re-created Day 4 mission commits; Days
+5 to 7 exist only on local mission branches.
+
+**Changes:**
+- D-3: a dated addendum section appended (bodies untouched) to
+  `experiments/prompt3/REPORT.md`, `experiments/prompt6/REPORT.md`,
+  `experiments/prompt6/RELEASE_READINESS.md`, and
+  `experiments/experiment-003/REPORT.md`, each recording the
+  2026-11-11 local commits, the remote equivalents, the diverged
+  histories with content-identical trees, and that "unreviewed"
+  still stands. The release-readiness addendum states blocker 1
+  stays open.
+- D-11: a dated note added after the "Compiled" paragraph in
+  `research/EVIDENCE_REGISTER.md`, naming the stale "uncommitted"
+  framing including the Section 4.6 row, with the same commit and
+  push facts.
+- `CHANGELOG.md`: entry under Unreleased/Fixed for D-3 and D-11.
+  `STATUS.md`: test line re-dated to the 2026-11-19 Day 8 run.
+
+**Verification:**
+- Full suite baseline before changes: 424 passed, 0 failed,
+  1 warning, 71.25 s. No code changed, so no re-run needed after
+  the docs edits; ruff/mypy do not cover Markdown.
+- Full diff reviewed: 7 files, +85/-1, addenda only, no em dashes.
+- Stale statements confirmed present before editing by grep in all
+  five files; each addendum names the statement it corrects.
+
+**Unresolved issues / decisions for Rosario:** unchanged from Day 7
+(H-1 history divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8
+version string and top-level exports; L-6/F3b). No new decisions
+needed for today's work. With D-3 and D-11 closed, all P1 audit
+items are closed. Remaining backlog is P2: C-9, C-14, C-12, C-13,
+T-4, T-5, T-12, T-7, T-8, C-5.
+
+**Next (P2):** C-9 and C-14 (CLI error handling: no tracebacks on
+ordinary errors), per the Day 1 audit backlog order.
+
+**Day 8 commits:**
+- `0194108` docs: dated addenda on stale uncommitted statements (D-3, D-11)
+- `LOG.md` SHA line updated in the commit below (this line).
