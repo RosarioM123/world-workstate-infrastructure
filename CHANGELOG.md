@@ -122,6 +122,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- Dated reports no longer read as current state on the commit
+  question (Mission Day 8, audit findings D-3 and D-11): dated
+  addenda appended (bodies untouched) to
+  `experiments/prompt3/REPORT.md`, `experiments/prompt6/REPORT.md`,
+  `experiments/prompt6/RELEASE_READINESS.md`,
+  `experiments/experiment-003/REPORT.md`, and
+  `research/EVIDENCE_REGISTER.md`, recording that Experiment #003,
+  Prompt 3, and Prompt 6 were committed locally 2026-11-11
+  (`0dca725`, `8288dd4`, `9ef3591`) and the same content pushed to
+  remote main (`44b0ff2`, `db5b477`, `5e38886`). The release-readiness
+  blocker stays open: the work is still unreviewed with no release
+  approval.
 - `world export` now carries wrapped field keys and `world import`
   stores them, so encrypted fields survive an export/import round trip
   (Mission Day 7, audit finding C-6): the export gains a first line

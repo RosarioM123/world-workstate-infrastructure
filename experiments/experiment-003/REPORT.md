@@ -205,3 +205,16 @@ artifact quality variance is confounded with condition.
    validation). Another same-shape run would mostly re-measure the
    metric 3 effect and the efficiency cost, both of which are now
    characterized at this scale.
+
+## Addendum 2026-11-19 (Mission Day 8, audit finding D-3)
+
+The header line "Nothing in this experiment was committed or
+pushed" was accurate on 2026-11-03 and is stale now. Experiment
+#003 was committed locally on 2026-11-11 as `0dca725`, and the same
+content was pushed to remote main as `44b0ff2`. Local and remote
+main have diverged histories (different SHAs) but content-identical
+trees; verified in the mission Day 1 audit (2026-11-12) and
+re-verified 2026-11-19 (both mains at 315 commits, identical tree
+`f6f8028dc978a4f26e6a2306f5a72e4d566cebc7`). This addendum is
+appended, not edited into the body, so the report stays a dated
+record.

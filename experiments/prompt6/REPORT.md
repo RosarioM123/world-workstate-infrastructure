@@ -319,3 +319,19 @@ Full detail in `research/EVIDENCE_REGISTER.md`; summary:
     external validation, general agent reliability, or
     hallucination prevention; where those topics appear, they
     are labeled NEEDS VALIDATION or PENDING.
+
+## Addendum 2026-11-19 (Mission Day 8, audit finding D-3)
+
+The "uncommitted" statements in this report (the header and the
+blockers section) were accurate on 2026-11-05 and are stale now.
+Experiment #003 was committed locally on 2026-11-11 as `0dca725`,
+Prompt 3 as `8288dd4`, and this Prompt 6 package as `9ef3591`; the
+same content was pushed to remote main as `44b0ff2`, `db5b477`, and
+`5e38886`. Local and remote main have diverged histories (different
+SHAs) but content-identical trees; verified in the mission Day 1
+audit (2026-11-12) and re-verified 2026-11-19 (both mains at 315
+commits, identical tree
+`f6f8028dc978a4f26e6a2306f5a72e4d566cebc7`). The "unreviewed" half of
+the statement still stands, and remote main still showed the
+pre-Prompt-3 state only until that push. This addendum is appended,
+not edited into the body, so the report stays a dated record.

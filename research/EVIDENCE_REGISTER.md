@@ -12,6 +12,19 @@ ground.
 against the working tree as of that date, which includes the
 uncommitted Prompt 3 changes and Experiment #003.
 
+**Addendum 2026-11-19 (Mission Day 8, audit finding D-11):** the
+"uncommitted" framing above, and the same wording in the Section
+4.6 row below ("All Prompt 3 work is uncommitted"), were accurate
+on 2026-11-05 and are stale now. Prompt 3 was committed locally on
+2026-11-11 as `8288dd4` and Experiment #003 as `0dca725`, and the
+same content was pushed to remote main as `db5b477` and `44b0ff2`.
+Local and remote main have diverged histories (different SHAs) but
+content-identical trees; verified in the mission Day 1 audit
+(2026-11-12) and re-verified 2026-11-19 (both mains at 315 commits,
+identical tree `f6f8028dc978a4f26e6a2306f5a72e4d566cebc7`). The
+register entries themselves are left as compiled; this note is the
+correction.
+
 **Classifications** (defined in `research/RESEARCH_OVERVIEW.md`):
 VERIFIED, EXPERIMENTALLY OBSERVED, DOCUMENTED, PRELIMINARY,
 NEEDS VALIDATION.
