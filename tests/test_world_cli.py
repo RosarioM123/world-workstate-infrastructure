@@ -1,10 +1,12 @@
 """Tests for the `world` CLI commands that need no server dependencies."""
 
 import json
+import sqlite3
+import sys
 
 import pytest
 
-from world import World
+from world import ConflictError, InvariantViolation, World
 from world.cli import main
 
 
@@ -224,3 +226,119 @@ def test_cli_import_warns_on_world_name_mismatch(tmp_path, capsys):
     assert len(dst.field_keys()) == 1
     with pytest.raises(fieldcrypto.DecryptionError):
         dst.decrypt_fields(MASTER, dst.state())
+
+
+def test_cli_diff_unknown_version_is_clean_error(store, capsys):
+    # C-9: an unknown --from version must print `error: ...` and exit 1,
+    # not leak a traceback.
+    _update(store, "d", {"a": 1})
+    assert cli(store, "diff", "d", "--from", "99") == 1
+    captured = capsys.readouterr()
+    assert "error:" in captured.err and "unknown version: 99" in captured.err
+    assert "Traceback" not in captured.err
+    assert cli(store, "diff", "d", "--from", "1", "--to", "99") == 1
+    assert "unknown version: 99" in capsys.readouterr().err
+
+
+def test_cli_diff_rejected_version_is_clean_error(store, capsys):
+    # C-9: a REJECTED seq is not a version either; same clean error.
+    def reject_negative(old, new):
+        if new.get("a", 0) < 0:
+            raise InvariantViolation("no negatives")
+
+    w = World("d", dir=store)
+    w.update({"a": 1})
+    with pytest.raises(InvariantViolation):
+        World("d", dir=store, invariants=[reject_negative]).update({"a": -1})
+    assert cli(store, "diff", "d", "--from", "2") == 1
+    captured = capsys.readouterr()
+    assert "error:" in captured.err
+    assert "version 2 was REJECTED" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_cli_blame_unknown_version_is_clean_error(store, capsys):
+    # C-9: blame at an unknown version must fail cleanly, like cmd_state.
+    _update(store, "d", {"a": 1})
+    assert cli(store, "blame", "d", "a", "--version", "99") == 1
+    captured = capsys.readouterr()
+    assert "error:" in captured.err
+    assert "no committed version 99" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_cli_state_repointed_checkpoint_is_clean_error(store, tmp_path, capsys):
+    # C-9 (same class): a repointed checkpoint raises InvariantViolation
+    # in the core; the CLI must report it, not print a traceback.
+    w = World("t", dir=store)
+    w.update({"n": 1})
+    w.checkpoint("c1")
+    w.update({"n": 2})
+    cx = sqlite3.connect(w.path)
+    cx.execute("UPDATE checkpoints SET seq = 2 WHERE name = 'c1'")
+    cx.commit()
+    cx.close()
+    assert cli(store, "state", "t", "--checkpoint", "c1") == 1
+    captured = capsys.readouterr()
+    assert "error: checkpoint 'c1' does not match the chain" in captured.err
+    assert "Traceback" not in captured.err
+
+
+@pytest.mark.parametrize(
+    ("exc", "fragment"),
+    [
+        (InvariantViolation("no negatives", seq=99), "was rejected (seq 99)"),
+        (ConflictError("stale"), "conflict on row seq 2"),
+    ],
+)
+def test_cli_import_aborts_cleanly_on_update_error(
+    store, tmp_path, capsys, monkeypatch, exc, fragment
+):
+    # C-9: a failing replay row aborts the import with a clear message
+    # noting the rows already imported, instead of a traceback.
+    src = World("src", dir=store)
+    src.update({"a": 1}, actor="ann", note="first")
+    src.update({"a": 2}, actor="bob", note="second")
+    dump = tmp_path / "dump.jsonl"
+    assert cli(store, "export", "src", "--file", str(dump)) == 0
+
+    real_update = World.update
+    calls = {"n": 0}
+
+    def flaky_update(self, state, **kw):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise exc
+        return real_update(self, state, **kw)
+
+    monkeypatch.setattr(World, "update", flaky_update)
+    capsys.readouterr()
+    assert cli(store, "import", "dst", "--file", str(dump)) == 1
+    captured = capsys.readouterr()
+    assert "error: import aborted" in captured.err
+    assert fragment in captured.err
+    assert "1 versions were already imported" in captured.err
+    assert "Traceback" not in captured.err
+    assert World("dst", dir=store).state() == {"a": 1}
+
+
+def test_cli_import_transcript_without_world_engine_is_clean_error(
+    store, tmp_path, capsys, monkeypatch
+):
+    # C-14: with the world_engine package absent, import-transcript must
+    # print a clean error naming the missing dependency (exit 2, like
+    # `world serve` without its extra), not a ModuleNotFoundError traceback.
+    for mod in (
+        "world_engine",
+        "world_engine.ingestion",
+        "world_engine.ingestion.transcript",
+    ):
+        monkeypatch.setitem(sys.modules, mod, None)
+    transcript = tmp_path / "t.txt"
+    transcript.write_text("Rosario: Decision: we will ship this week.\n")
+    assert cli(store, "import-transcript", "probe", "--file", str(transcript)) == 2
+    captured = capsys.readouterr()
+    assert "error: `world import-transcript` needs the world_engine package" in (
+        captured.err
+    )
+    assert "Traceback" not in captured.err
