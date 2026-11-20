@@ -80,7 +80,7 @@ def cmd_state(args: argparse.Namespace) -> int:
     w = _world(args)
     try:
         state = w.state(version=args.version, checkpoint=args.checkpoint)
-    except (KeyError, ValueError) as e:
+    except (KeyError, ValueError, InvariantViolation) as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
     print(json.dumps(state, indent=2, sort_keys=True))
@@ -185,16 +185,27 @@ def _diff_values(old: Any, new: Any, prefix: str, out: list[dict[str, Any]]) -> 
 
 def cmd_blame(args: argparse.Namespace) -> int:
     w = _world(args)
-    print(
-        json.dumps(w.blame(args.path, version=args.version), indent=2, sort_keys=True)
-    )
+    try:
+        result = w.blame(args.path, version=args.version)
+    except (KeyError, ValueError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 
 
 def cmd_diff(args: argparse.Namespace) -> int:
     w = _world(args)
-    old = w.state(version=args.from_version)
-    new = w.state(version=args.to_version) if args.to_version is not None else w.state()
+    try:
+        old = w.state(version=args.from_version)
+        new = (
+            w.state(version=args.to_version)
+            if args.to_version is not None
+            else w.state()
+        )
+    except (KeyError, ValueError) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
     out: list[dict[str, Any]] = []
     _diff_values(old, new, "", out)
     print(json.dumps(out, indent=2, sort_keys=True))
@@ -309,7 +320,24 @@ def cmd_import(args: argparse.Namespace) -> int:
         note = f"imported seq {row.get('seq')}"
         if row.get("note"):
             note += f": {row['note']}"
-        new_seq = w.update(row["state"], actor=row.get("actor"), note=note)
+        try:
+            new_seq = w.update(row["state"], actor=row.get("actor"), note=note)
+        except InvariantViolation as e:
+            print(
+                f"error: import aborted: row seq {row.get('seq')} was rejected"
+                f" (seq {e.seq}): {e.reason}; {imported} versions were"
+                " already imported and remain in this world",
+                file=sys.stderr,
+            )
+            return 1
+        except ConflictError as e:
+            print(
+                f"error: import aborted: conflict on row seq {row.get('seq')}:"
+                f" {e}; {imported} versions were already imported and"
+                " remain in this world",
+                file=sys.stderr,
+            )
+            return 1
         for path, key_id in _envelope_key_ids(row["state"]):
             envelopes.append((path, key_id))
             key_id_to_new_seq.setdefault(key_id, new_seq)
@@ -353,7 +381,16 @@ def cmd_import_transcript(args: argparse.Namespace) -> int:
 
     w = _world(args)
     text = sys.stdin.read() if args.file == "-" else Path(args.file).read_text()
-    seq = import_transcript(w, text, actor=args.actor)
+    try:
+        seq = import_transcript(w, text, actor=args.actor)
+    except ImportError:
+        print(
+            "error: `world import-transcript` needs the world_engine package"
+            " (the transcript parser ships with this repo): install it with"
+            " `pip install -e .` from the repo root",
+            file=sys.stderr,
+        )
+        return 2
     print(seq)
     return 0
 
