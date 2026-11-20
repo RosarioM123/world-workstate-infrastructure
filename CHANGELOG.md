@@ -122,6 +122,21 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- CLI commands no longer leak tracebacks on ordinary errors (Mission
+  Day 9, audit findings C-9 and C-14): `world diff` and `world blame`
+  catch `KeyError`/`ValueError` for unknown or rejected versions and
+  print `error: ...` with exit 1, as `world state` already did;
+  `world import` catches `InvariantViolation`/`ConflictError` from a
+  replay row and aborts with a message naming the row and how many
+  versions were already imported; `world import-transcript` catches
+  `ImportError` when the `world_engine` package is absent and prints a
+  clean error naming the missing package with the install command
+  (exit 2, mirroring `world serve` without its extra). `world state
+  --checkpoint` also catches `InvariantViolation`, so a repointed
+  checkpoint reports cleanly instead of tracing. Seven new tests
+  cover the unknown-version, rejected-version, repointed-checkpoint,
+  import-abort (both exception types), and missing-`world_engine`
+  cases; all seven fail on the pre-fix code.
 - Dated reports no longer read as current state on the commit
   question (Mission Day 8, audit findings D-3 and D-11): dated
   addenda appended (bodies untouched) to

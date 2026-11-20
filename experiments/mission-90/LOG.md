@@ -672,3 +672,79 @@ ordinary errors), per the Day 1 audit backlog order.
 **Day 8 commits:**
 - `0194108` docs: dated addenda on stale uncommitted statements (D-3, D-11)
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 9 - 2026-11-20 (Foundation phase)
+
+**Branch:** `mission/day-9` (from Day 8 tip `7dace92`). Nothing pushed,
+nothing merged to main.
+
+**Objectives:** close C-9 and C-14, the P2 CLI error-handling findings
+from the Day 1 audit and the picks named at the end of Day 8: no
+tracebacks on ordinary errors from `world diff`, `world blame`,
+`world import`, and `world import-transcript`. All P1 items were
+already closed on Day 8; this is the first P2 code day.
+
+**Baseline (measured, clean sequential run):** 424 passed, 0 failed,
+1 warning, 70.30 s, Python 3.12.3.
+
+**GitHub (read-only):** 13 open issues, 12 open PRs, unchanged from
+Day 7/8. All Dependabot bumps except issue #4 (pre-existing roadmap
+item). Nothing new to act on. Note: the credential helper's
+`add_surrogate_to_request` now requires an explicit `allowed_hosts`
+keyword; the check script was updated accordingly.
+
+**Changes:**
+- C-9 (`src/world/cli.py`): `cmd_diff` and `cmd_blame` catch
+  `KeyError`/`ValueError` from `World.state`/`blame` for unknown or
+  rejected versions and print `error: ...` with exit 1, matching
+  `cmd_state`. `cmd_import` catches `InvariantViolation` and
+  `ConflictError` from a replay row's `w.update` and aborts with a
+  message naming the row and how many versions were already imported
+  and remain in the world. `cmd_state` also catches
+  `InvariantViolation`, so a repointed checkpoint reports cleanly
+  instead of tracing; this is the same bug class found while
+  probing the C-9 commands (verified by repointing a checkpoint
+  with a direct DB edit before the fix).
+- C-14 (`src/world/cli.py`): `cmd_import_transcript` catches
+  `ImportError` from the lazy `world_engine` import and prints a
+  clean error naming the missing package and the install command
+  (`pip install -e .` from the repo root), exit 2, mirroring
+  `cmd_serve` without its extra.
+- Scope note: through the CLI today, `cmd_import`'s `w.update` cannot
+  raise either caught exception (the CLI passes no invariants and no
+  `expected_version`), so the import-abort handler is defensive
+  until the CLI grows an `--invariants` flag or a similar path. The
+  handler is still the audit-prescribed fix, and the tests exercise
+  it through a monkeypatched `World.update`.
+- Tests (7 new, 431 total): unknown `--from`/`--to` version and
+  rejected-version diff errors, unknown-version blame error,
+  repointed-checkpoint state error, import abort parametrized over
+  `InvariantViolation` and `ConflictError` (message names the row,
+  the imported count, and the already-imported state is verified),
+  and missing-`world_engine` import-transcript error. All seven fail
+  on the pre-fix code (verified by stashing the `cli.py` fix).
+
+**Verification:**
+- Targeted: `tests/test_world_cli.py`, 17 passed.
+- Regression proof: all 7 new tests fail with the fix stashed.
+- Full suite: 431 passed, 0 failed, 1 warning, 65.36 s.
+- Ruff check and `ruff format --check` clean over the changed files
+  (local ruff 0.16.9; CI pins 0.17.5); mypy clean on
+  `src/world/cli.py`.
+- Full diff reviewed: 2 files, +164/-9 (code and tests); CHANGELOG
+  and STATUS updates in the docs commit below.
+
+**Unresolved issues / decisions for Rosario:** unchanged from Day 8
+(H-1 history divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8
+version string and top-level exports; L-6/F3b). No new decisions
+needed for today's work. With C-9 and C-14 closed, remaining P2
+items are C-12, C-13, T-4, T-5, T-12, T-7, T-8, C-5.
+
+**Next (P2):** C-12 (busy-timeout / retry on SQLite lock contention,
+needs a contention test first) and C-13 (`update_encrypted` three
+transactions, document the crash window or fold the tagging in).
+
+**Day 9 commits:**
+- `3261d29` fix: clean CLI errors instead of tracebacks on ordinary
+  failures (C-9, C-14)
+- `LOG.md` SHA line updated in the commit below (this line).
