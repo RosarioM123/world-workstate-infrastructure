@@ -122,6 +122,26 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- Writers now wait out a held SQLite write lock instead of failing
+  with `OperationalError: database is locked` (Mission Day 10, audit
+  finding C-12): every connection through `World._connect` sets
+  `PRAGMA busy_timeout = 30000` (was the Python default of 5 s), so
+  `update`, `update_many`, and `checkpoint` all wait up to 30 s for a
+  legitimate concurrent writer; a pathological hold still fails
+  loudly instead of blocking forever. Two new tests cover it: an
+  update racing a 6 s held write lock commits once the lock releases
+  (it raised `OperationalError` on the pre-fix code), and 16 threads
+  x 10 updates each all commit with the chain verifying.
+- The `update_encrypted` crash window is now documented in its
+  docstring (Mission Day 10, audit finding C-13): escrow, append,
+  and seq-tagging are three separate transactions, so a crash or
+  `ConflictError` between escrow and tagging leaves key rows with
+  `seq = NULL`. That is audit-linkage loss only: decryption looks
+  keys up by `key_id`, never by seq, so the envelopes stay
+  decryptable and `verify()` is unaffected. A new test pins this: a
+  conflicting `update_encrypted` leaves the key escrowed with
+  `seq` NULL, appends nothing, and the attempted state's envelopes
+  still decrypt.
 - CLI commands no longer leak tracebacks on ordinary errors (Mission
   Day 9, audit findings C-9 and C-14): `world diff` and `world blame`
   catch `KeyError`/`ValueError` for unknown or rejected versions and

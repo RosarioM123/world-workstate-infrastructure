@@ -748,3 +748,95 @@ transactions, document the crash window or fold the tagging in).
 - `3261d29` fix: clean CLI errors instead of tracebacks on ordinary
   failures (C-9, C-14)
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 10 - 2026-11-21 (Foundation phase)
+
+**Branch:** `mission/day-10` (from Day 9 tip `785fcbb`). Nothing pushed,
+nothing merged to main.
+
+**Objectives:** close C-12 and C-13, the next two P2 code findings from
+the Day 1 audit and the picks named at the end of Day 9: C-12
+(busy-timeout / retry on SQLite lock contention, needs a contention
+test first) and C-13 (`update_encrypted` three transactions: document
+the crash window or fold the tagging in). All P1 items were already
+closed on Day 8; C-9 and C-14 closed on Day 9.
+
+**Baseline (measured, clean sequential run):** 431 passed, 0 failed,
+1 warning, 71.09 s, Python 3.12.3.
+
+**GitHub (read-only):** 13 open issues, 12 open PRs, unchanged from
+Day 7/8/9. All Dependabot bumps except issue #4 (pre-existing roadmap
+item). Nothing new to act on.
+
+**Changes:**
+- C-12 (`src/world/core.py`): every connection through
+  `World._connect` now sets `PRAGMA busy_timeout = 30000` (new
+  module constant `_BUSY_TIMEOUT_MS`), up from the Python default
+  of 5 s. The pragma is set before `journal_mode=WAL`, so nothing
+  that can block on a write lock runs under the old timeout. This
+  covers `update`, `update_many`, and `checkpoint`, which all use
+  `_connect`. A lock held longer than 30 s still raises
+  `OperationalError` loudly instead of blocking forever. No bounded
+  retry wrapper was added: the busy timeout is the SQLite-native
+  mechanism for exactly this wait, and a retry around `BEGIN
+  IMMEDIATE` would duplicate it.
+- C-12 tests (2 new): `test_update_waits_out_held_write_lock`
+  holds `BEGIN IMMEDIATE` on a raw connection for 6 s while another
+  thread updates; the update waits and commits at seq 2 with the
+  chain verifying. `test_many_writers_no_lock_errors` runs 16
+  threads x 10 last-writer-wins updates each; all 160 commit, no
+  `OperationalError` escapes, version is 161, `verify()` green.
+- C-13 (`src/world/core.py`): the crash window is now documented in
+  the `update_encrypted` docstring: escrow, append, and seq-tagging
+  are three separate transactions, and a crash or `ConflictError`
+  between escrow and tagging leaves key rows with `seq = NULL`.
+  The docstring states the consequence precisely: audit-linkage
+  loss only, because decryption looks keys up by `key_id`, never by
+  seq, so envelopes stay decryptable and `verify()` is unaffected
+  (the row hash covers ciphertext). Folding the tagging into the
+  update transaction was considered and not done: it would need an
+  internal hook inside `update()`'s atomic section, and tagging a
+  REJECTED row's seq inside the transaction would change the
+  documented `field_keys()` semantics (seq NULL for rejected
+  proposals). The seq column is informational only, so the
+  documentation fix is the proportionate one; the decision is
+  recorded here, not silently.
+- C-13 test (1 new, 434 total):
+  `test_conflicted_update_encrypted_keys_stay_decryptable`
+  monkeypatches `World.update` to raise `ConflictError` after the
+  escrow, then asserts the key is escrowed with `seq` NULL, the
+  failed update appended nothing (version stays 1), and the
+  attempted state's envelopes still decrypt to the plaintext.
+
+**Verification:**
+- Reproduction first: the held-lock test failed on the pre-fix code
+  with `OperationalError('database is locked')` and passes with the
+  fix. The many-writer test passed pre-fix too, as the audit
+  predicted (light contention does not bite); it stands as the
+  guard against regressions.
+- Targeted: `tests/test_world_concurrency.py` +
+  `tests/test_world_encryption.py`, 22 passed.
+- Full suite: 434 passed, 0 failed, 1 warning, 71.60 s.
+- Ruff check and `ruff format --check` clean over the changed files
+  (local ruff 0.16.9; CI pins 0.17.5); mypy clean on
+  `src/world/core.py`. One ruff finding in the first draft was fixed,
+  not suppressed: RUF100, an unused `noqa: ARG001` on the C-13 test
+  helper (ARG001 is not enabled in this repo's ruff config).
+- Full diff reviewed: 6 files, +254/-3 (code, tests, changelog,
+  status, log). No behavior change outside the busy timeout and the
+  docstring.
+
+**Unresolved issues / decisions for Rosario:** unchanged from Day 9
+(H-1 history divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8
+version string and top-level exports; L-6/F3b). No new decisions
+needed for today's work. With C-12 and C-13 closed, remaining P2
+items are T-4, T-5, T-12, T-7, T-8, C-5.
+
+**Next (P2):** T-4, T-5, T-12 (test/CI findings) or C-5 (README
+atomicity wording), per the Day 1 audit backlog order; T-7/T-8
+(extras-import guard test, Hypothesis deadlines) after those.
+
+**Day 10 commits:**
+- `eeb703e` fix: wait out held SQLite write locks; document
+  update_encrypted crash window (C-12, C-13)
+- `LOG.md` SHA line updated in the commit below (this line).
