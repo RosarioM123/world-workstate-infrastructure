@@ -11,7 +11,7 @@ import sqlite3
 
 import pytest
 
-from world import RedactedError, World, fieldcrypto
+from world import ConflictError, RedactedError, World, fieldcrypto
 
 MASTER = b"master-key-32-bytes-for-tests-0000"
 WRONG = b"wrong-master-key-32-bytes-0000000"
@@ -195,6 +195,39 @@ def test_rejected_proposal_envelopes_stay_decryptable(tmp_path):
     # path for rejected attempts.)
     rejected_state = w.proposal(2)["state"]
     assert w.decrypt_fields(MASTER, rejected_state)["ssn"] == "bbb"
+    assert w.verify()
+
+
+def test_conflicted_update_encrypted_keys_stay_decryptable(tmp_path, monkeypatch):
+    """C-13: keys escrowed before a conflicting update stay decryptable.
+
+    update_encrypted escrows the wrapped keys, then update raises
+    ConflictError, so the seq-tagging step never runs. The key rows
+    keep seq NULL (audit linkage only), but the envelopes in the
+    attempted state still decrypt: lookup is by key_id, not seq.
+    The failed update appends nothing.
+    """
+    w = World("vault", dir=str(tmp_path))
+    w.update({"n": 0}, actor="seed")
+
+    captured: dict[str, object] = {}
+
+    def failing_update(self, state, **kw):
+        captured["state"] = state
+        raise ConflictError("simulated concurrent writer conflict")
+
+    monkeypatch.setattr(World, "update", failing_update)
+    with pytest.raises(ConflictError):
+        w.update_encrypted(MASTER, {"n": 1, "ssn": "000-00-0000"}, ["ssn"])
+
+    assert w.version == 1
+    keys = w.field_keys()
+    assert len(keys) == 1
+    assert keys[0]["field"] == "ssn"
+    assert keys[0]["seq"] is None
+    attempted = captured["state"]
+    assert isinstance(attempted, dict)
+    assert w.decrypt_fields(MASTER, attempted)["ssn"] == "000-00-0000"
     assert w.verify()
 
 

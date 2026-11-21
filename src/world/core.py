@@ -56,6 +56,14 @@ Invariant = Callable[[dict[str, Any], dict[str, Any]], None]
 _DEFAULT_DIRNAME = ".world"
 _DIR_ENV_VAR = "WORLD_DIR"
 _NAME_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
+# How long a connection waits for a held SQLite write lock before
+# raising OperationalError ("database is locked"). The Python default
+# is 5 s, which a slow concurrent writer can exceed; 30 s lets a
+# legitimate writer finish while a pathological hold still fails
+# loudly instead of blocking forever. Applies to every connection
+# through _connect, so update, update_many, and checkpoint all wait
+# the same way. (Mission Day 10, audit finding C-12.)
+_BUSY_TIMEOUT_MS = 30_000
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS versions (
@@ -254,6 +262,10 @@ class World:
 
     def _connect(self) -> sqlite3.Connection:
         cx = sqlite3.connect(self._path)
+        # Set the busy timeout before anything that can block on a
+        # write lock (journal_mode included): the Python default is
+        # 5 s, see _BUSY_TIMEOUT_MS.
+        cx.execute(f"PRAGMA busy_timeout = {_BUSY_TIMEOUT_MS}")
         cx.execute("PRAGMA journal_mode=WAL")
         cx.row_factory = sqlite3.Row
         return cx
@@ -1239,6 +1251,18 @@ class World:
         evidence). ``idempotency_key`` is refused: an idempotent replay
         would orphan the fresh key records, so combine the two
         explicitly via :meth:`encrypt_fields` instead.
+
+        Crash window (audit finding C-13): this runs three separate
+        transactions: escrow the keys, append the update, then tag the
+        keys with the new seq. A crash (or a :class:`ConflictError`)
+        between the escrow and the tagging leaves the key rows with
+        ``seq = NULL``. That is audit-linkage loss only, not data
+        loss: decryption looks keys up by ``key_id``, never by seq,
+        so the envelopes stay decryptable, and :meth:`verify` is
+        unaffected (the row hash covers ciphertext). A later
+        successful update of the same fields escrows fresh keys and
+        tags them normally; the untagged rows remain listed by
+        :meth:`field_keys` with ``seq`` NULL.
         """
         if kw.get("idempotency_key") is not None:
             raise ValueError(
