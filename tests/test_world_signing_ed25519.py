@@ -201,3 +201,42 @@ def test_ed25519_throughput_floor(tmp_path):
         assert w.verify_tip_ed25519(pk, tip)
     elapsed = time.perf_counter() - t0
     assert elapsed < 4 / 20, f"sign+verify too slow: {elapsed:.2f}s for 4 rounds"
+
+
+# --- Day 11 (T-5): malformed tips are rejected, never raised ----------------
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "not-a-dict",
+        "missing-sig",
+        "bad-hex-sig",
+        "bad-seq",
+        "missing-name",
+        "wrong-name",
+        "wrong-alg",
+    ],
+)
+def test_verify_tip_ed25519_malformed_tips_return_false(tmp_path, case):
+    # T-5: an attacker-supplied tip with missing fields, unparseable
+    # values, or a wrong name/alg must return False, not raise.
+    sk, pk = ed25519.create_keypair()
+    w = World("vault", dir=str(tmp_path))
+    w.update({"n": 1})
+    tip = w.sign_tip_ed25519(sk)
+    if case == "not-a-dict":
+        tip = "not a tip"
+    elif case == "missing-sig":
+        del tip["sig"]
+    elif case == "bad-hex-sig":
+        tip["sig"] = "zz"
+    elif case == "bad-seq":
+        tip["seq"] = "abc"
+    elif case == "missing-name":
+        del tip["name"]
+    elif case == "wrong-name":
+        tip["name"] = "other-world"
+    elif case == "wrong-alg":
+        tip["alg"] = "hmac"
+    assert w.verify_tip_ed25519(pk, tip) is False
