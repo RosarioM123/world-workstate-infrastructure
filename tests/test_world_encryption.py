@@ -296,3 +296,87 @@ def test_list_nested_redact_field(tmp_path):
     with pytest.raises(RedactedError) as exc:
         w.decrypt_fields(MASTER, w.state())
     assert exc.value.field == "items.0.secret"
+
+
+# --- Day 11 (T-5): encryption negative paths --------------------------------
+
+
+def test_encrypt_fields_short_master_key_rejected(tmp_path):
+    # T-5: a master key under 16 bytes is refused up front, not used.
+    w = World("vault", dir=str(tmp_path))
+    with pytest.raises(ValueError, match="at least 16 bytes"):
+        w.encrypt_fields(b"too-short", {"a": 1}, ["a"])
+
+
+def test_store_field_keys_empty_is_noop(tmp_path):
+    # T-5: storing no key records is a no-op, not an error.
+    w = World("vault", dir=str(tmp_path))
+    w.update({"a": 1})
+    assert w.store_field_keys([]) is None
+    assert w.field_keys() == []
+
+
+def test_redact_field_skips_unencrypted_and_already_redacted(tmp_path):
+    # T-5: redact_field walks every seq: a version with no envelope for
+    # the field is skipped (ValueError path), and a second redaction
+    # finds the key already shredded (RedactedError path) and returns
+    # no receipts instead of raising.
+    w = World("vault", dir=str(tmp_path))
+    w.update({"n": 0})  # seq 1: no envelope for "ssn"
+    w.update_encrypted(MASTER, {"n": 1, "ssn": "000-00-0001"}, ["ssn"])
+    assert len(w.redact_field("ssn", MASTER)) == 1
+    assert w.redact_field("ssn", MASTER) == []
+    assert w.redact_field("never-encrypted", MASTER) == []
+    assert w.verify()
+
+
+@pytest.mark.parametrize(
+    ("doc", "path", "exc"),
+    [
+        ({"a": {}}, "a.b.c", ValueError),  # intermediate part missing
+        ({"a": [1]}, "a.x.c", ValueError),  # non-numeric part on a list
+        ({"a": {"b": 1}}, "a.b.c.d", TypeError),  # traversal through a scalar
+        ({"a": 1}, "a.b", TypeError),  # last part traverses a scalar
+        ({"a": {}}, "a.b", ValueError),  # last part missing
+        ({"a": [1]}, "a.5", ValueError),  # last index out of range
+    ],
+)
+def test_set_path_rejects_bad_paths(doc, path, exc):
+    # T-5: the _set_path error branches (missing parts, non-container
+    # traversal, bad list indices) raise instead of corrupting state.
+    from world.core import _set_path
+
+    with pytest.raises(exc):
+        _set_path(doc, path, 2)
+
+
+def test_set_path_sets_dict_and_list_values():
+    # T-5: the _set_path success branches (dict key, list index).
+    from world.core import _set_path
+
+    doc = {"a": {"b": 1}, "items": [1, 2]}
+    _set_path(doc, "a.b", 9)
+    _set_path(doc, "items.1", 8)
+    assert doc == {"a": {"b": 9}, "items": [1, 8]}
+
+
+def test_pinned_hash_column_migrated_on_open(tmp_path):
+    # T-5: a database created before Prompt 3 F3a (no pinned_hash column
+    # on checkpoints) gains the column when opened, and its checkpoints
+    # keep serving (unpinned, as pre-F3a checkpoints do).
+    w = World("vault", dir=str(tmp_path))
+    w.update({"n": 1})
+    w.checkpoint("cp1")
+    cx = sqlite3.connect(w.path)
+    try:
+        cx.execute("ALTER TABLE checkpoints DROP COLUMN pinned_hash")
+        cx.commit()
+        cols = {r[1] for r in cx.execute("PRAGMA table_info(checkpoints)")}
+    finally:
+        cx.close()
+    assert "pinned_hash" not in cols
+    w2 = World("vault", dir=str(tmp_path))
+    cols = {r[1] for r in _sql(w2, "PRAGMA table_info(checkpoints)")}
+    assert "pinned_hash" in cols
+    assert w2.state(checkpoint="cp1") == {"n": 1}
+    assert [c["name"] for c in w2.checkpoints()] == ["cp1"]

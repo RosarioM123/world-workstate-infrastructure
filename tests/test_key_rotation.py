@@ -141,3 +141,52 @@ def test_rotation_empty_world_raises(tmp_path):
         w.rotate_ed25519(old_sk, new_sk)
     with pytest.raises(ValueError, match="32 bytes"):
         w.rotate_ed25519(b"short", new_sk)
+
+
+# --- Day 11 (T-5): malformed rotation certificates are rejected -------------
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "not-a-dict",
+        "missing-new-pub",
+        "bad-hex-new-pub",
+        "bad-hex-sig",
+        "missing-sig",
+        "wrong-alg",
+        "wrong-old-kid",
+        "wrong-new-kid",
+        "wrong-name",
+        "forged-sig",
+    ],
+)
+def test_verify_rotation_malformed_certs_return_false(tmp_path, case):
+    # T-5: an attacker-supplied rotation certificate with missing fields,
+    # unparseable values, substituted kids, or a forged signature must
+    # return False, not raise.
+    old_sk, old_pk = ed25519.create_keypair()
+    new_sk, _new_pk = ed25519.create_keypair()
+    w = _world(tmp_path)
+    cert = w.rotate_ed25519(old_sk, new_sk)
+    if case == "not-a-dict":
+        cert = "not a cert"
+    elif case == "missing-new-pub":
+        del cert["new_pub"]
+    elif case == "bad-hex-new-pub":
+        cert["new_pub"] = "zz"
+    elif case == "bad-hex-sig":
+        cert["sig"] = "zz"
+    elif case == "missing-sig":
+        del cert["sig"]
+    elif case == "wrong-alg":
+        cert["alg"] = "ed25519"
+    elif case == "wrong-old-kid":
+        cert["old_kid"] = "0" * 16
+    elif case == "wrong-new-kid":
+        cert["new_kid"] = "0" * 16
+    elif case == "wrong-name":
+        cert["name"] = "other-world"
+    elif case == "forged-sig":
+        cert["sig"] = "00" * 64
+    assert w.verify_rotation_ed25519(old_pk, cert) is False
