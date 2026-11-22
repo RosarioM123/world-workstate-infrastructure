@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-def serve() -> None:  # pragma: no cover - thin uvicorn wrapper
+def serve() -> None:
     """Run the API server. Entry point for the ``world-server`` console script."""
     import uvicorn
 

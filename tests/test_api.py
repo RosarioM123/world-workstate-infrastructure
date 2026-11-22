@@ -156,3 +156,30 @@ def test_v1_intent_rejects_empty_idempotency_key(api_client):
     r = api_client.post("/api/v1/intent", json=body)
     assert r.status_code == 400
     assert r.json()["error"]["code"] == "invalid_intent"
+
+
+# --- Day 11 (T-12): the legacy serve wrapper is covered, not excluded ------
+
+
+def test_serve_entry_point_runs_uvicorn(monkeypatch):
+    # T-12: world_engine.api.main.serve() is a thin uvicorn wrapper; drive
+    # it with a stubbed uvicorn instead of hiding it behind a pragma.
+    import sys
+    import types
+
+    import world_engine.api.main as legacy_main
+
+    calls: list[dict] = []
+
+    def run(app_ref, host=None, port=None, **kw):
+        calls.append({"app": app_ref, "host": host, "port": port})
+
+    monkeypatch.setitem(sys.modules, "uvicorn", types.SimpleNamespace(run=run))
+    legacy_main.serve()
+    assert calls == [
+        {
+            "app": "world_engine.api.main:app",
+            "host": "127.0.0.1",
+            "port": 8000,
+        }
+    ]
