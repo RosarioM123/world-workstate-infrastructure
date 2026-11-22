@@ -840,3 +840,122 @@ atomicity wording), per the Day 1 audit backlog order; T-7/T-8
 - `eeb703e` fix: wait out held SQLite write locks; document
   update_encrypted crash window (C-12, C-13)
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 11 - 2026-11-22 (Foundation phase)
+
+**Branch:** `mission/day-11` (from Day 10 tip `acdee60`). Nothing pushed,
+nothing merged to main.
+
+**Objectives:** close T-4, T-5, T-12, and C-5, the P2 items named at the
+end of Day 10: T-4 (CLI coverage, weakest package area, serve entirely
+untested), T-5 (uncovered lines in `core.py` on security-sensitive
+negative paths), T-12 (serve paths hidden from the coverage gate by
+exclusions), and C-5 (README overstates atomicity). Test-only work plus
+one docs correction; no runtime behavior change except the two removed
+`pragma: no cover` markers and the one dropped coverage exclusion.
+
+**Baseline (measured, clean sequential run):** 434 passed, 0 failed,
+1 warning, 75.06 s, Python 3.12.3. Coverage measured before changes
+(`pytest --cov=src/world`): total 92%, `src/world/cli.py` 83% (61
+missed statements), `src/world/core.py` 96% (23 missed).
+
+**GitHub (read-only):** 13 open issues, 12 open PRs, unchanged from
+Day 10. All Dependabot bumps except issue #4 (pre-existing roadmap
+item). Newest PR is still #28 (fastapi bump, 2026-11-16). No
+human-filed issues, nothing new to act on.
+
+**Changes:**
+- T-4 (`tests/test_world_cli.py`, 22 new tests): `cmd_serve` is tested
+  with a stubbed `uvicorn` module in `sys.modules` (app construction,
+  host/port, `--invariants module:attribute` loading, API-key gate and
+  rate limit verified behaviorally through the served app with
+  TestClient: 401 without the key, 422 under the loaded invariant,
+  committed seq 2 after the rejected attempt consumed seq 1) and with
+  a forced ImportError (`sys.modules["uvicorn"] = None`, exit 2 naming
+  the server extra). `update`/`update-many` conflict (stale
+  `expected_version`) and rejection (monkeypatched `World.update` /
+  `update_many`) paths print clean errors, exit 1, no traceback.
+  `update-many` happy path, non-object JSON, bad checkpoint name,
+  unknown-checkpoint resume, rejected resume, list diffs (added /
+  removed / modified), list-nested envelope export/import round trip
+  (into a same-named world in a second dir, since envelopes are bound
+  to the source world name by AAD), malformed export lines (non-dict,
+  bad header, incomplete `field_key`, unknown type), blank-line
+  skipping, `import-transcript` happy path, and `KeyboardInterrupt`
+  in `main()` (exit 130) are all covered through `main()`.
+- T-5 (26 new tests): malformed Ed25519 tips (7 cases: non-dict,
+  missing `sig`/`name`, non-hex `sig`, non-integer `seq`, wrong name,
+  wrong alg) and malformed rotation certificates (9 cases: non-dict,
+  missing/unparseable `new_pub`/`sig`, wrong alg, wrong old/new kid,
+  wrong name, forged sig) all return False. Short master keys are
+  refused by `encrypt_fields`; empty `store_field_keys` is a no-op;
+  `redact_field` skips unencrypted versions and already-redacted
+  fields on a second call; `_set_path` error branches (missing parts,
+  non-container traversal in the loop and at the last part, bad list
+  indices) and success branches (dict key, list index) are covered;
+  a pre-F3a database (checkpoint table without `pinned_hash`, made by
+  `ALTER TABLE ... DROP COLUMN`) gains the column on open and its
+  checkpoint keeps serving.
+- T-12 (`pyproject.toml`, `src/world/cli.py`,
+  `src/world_engine/api/main.py`, `tests/test_api.py`): the `"def
+  serve"` coverage exclusion and both serve `pragma: no cover`
+  markers are removed, and the legacy `serve()` wrapper gets a test
+  (stubbed uvicorn records the `"world_engine.api.main:app"` call
+  with host 127.0.0.1, port 8000). The gate now measures both serve
+  paths.
+- C-5 (`README.md`): the Concurrency bullet now says the version
+  check and append are atomic, that judgment runs before the lock, and
+  that without `expected_version` a write is last-writer-wins on a
+  possibly stale snapshot; `update_many` judges inside the
+  transaction instead.
+
+**Verification:**
+- Targeted: `tests/test_world_cli.py` + signing + rotation +
+  encryption + api, 116 passed (before the final three additions);
+  `tests/test_world_encryption.py` 30 passed after the last case.
+- Full suite with coverage: 485 passed, 0 failed, 1 warning,
+  96.00 s. Coverage over `src/world`: total 97%, `cli.py` 100%,
+  `core.py` 100% (was 92% / 83% / 96%).
+- Ruff check and `ruff format --check` clean over all changed files
+  (local ruff 0.16.9; CI pins 0.17.5); mypy clean on
+  `src/world/cli.py`, `src/world/core.py`, and
+  `src/world_engine/api/main.py`.
+- Full diff reviewed: 9 files, +506/-7 (tests, docs, two pragma
+  removals, one exclusion removal, one README paragraph). No em
+  dashes. No behavior change outside the removed exclusions.
+- Three test bugs found and fixed while writing the tests (not code
+  bugs): the list-nested export/import test first imported into a
+  differently named world, where AAD binding correctly refuses
+  decryption; the transcript assertion missed the trailing period the
+  importer keeps; the serve test expected seq 1 for the committed
+  update after the rejected attempt had consumed seq 1.
+
+**Incidental finding, not a code change:** a mid-day full-suite run
+went red (198 failed, 92 errors, `OperationalError: database or disk
+is full`) because /tmp had filled to 100%: the previous coverage run
+had left about 300M of crash-consistency debris and this run needed
+about the same again. Cleaned per the AGENTS.md rule and re-ran from
+clean /tmp: 485 passed. Same cause as the Day 3 and Day 7 incidents;
+a coverage run and a plain run back to back need a cleanup between
+them, not just before the first.
+
+**Unresolved issues / decisions for Rosario:** unchanged from Day 10
+(H-1 history divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8
+version string and top-level exports; L-6/F3b). No new decisions
+needed for today's work. With T-4, T-5, T-12, and C-5 closed, the
+P2 audit items are all closed. Remaining backlog is P2 test/CI
+T-7 and T-8, then P3 legacy and docs items.
+
+**Next (P2):** T-7 (extras-import guard: a bare `pip install -e .`
+followed by `pytest` passes while skipping API/security/property
+tests) and T-8 (Hypothesis `deadline=None` plus suppressed
+`too_slow` in three property-test files).
+
+**Day 11 commits:**
+- `4e1767d` test: cover CLI serve, update, import and error paths (T-4)
+- `4c39136` test: cover core negative paths for tips, rotation,
+  encryption (T-5)
+- `0b4b6cf` test: cover serve wrappers and drop serve coverage
+  exclusions (T-12)
+- `7233204` docs: correct README atomicity wording (C-5)
+- `LOG.md` SHA line updated in the commit below (this line).
