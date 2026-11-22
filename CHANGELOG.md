@@ -122,6 +122,27 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- README no longer overstates atomicity (Mission Day 11, audit finding
+  C-5): invariant judgment runs before the write lock, so only the
+  version re-check and append are atomic; without `expected_version` a
+  write is last-writer-wins on a snapshot that may already be stale.
+  `update_many` judges inside the transaction instead.
+- CLI and core coverage gaps closed (Mission Day 11, audit findings
+  T-4, T-5, T-12): 51 new tests. `world serve` is now tested through
+  a stubbed uvicorn (app construction, `--invariants` loading, API-key
+  gate, rate limit) plus the missing-extra error path; `update` and
+  `update-many` conflict/rejection paths, malformed export lines,
+  blank-line skipping, list diffs, and `KeyboardInterrupt` (exit 130)
+  are covered through `main()`; malformed Ed25519 tips and rotation
+  certificates return False instead of raising; short master keys are
+  refused; empty `store_field_keys` is a no-op; `redact_field` skips
+  unencrypted and already-redacted versions; `_set_path` error and
+  success branches are covered; a pre-F3a database without the
+  `pinned_hash` column gains it on open. The `"def serve"` coverage
+  exclusion and both serve `pragma: no cover` markers are removed, so
+  the gate now measures the serve paths. Measured locally 2026-11-22:
+  `src/world/cli.py` 100%, `src/world/core.py` 100%, total 97% (was
+  92% overall, cli.py 83%, core.py 96%).
 - Writers now wait out a held SQLite write lock instead of failing
   with `OperationalError: database is locked` (Mission Day 10, audit
   finding C-12): every connection through `World._connect` sets

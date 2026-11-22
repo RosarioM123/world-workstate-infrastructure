@@ -8,8 +8,8 @@
 **License:** MIT. **Not deployed, not production-ready, no external
 users.**
 
-**Tests:** 434 passing, 0 failing (full suite run locally
-2026-11-21, Python 3.12.3, on the mission Day 10 branch tree).
+**Tests:** 485 passing, 0 failing (full suite run locally
+2026-11-22, Python 3.12.3, on the mission Day 11 branch tree).
 **Model checker:** 1,220,255 states explored (three
 configurations), properties P1 to P6 hold; mutation test catches
 the injected P4 violation. **CI:** pytest on Python 3.11, 3.12,
