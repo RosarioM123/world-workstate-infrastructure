@@ -342,3 +342,301 @@ def test_cli_import_transcript_without_world_engine_is_clean_error(
         captured.err
     )
     assert "Traceback" not in captured.err
+
+
+# --- Day 11 (T-4): CLI coverage for the error and serve paths ---------------
+
+
+def test_cli_update_non_object_json_is_clean_error(store, tmp_path, capsys):
+    # T-4: _load_json_file rejects a non-object top level; main() turns the
+    # TypeError into `error: ...` (exit 1), not a traceback.
+    doc = tmp_path / "doc.json"
+    doc.write_text("[1, 2]")
+    assert cli(store, "update", "d", "--file", str(doc)) == 1
+    assert "error: top-level JSON must be an object" in capsys.readouterr().err
+
+
+def test_cli_update_conflict_is_clean_error(store, tmp_path, capsys):
+    _update(store, "d", {"a": 1})
+    doc = tmp_path / "doc.json"
+    doc.write_text(json.dumps({"a": 2}))
+    assert (
+        cli(store, "update", "d", "--file", str(doc), "--expected-version", "99") == 1
+    )
+    captured = capsys.readouterr()
+    assert "conflict:" in captured.err
+    assert "Traceback" not in captured.err
+    assert World("d", dir=store).state() == {"a": 1}
+
+
+def test_cli_update_rejected_is_clean_error(store, tmp_path, capsys, monkeypatch):
+    def rejected_update(self, state, **kw):
+        raise InvariantViolation("no negatives", seq=2)
+
+    monkeypatch.setattr(World, "update", rejected_update)
+    doc = tmp_path / "doc.json"
+    doc.write_text(json.dumps({"a": -1}))
+    assert cli(store, "update", "d", "--file", str(doc)) == 1
+    captured = capsys.readouterr()
+    assert "rejected (seq 2): no negatives" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_cli_update_many_happy_path(store, tmp_path, capsys):
+    # T-4: update-many had zero CLI coverage; drive the happy path through
+    # main() and check the printed seq list.
+    lines = tmp_path / "states.jsonl"
+    lines.write_text('{"a": 1}\n{"a": 2}\n')
+    assert cli(store, "update-many", "d", "--file", str(lines)) == 0
+    assert json.loads(capsys.readouterr().out) == [1, 2]
+    assert World("d", dir=store).state() == {"a": 2}
+
+
+def test_cli_update_many_conflict_is_clean_error(store, tmp_path, capsys):
+    _update(store, "d", {"a": 1})
+    lines = tmp_path / "states.jsonl"
+    lines.write_text('{"a": 2}\n')
+    assert (
+        cli(
+            store,
+            "update-many",
+            "d",
+            "--file",
+            str(lines),
+            "--expected-version",
+            "99",
+        )
+        == 1
+    )
+    captured = capsys.readouterr()
+    assert "conflict:" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_cli_update_many_rejected_is_clean_error(store, tmp_path, capsys, monkeypatch):
+    def rejected_update_many(self, states, **kw):
+        raise InvariantViolation("no negatives", seq=2)
+
+    monkeypatch.setattr(World, "update_many", rejected_update_many)
+    lines = tmp_path / "states.jsonl"
+    lines.write_text('{"a": -1}\n')
+    assert cli(store, "update-many", "d", "--file", str(lines)) == 1
+    captured = capsys.readouterr()
+    assert "rejected (seq 2): no negatives" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_cli_checkpoint_bad_name_is_clean_error(store, capsys):
+    _update(store, "d", {"a": 1})
+    assert cli(store, "checkpoint", "d", "bad name!") == 1
+    assert "error: invalid checkpoint name" in capsys.readouterr().err
+
+
+def test_cli_resume_unknown_checkpoint_is_clean_error(store, capsys):
+    assert cli(store, "resume", "d", "nope") == 1
+    assert "error:" in capsys.readouterr().err
+
+
+def test_cli_resume_rejected_is_clean_error(store, capsys, monkeypatch):
+    _update(store, "d", {"a": 1})
+    World("d", dir=store).checkpoint("cp1")
+
+    def rejected_resume(self, name, **kw):
+        raise InvariantViolation("no negatives", seq=2)
+
+    monkeypatch.setattr(World, "resume", rejected_resume)
+    assert cli(store, "resume", "d", "cp1") == 1
+    captured = capsys.readouterr()
+    assert "rejected (seq 2): no negatives" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_cli_diff_list_changes(store, capsys):
+    # T-4: _diff_values list branches (added, removed) had no coverage.
+    _update(store, "d", {"items": [1, 2, 3]})
+    _update(store, "d", {"items": [1, 9]})
+    _update(store, "d", {"items": [1, 9, 8, 7]})
+    assert cli(store, "diff", "d", "--from", "1", "--to", "2") == 0
+    changes = {c["path"]: c for c in json.loads(capsys.readouterr().out)}
+    assert changes["items.1"] == {
+        "path": "items.1",
+        "change": "modified",
+        "old": 2,
+        "new": 9,
+    }
+    assert changes["items.2"]["change"] == "removed"
+    assert cli(store, "diff", "d", "--from", "2", "--to", "3") == 0
+    changes = {c["path"]: c for c in json.loads(capsys.readouterr().out)}
+    assert changes["items.2"]["change"] == "added"
+    assert changes["items.3"]["change"] == "added"
+
+
+def test_cli_export_import_list_nested_envelope(store, tmp_path, capsys):
+    # T-4: _envelope_key_ids walks lists; exercise it through an
+    # export/import round trip of a list-nested encrypted field.
+    master = b"master-key-32-bytes-for-tests-0000"
+    w = World("src", dir=store)
+    w.update_encrypted(
+        master,
+        {"items": [{"secret": "s1"}, {"secret": "s2"}]},
+        ["items.0.secret", "items.1.secret"],
+    )
+    dump = tmp_path / "dump.jsonl"
+    assert cli(store, "export", "src", "--file", str(dump)) == 0
+    assert "field_key" in dump.read_text()
+    capsys.readouterr()
+    # Envelopes are bound to the source world name (AAD), so the honest
+    # restore path is an import into a world with the same name.
+    other = tmp_path / "other-store"
+    assert main(["--dir", str(other), "import", "src", "--file", str(dump)]) == 0
+    imported = World("src", dir=str(other))
+    assert imported.decrypt_fields(master, imported.state()) == {
+        "items": [{"secret": "s1"}, {"secret": "s2"}]
+    }
+
+
+def test_cli_import_skips_blank_lines(store, tmp_path, capsys):
+    # T-4: blank lines in an export file are skipped, not parsed.
+    _update(store, "src", {"a": 1})
+    dump = tmp_path / "dump.jsonl"
+    assert cli(store, "export", "src", "--file", str(dump)) == 0
+    dump.write_text("\n" + dump.read_text() + "\n\n")
+    capsys.readouterr()
+    assert cli(store, "import", "dst", "--file", str(dump)) == 0
+    assert "imported 1 versions" in capsys.readouterr().out
+    assert World("dst", dir=store).state() == {"a": 1}
+
+
+@pytest.mark.parametrize(
+    ("line", "fragment"),
+    [
+        ("42", "export line must be a JSON object"),
+        ('{"type": "world"}', "malformed export header"),
+        (
+            '{"type": "field_key", "key_id": "x"}',
+            "malformed field_key record: missing 'field'",
+        ),
+        ('{"type": "weird"}', "unknown export line type 'weird'"),
+    ],
+)
+def test_cli_import_malformed_lines_are_clean_errors(
+    store, tmp_path, capsys, line, fragment
+):
+    # T-4: malformed typed lines fail loudly with a message, not a traceback.
+    dump = tmp_path / "dump.jsonl"
+    dump.write_text(line + "\n")
+    assert cli(store, "import", "dst", "--file", str(dump)) == 1
+    captured = capsys.readouterr()
+    assert f"error: {fragment}" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_cli_import_transcript_happy_path(store, tmp_path, capsys):
+    # T-4: the import-transcript success path had no CLI coverage.
+    transcript = tmp_path / "t.txt"
+    transcript.write_text("Rosario: Decision: we will ship this week.\n")
+    assert cli(store, "import-transcript", "probe", "--file", str(transcript)) == 0
+    assert capsys.readouterr().out.strip() == "1"
+    doc = World("probe", dir=store).state()
+    assert doc["transcript"]["decisions"][0]["text"] == "we will ship this week."
+
+
+def _fake_uvicorn(monkeypatch):
+    """Install a stub ``uvicorn`` module recording ``run()`` calls."""
+    import types
+
+    calls: list[dict] = []
+
+    def run(app, host=None, port=None, **kw):
+        calls.append({"app": app, "host": host, "port": port, **kw})
+
+    monkeypatch.setitem(sys.modules, "uvicorn", types.SimpleNamespace(run=run))
+    return calls
+
+
+def test_cli_serve_runs_uvicorn_with_app(store, capsys, monkeypatch):
+    # T-4/T-12: cmd_serve builds the app and hands it to uvicorn.run.
+    calls = _fake_uvicorn(monkeypatch)
+    assert cli(store, "serve", "d", "--port", "8123") == 0
+    assert len(calls) == 1
+    assert calls[0]["host"] == "127.0.0.1"
+    assert calls[0]["port"] == 8123
+    assert calls[0]["app"].routes  # a real FastAPI app, not a stub
+
+
+def test_cli_serve_with_invariants_and_api_key(store, capsys, monkeypatch, tmp_path):
+    # T-4: _load_invariants resolves module:attribute, and the api key and
+    # rate limit reach create_app. Verified behaviorally through the app
+    # handed to uvicorn.run: writes without the key are 401, and a
+    # negative update is 422 under the loaded invariant.
+    pytest.importorskip("fastapi")
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    mod = tmp_path / "probe_invariants.py"
+    mod.write_text(
+        "from world import InvariantViolation\n\n"
+        "def reject_negative(old, new):\n"
+        "    if new.get('a', 0) < 0:\n"
+        "        raise InvariantViolation('no negatives')\n\n"
+        "INVS = [reject_negative]\n"
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    calls = _fake_uvicorn(monkeypatch)
+    assert (
+        cli(
+            store,
+            "serve",
+            "d",
+            "--invariants",
+            "probe_invariants:INVS",
+            "--api-key",
+            "secret",
+            "--rate-limit",
+            "5",
+        )
+        == 0
+    )
+    assert len(calls) == 1
+    with TestClient(calls[0]["app"]) as client:
+        assert client.post("/v1/update", json={"state": {"a": 1}}).status_code == 401
+        good = {"X-API-Key": "secret"}
+        r = client.post("/v1/update", json={"state": {"a": -1}}, headers=good)
+        assert r.status_code == 422
+        assert r.json()["status"] == "REJECTED"
+        assert "no negatives" in r.json()["reason"]
+        assert (
+            client.post("/v1/update", json={"state": {"a": 1}}, headers=good)
+            .json()
+            .get("seq")
+            == 2  # the rejected attempt above consumed seq 1
+        )
+
+
+def test_cli_serve_bad_invariants_spec_is_clean_error(store, capsys, monkeypatch):
+    # T-4: a --invariants value without module:attribute is a ValueError,
+    # reported by main() as `error: ...` (exit 1).
+    _fake_uvicorn(monkeypatch)
+    assert cli(store, "serve", "d", "--invariants", "nosuchcolon") == 1
+    assert "error: use --invariants module:attribute" in capsys.readouterr().err
+
+
+def test_cli_serve_missing_uvicorn_is_clean_error(store, capsys, monkeypatch):
+    # T-4: with the uvicorn import failing, serve exits 2 naming the
+    # server extra, instead of a ModuleNotFoundError traceback. Forcing
+    # the ImportError via sys.modules keeps this true even where uvicorn
+    # happens to be installed.
+    monkeypatch.setitem(sys.modules, "uvicorn", None)
+    assert cli(store, "serve", "d") == 2
+    captured = capsys.readouterr()
+    assert "error: `world serve` needs the server extra" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_main_keyboard_interrupt_returns_130(store, monkeypatch):
+    # T-4: main() maps KeyboardInterrupt to exit code 130.
+    def boom(args):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("world.cli.cmd_init", boom)
+    assert main(["--dir", store, "init", "d"]) == 130
