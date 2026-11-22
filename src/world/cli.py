@@ -427,7 +427,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
         allow_unauthenticated_writes=args.allow_unauthenticated,
     )
     uvicorn.run(app, host=args.host, port=args.port)
-    return 0  # pragma: no cover - blocks serving
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
