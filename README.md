@@ -71,10 +71,14 @@ database, so two processes sharing a name always agree.
   the reason as evidence.
 - **Concurrency.** Writers serialize on SQLite's write lock;
   `expected_version` gives optimistic concurrency, revalidated
-  inside the write transaction so judgment and append are atomic
-  (`ConflictError` on a stale read); `idempotency_key` makes
-  committed retries return the original version instead of
-  appending twice.
+  inside the write transaction so the version check and append are
+  atomic (`ConflictError` on a stale read). Judgment itself runs
+  before the lock, so without `expected_version` a write is
+  last-writer-wins on a snapshot that may already be stale: the
+  invariants were judged against history that is not what gets
+  committed. `update_many` judges inside the transaction instead.
+  `idempotency_key` makes committed retries return the original
+  version instead of appending twice.
 - **Checkpoints are pins, not copies.** A checkpoint names a
   version and stores the hash of that version's row (Prompt 3
   F3a); reading or resuming a checkpoint verifies the pin first.
