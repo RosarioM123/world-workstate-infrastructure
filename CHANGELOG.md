@@ -122,6 +122,23 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- A bare `pip install -e .` no longer passes the suite while silently
+  skipping the API, security, and property tests (Mission Day 12,
+  audit finding T-7): a new guard test in `tests/test_packaging.py`
+  asserts `fastapi`, `httpx`, and `hypothesis` are importable and fails
+  naming the missing extras and the `pip install -e ".[test]"` fix.
+  Measured with the three extras blocked: only 379 of 486 tests
+  collect, and 107 API, security, and property tests were silently
+  absent before the guard. README no longer says a bare install
+  "skips cleanly".
+- Hypothesis slowness detection is restored in the property tests
+  (Mission Day 12, audit finding T-8): all six settings in
+  `tests/test_stateful.py`, `tests/test_chain_properties.py`, and
+  `tests/test_backend_parity.py` now use
+  `deadline=timedelta(seconds=60)` instead of `None`, and the
+  `too_slow` health-check suppression is removed, so pathological
+  slowness fails loudly instead of passing silently. All six tests
+  pass under the restored settings.
 - README no longer overstates atomicity (Mission Day 11, audit finding
   C-5): invariant judgment runs before the write lock, so only the
   version re-check and append are atomic; without `expected_version` a
