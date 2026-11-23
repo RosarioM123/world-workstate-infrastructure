@@ -6,6 +6,7 @@ markers. These tests pin that down so a packaging regression cannot
 silently break downstream mypy runs.
 """
 
+import importlib
 import importlib.util
 from pathlib import Path
 
@@ -16,6 +17,29 @@ def _package_dir(package: str) -> Path:
     locations = spec.submodule_search_locations
     assert locations, f"package {package!r} has no search locations"
     return Path(locations[0])
+
+
+# Test extras (fastapi, httpx, hypothesis) are declared in
+# pyproject.toml under `[project.optional-dependencies] test`. A bare
+# `pip install -e .` leaves them out, and the API, security, and
+# property tests then skip wholesale via `pytest.importorskip` while
+# the suite still reports green. This guard runs with no extras at
+# all, so a bare install fails loudly here instead of passing with
+# large test areas silently untested (audit finding T-7).
+TEST_EXTRAS = ("fastapi", "httpx", "hypothesis")
+
+
+def test_test_extras_are_installed():
+    missing = []
+    for name in TEST_EXTRAS:
+        try:
+            importlib.import_module(name)
+        except ImportError:
+            missing.append(name)
+    assert not missing, (
+        "test extras missing: " + ", ".join(missing) + "; "
+        'run `pip install -e ".[test]"` before running the suite'
+    )
 
 
 def test_world_engine_ships_py_typed():

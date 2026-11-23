@@ -199,7 +199,9 @@ pip install -e ".[server]"  # optional: `world serve` HTTP API
 pip install -e ".[test]"    # optional: full test suite (server + property tests)
 
 python examples/quickstart.py   # minimal example, self-contained
-python -m pytest tests/ -q      # without the extras, server tests skip cleanly
+python -m pytest tests/ -q      # requires ".[test]": without it the
+                            # extras guard test fails instead of the
+                            # server and property tests skipping silently
 world --help
 ```
 
