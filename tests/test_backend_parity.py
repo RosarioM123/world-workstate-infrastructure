@@ -19,11 +19,12 @@ they are backend-local, not part of the guarantee.
 import os
 import tempfile
 import uuid
+from datetime import timedelta
 
 import pytest
 
 pytest.importorskip("hypothesis")
-from hypothesis import HealthCheck, given, settings
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from world_engine.core import engine
@@ -160,7 +161,7 @@ def _op_sequences(draw):
 
 
 @given(_op_sequences())
-@settings(max_examples=20, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=20, deadline=timedelta(seconds=60))
 def test_backends_agree_on_verdicts_state_and_chain(ops):
     """Same ops on both backends: same verdicts, same state, valid chains."""
     old = os.environ.get("WORLD_DB_PATH")
@@ -188,7 +189,7 @@ def test_backends_agree_on_verdicts_state_and_chain(ops):
 
 
 @given(_op_sequences())
-@settings(max_examples=20, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=20, deadline=timedelta(seconds=60))
 def test_backends_agree_on_time_travel(ops):
     """replay_to on both backends yields the same historical states."""
     old = os.environ.get("WORLD_DB_PATH")

@@ -21,6 +21,7 @@ has teeth by running it against a deliberately broken World.
 """
 
 import tempfile
+from datetime import timedelta
 
 import pytest
 
@@ -148,7 +149,7 @@ class WorldMachine(RuleBasedStateMachine):
 def test_stateful_world_matches_reference_model(capsys):
     OPS[0] = 0
     run_state_machine_as_test(
-        WorldMachine, settings=settings(max_examples=30, deadline=None)
+        WorldMachine, settings=settings(max_examples=30, deadline=timedelta(seconds=60))
     )
     print(f"\nstateful ops executed: {OPS[0]}")
     assert OPS[0] >= 500, f"too few update ops executed: {OPS[0]}"
@@ -164,5 +165,6 @@ def test_stateful_catches_mutation(monkeypatch):
     monkeypatch.setattr(World, "__init__", broken_init)
     with pytest.raises(AssertionError):
         run_state_machine_as_test(
-            WorldMachine, settings=settings(max_examples=10, deadline=None)
+            WorldMachine,
+            settings=settings(max_examples=10, deadline=timedelta(seconds=60)),
         )

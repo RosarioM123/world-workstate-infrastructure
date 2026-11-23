@@ -16,11 +16,12 @@ import os
 import shutil
 import sqlite3
 import tempfile
+from datetime import timedelta
 
 import pytest
 
 pytest.importorskip("hypothesis")
-from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 from tests.conftest import checkpoint
@@ -83,7 +84,7 @@ def _seed_ledger(n: int) -> list[int]:
         max_size=25,
     )
 )
-@settings(max_examples=30, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=30, deadline=timedelta(seconds=60))
 def test_random_ledgers_always_verify(draws):
     old = os.environ.get("WORLD_DB_PATH")
     try:
@@ -107,7 +108,7 @@ def test_random_ledgers_always_verify(draws):
     st.sampled_from(["payload", "timestamp", "action", "status"]),
     st.data(),
 )
-@settings(max_examples=40, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(max_examples=40, deadline=timedelta(seconds=60))
 def test_single_byte_tamper_always_detected_and_named(record_index, field, data):
     """Flip exactly one byte of one stored field; the chain must name it."""
     old = os.environ.get("WORLD_DB_PATH")
