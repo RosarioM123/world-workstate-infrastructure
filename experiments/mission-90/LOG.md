@@ -959,3 +959,94 @@ tests) and T-8 (Hypothesis `deadline=None` plus suppressed
   exclusions (T-12)
 - `7233204` docs: correct README atomicity wording (C-5)
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 12 - 2026-11-23 (Foundation phase)
+
+**Branch:** `mission/day-12` (from Day 11 tip `c2a7afa`). Nothing pushed,
+nothing merged to main.
+
+**Objectives:** close T-7 and T-8, the last P2 items named at the end of
+Day 11: T-7 (a bare `pip install -e .` followed by `pytest` passes
+while skipping API/security/property tests) and T-8 (Hypothesis
+`deadline=None` plus suppressed `too_slow` in three property-test
+files). Test-only work plus one README correction; no runtime behavior
+change.
+
+**Baseline (measured, clean sequential run):** 485 passed, 0 failed,
+1 warning, 78.09 s, Python 3.12.3.
+
+**GitHub (read-only):** 13 open items, unchanged from Day 11: 12
+Dependabot PRs plus issue #4 (pre-existing roadmap item). Newest PR is
+still #28 (fastapi bump, 2026-11-16). No human-filed issues, nothing
+new to act on. Note: the repo's `gh.py` helper has no issues/PR
+command and its `sys.path` entry for `dynamic_credentials` points at
+a templates directory that does not contain the module, so the
+read-only query ran through a throwaway script in /tmp using the
+helper from `/opt/muse/skills/custom-connector-setup/bin`.
+
+**Changes:**
+- T-7 (`tests/test_packaging.py`, `README.md`): new guard test
+  `test_test_extras_are_installed` imports `fastapi`, `httpx`, and
+  `hypothesis` with no skip and fails naming the missing extras and
+  the `pip install -e ".[test]"` fix. The guard lives in the
+  packaging test file because that file uses no `importorskip`, so it
+  runs on a bare install. README no longer says a bare install
+  "skips cleanly": the install block now says the suite requires
+  `".[test]"` and the guard fails instead.
+- T-8 (`tests/test_stateful.py`, `tests/test_chain_properties.py`,
+  `tests/test_backend_parity.py`): all six property-test settings now
+  use `deadline=timedelta(seconds=60)` with the `too_slow` health
+  check enabled; the now-unused `HealthCheck` imports are dropped.
+  Correction to the audit text: the two `test_stateful.py` settings
+  had `deadline=None` but no `too_slow` suppression, so only the
+  deadline changed there. No test needed a per-test suppression, and
+  all six tests pass under the restored settings.
+
+**Verification:**
+- Targeted: the four touched test files, 11 passed (guard, both
+  stateful tests, both chain-property tests, both parity tests).
+- Guard teeth (EXPERIMENTALLY OBSERVED): with `fastapi`, `httpx`,
+  and `hypothesis` blocked by a `sitecustomize` meta-path finder,
+  the guard fails naming all three missing extras. The same
+  simulated bare install collects only 379 of 486 tests and reports
+  3 failed, 375 passed, 12 skipped: 107 tests never even collect,
+  and before this guard the run would have shown only the 2 serve
+  failures below while all API, security, and property tests were
+  silently absent. Two simulation details: the blocker must raise
+  `ModuleNotFoundError`, not plain `ImportError`, because pytest 9
+  `importorskip` only catches the former by default; and the
+  Hypothesis pytest plugin crashes the terminal summary when
+  `hypothesis` is blocked (it imports the package at session
+  finish), so the simulated run used `-p no:hypothesispytest`.
+- Full suite: 486 passed, 0 failed, 1 warning, 74.41 s.
+- Ruff check and `ruff format --check` clean over all changed files
+  (one format fix applied to `test_stateful.py`); mypy clean on the
+  four changed test files.
+- Full diff reviewed: 5 files, +38/-9. No em dashes. No behavior
+  change.
+
+**Incidental finding, not a code change:** the two Day 11 serve
+tests (`test_cli_serve_runs_uvicorn_with_app`,
+`test_cli_serve_bad_invariants_spec_is_clean_error`) fail on a bare
+install because `cmd_serve` needs `fastapi`, which is not in a bare
+install. That is pre-existing: the tests assume the test extra. The
+guard now fails loudly with the exact fix command, so the suite no
+longer misleads; consider an `importorskip("fastapi")` in those two
+tests on a later day so the guard is the single loud failure.
+
+**Unresolved issues / decisions for Rosario:** unchanged from Day 11
+(H-1 history divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8
+version string and top-level exports; L-6/F3b). No new decisions
+needed for today's work. With T-7 and T-8 closed, the P2 audit items
+are all closed. Remaining backlog is P3 legacy, docs, and test/CI
+items (T-6, T-9, T-10, T-11, T-13, T-14, L-4, L-5, L-7, L-8, L-9,
+L-10, L-12, L-13, D-10).
+
+**Next (P3):** T-9 (coverage scope: `tools/`, `demo/`, and the root
+shims are outside coverage measurement) and T-6 (dotnet/C# verifier
+in this VM) are the next test/CI candidates.
+
+**Day 12 commits:**
+- `68aa58b` test: guard that test extras are installed (T-7)
+- `f00a871` test: restore Hypothesis deadlines and too_slow checks (T-8)
+- `LOG.md` SHA line updated in the commit below (this line).
