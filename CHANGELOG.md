@@ -122,6 +122,34 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- `tools/export_ledger.py` no longer creates a ledger database on a
+  fresh checkout (Mission Day 13, audit finding L-12): the old
+  `init_db()` call created `world_state.db` (tables plus the seeded
+  entity) as a side effect of a read-only export. A missing database
+  now fails clearly with exit 1 naming the path and refusing to
+  create one. The export still reads through the engine connection,
+  so a WAL sidecar may appear beside an existing database; no rows
+  are written.
+- `tools/`, `demo/`, and the root shims are now measured by the
+  coverage gate (Mission Day 13, audit finding T-9): the coverage
+  source in `pyproject.toml` adds `tools`, `demo`, `app`, `engine`,
+  and `import_transcript`, and `tests/test_tools_demo_shims.py` adds
+  14 smoke tests for their entry points (ledger export round trip
+  and missing-database failure, the three bench scripts at tiny
+  sizes, guardrail audit pass and flag cases, staleness ok and stale
+  cases, write-cost record and report, the demo invariant and the
+  agent A then B handoff, the root-shim imports, and the `engine.py`
+  and `import_transcript.py` entry points as subprocesses).
+  Measured before the tests, the expanded scope was 73% total; with
+  them it is 95% and the 85% gate still passes.
+- CI now fails unless the independent C# verifier tests actually run
+  (Mission Day 13, audit finding T-6): a new `csharp-verifier` job
+  runs `tests/test_csharp_verifier.py` and requires "4 passed", so a
+  runner without dotnet fails loudly instead of passing the suite
+  with the cross-language check silently skipped. The guard was
+  verified both ways: 4 passed with dotnet present, and it fails
+  with the skip message when dotnet is hidden. dotnet SDK 8.0.426
+  is present in this VM, so the verifier tests run locally too.
 - A bare `pip install -e .` no longer passes the suite while silently
   skipping the API, security, and property tests (Mission Day 12,
   audit finding T-7): a new guard test in `tests/test_packaging.py`
