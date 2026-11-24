@@ -26,6 +26,28 @@ jobs:
       - name: Run examples tests
         run: python -m pytest examples/ -q
 
+  # T-6: the independent C# verifier tests skip silently when dotnet
+  # is absent, so a runner without dotnet would pass the suite while
+  # the cross-language check never ran. This job fails unless the
+  # four verifier tests actually pass (not skip). It runs once, on
+  # 3.12, instead of once per matrix version.
+  csharp-verifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          pip install -e ".[test]"
+      - name: Run C# verifier tests (must run, not skip)
+        run: |
+          set -o pipefail
+          python -m pytest tests/test_csharp_verifier.py -q --no-cov -p no:cacheprovider 2>&1 | tee csharp-verifier.log
+          grep -q "4 passed" csharp-verifier.log || (echo "C# verifier tests were skipped: dotnet must be present on the runner" >&2 && exit 1)
+
   lint:
     runs-on: ubuntu-latest
     steps:
