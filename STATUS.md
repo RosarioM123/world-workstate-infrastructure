@@ -8,8 +8,8 @@
 **License:** MIT. **Not deployed, not production-ready, no external
 users.**
 
-**Tests:** 486 passing, 0 failing (full suite run locally
-2026-11-23, Python 3.12.3, on the mission Day 12 branch tree).
+**Tests:** 500 passing, 0 failing (full suite run locally
+2026-11-24, Python 3.12.3, on the mission Day 13 branch tree).
 **Model checker:** 1,220,255 states explored (three
 configurations), properties P1 to P6 hold; mutation test catches
 the injected P4 violation. **CI:** pytest on Python 3.11, 3.12,
@@ -102,8 +102,9 @@ Core dependency-free (stdlib only).
   `verify()` landed.
 - **Independent C# verifier:** reproduces chain verification
   with no shared code.
-- **Coverage:** 92.71% branch coverage over the package
-  (measured 2026-11-05 with the CI command); the CI gate is 85%.
+- **Coverage:** 95.16% total over the package plus `tools/`,
+  `demo/`, and the root shims (measured 2026-11-24 with the CI
+  command, mission Day 13); the CI gate is 85%.
 
 ---
 

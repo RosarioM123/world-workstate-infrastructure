@@ -1050,3 +1050,117 @@ in this VM) are the next test/CI candidates.
 - `68aa58b` test: guard that test extras are installed (T-7)
 - `f00a871` test: restore Hypothesis deadlines and too_slow checks (T-8)
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 13 - 2026-11-24 (Foundation phase)
+
+**Branch:** `mission/day-13` (from Day 12 tip `94d9aa6`). Nothing pushed,
+nothing merged to main.
+
+**Objectives:** close T-9 and T-6, the P3 test/CI items named at the end
+of Day 12: T-9 (coverage scope: `tools/`, `demo/`, and the root shims
+outside coverage measurement) and T-6 (the independent C# verifier
+never runs in this environment). L-12 (export tool mutates state)
+rode along because the T-9 smoke test for `export_ledger.py` would
+otherwise assert the mutating behavior.
+
+**Baseline (measured, clean sequential run):** 486 passed, 0 failed,
+1 warning, 75.86 s, Python 3.12.3.
+
+**GitHub (read-only):** 1 open issue (#4, pre-existing roadmap item)
+and 12 open Dependabot PRs. New since Day 12: #29 (fastapi 0.141.1
+to 0.165.0, Nov 23) and #30 (hypothesis 6.168.0 to 6.170.17, Nov 23).
+No human-filed issues, nothing new to act on.
+
+**Changes:**
+- T-9 (`pyproject.toml`): the coverage source now also measures
+  `tools`, `demo`, `app`, `engine`, and `import_transcript`.
+  Measured before the new tests, the expanded scope was 73% total
+  (620 missed statements, 582 of them in `tools/` and `demo/`), so
+  the 85% gate would have failed; the smoke tests below lift it to
+  95%. Detail: coverage source entries must be module names, not
+  file names (`"app.py"` is silently unmeasured with a
+  module-not-imported warning; `"app"` measures `app.py` at 100%).
+- T-9 (`tests/test_tools_demo_shims.py`, 14 new tests): in-process
+  smoke tests loaded by file path so coverage measures them, plus
+  two subprocess entry-point tests. Ledger export round trip to a
+  file and to stdout (rows 1 and 2, oldest first); the three bench
+  scripts at tiny sizes (`bench.py --rows 3`, `bench_world.py
+  --rows 2`, `bench_contention.py --ops-per-thread 2`, all five
+  thread levels); guardrail audit pass case (G1-G3 PASS, G4 MANUAL,
+  `--json` output) and flag case (em dash in a written file flags
+  G1, a LICENSE write flags G3, exit 1); staleness ok case (an
+  existing path, a real HEAD sha, and a prose source) and stale case
+  (a missing path, exit 1); write-cost record and report plus a
+  missing-log report; the demo spend-cap invariant (over cap raises,
+  at cap passes, non-dict spend passes) and the agent A then B
+  handoff end to end in a temp dir (`final verify(): True`); the
+  root-shim imports (`app.app`, `engine.get_ledger`,
+  `import_transcript.main`); `python engine.py` and `python
+  import_transcript.py --dry-run` as subprocesses, the latter
+  asserting no database file is created.
+- L-12 (`tools/export_ledger.py`): `main()` no longer calls
+  `init_db()`. It resolves the ledger path (`WORLD_DB_PATH` or the
+  engine default), and a missing database fails clearly with exit 1
+  naming the path and refusing to create one. The export still reads
+  through the engine connection, so a WAL sidecar may appear beside
+  an existing database; no rows are written. That caveat is recorded
+  in the changelog, not hidden.
+- T-6 (`.github/workflows/ci.yml`): new `csharp-verifier` job runs
+  `tests/test_csharp_verifier.py` on Python 3.12 and requires "4
+  passed" in the output, so a runner without dotnet fails loudly
+  instead of passing with the check silently skipped. The job runs
+  once, not once per matrix version; the full test job already runs
+  these tests on all three versions.
+- T-6 environment correction (VERIFIED, not assumed): dotnet SDK
+  8.0.426 is present at `~/.dotnet/dotnet` in this VM, so the four
+  C# verifier tests run locally (4 passed, 10.67 s). The Day 1 audit
+  recorded dotnet as absent; something installed it since. The guard
+  was verified both ways: 4 passed with dotnet present, and with a
+  fake HOME hiding dotnet the run reports 4 skipped and the guard
+  exits 1 with the skip message.
+
+**Verification:**
+- Regression proof: the missing-database export test fails on the
+  pre-fix code (verified by stashing the `export_ledger.py` fix:
+  1 failed, 2 passed) and passes with it.
+- Guard teeth: the CI guard command passes with dotnet present
+  (4 passed) and fails with dotnet hidden (4 skipped, exit 1).
+- Targeted: `tests/test_tools_demo_shims.py`, 14 passed, 1.75 s;
+  `tests/test_csharp_verifier.py`, 4 passed, 10.67 s.
+- Full suite with the CI command (`pytest tests/ -q --cov
+  --cov-report=term-missing`): 500 passed, 0 failed, 1 warning,
+  102.66 s. Coverage over the expanded scope: 95% total
+  (`tools/bench.py` 100%, `export_ledger.py` 100%, `demo/agent_b.py`
+  98%, `bench_contention.py` 98%, `bench_world.py` 98%,
+  `demo/common.py` 92%, `demo/agent_a.py` 91%,
+  `guardrail_audit.py` 85%, `staleness.py` 85%, `write_cost.py`
+  88%, root shims 100%).
+- Ruff check and `ruff format --check` clean over the changed files
+  (two PLW1510 findings fixed with explicit `check=False`, not
+  suppressed; one format fix applied); mypy clean on
+  `tools/export_ledger.py` and `tests/test_tools_demo_shims.py`.
+  `ci.yml` parses as YAML (system python3).
+- Full diff reviewed: 5 files, +466/-14 (code, tests, CI, docs).
+  No em dashes. No behavior change outside the export tool's
+  missing-database path.
+
+**Unresolved issues / decisions for Rosario:** unchanged from Day 12
+(H-1 history divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8
+version string and top-level exports; L-6/F3b). No new decisions
+needed for today's work. With T-9, T-6, and L-12 closed, the P3
+backlog is now the legacy/code items (L-4/L-14 dashboard migration,
+L-5/L-8 SDK replay parity, L-7 rate limits, D-7/D-8, L-6) and the
+small items (L-9, L-10, L-13, D-10, T-10, T-11, T-13, T-14).
+
+**Next (P3):** L-4/L-14 (migrate the shipped dashboard to
+`/api/v1/*`) or the small-items batch (L-9, L-10, L-12 done, L-13,
+D-10, T-10); L-4/L-14 is the larger coherent pick, the small batch
+is the safer one if the day is short.
+
+**Day 13 commits:**
+- `c94ab55` fix: export_ledger refuses to create a ledger; fails
+  clearly when missing (L-12)
+- `7422f0b` test: smoke tests for tools, demo, and root shims; measure
+  them in coverage (T-9)
+- `49c241e` ci: fail unless the C# verifier tests actually run (T-6)
+- `LOG.md` SHA line updated in the commit below (this line).
