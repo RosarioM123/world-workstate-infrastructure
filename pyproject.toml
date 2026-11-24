@@ -69,7 +69,19 @@ world-server = "world_engine.api.main:serve"
 testpaths = ["tests"]
 
 [tool.coverage.run]
-source = ["world_engine", "world_sdk", "world"]
+# T-9: tools/, demo/, and the root shims are measured too; the smoke
+# tests in tests/test_tools_demo_shims.py cover their entry points.
+# The C# verifier dirs under tools/ hold no Python and are ignored.
+source = [
+    "world_engine",
+    "world_sdk",
+    "world",
+    "tools",
+    "demo",
+    "app",
+    "engine",
+    "import_transcript",
+]
 branch = true
 
 [tool.coverage.report]
