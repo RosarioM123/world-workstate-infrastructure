@@ -10,16 +10,28 @@ Usage:
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from engine import get_ledger, init_db
+from engine import DB_PATH, get_ledger
 
 
 def main() -> None:
-    init_db()
+    # Read-only export (L-12): never create the ledger. The old code
+    # called init_db() first, so running the export against a fresh
+    # checkout created world_state.db (tables plus the seeded entity)
+    # as a side effect. A missing database now fails clearly instead.
+    db_path = Path(os.environ.get("WORLD_DB_PATH", DB_PATH))
+    if not db_path.exists():
+        print(
+            f"error: no ledger database at {db_path}; refusing to create one. "
+            "Set WORLD_DB_PATH to an existing ledger or run the service first.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
     # get_ledger returns newest-first; the export is oldest-first so a
     # verifier can walk the chain forward from genesis.
     rows = list(reversed(get_ledger(limit=10_000_000)))
