@@ -1164,3 +1164,79 @@ is the safer one if the day is short.
   them in coverage (T-9)
 - `49c241e` ci: fail unless the C# verifier tests actually run (T-6)
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 14 - 2026-11-25 (Prompt 1, Phase 1; first run of the prompt sequence)
+
+**Branch:** `mission/day-14` (from Day 13 tip `f88dd0c`). Nothing pushed yet,
+nothing merged to main.
+
+**Objectives:** Prompt 1 (full repository audit) under the new prompt
+sequence set up 2026-11-24. Reconcile the Day 1 audit and the Day 1 to 13
+backlog, and create the four audit deliverables `REPOSITORY_AUDIT.md`,
+`ARCHITECTURE_MAP.md`, `TECHNICAL_DEBT.md`, `IMPLEMENTATION_STATUS.md`
+where they were missing. Docs only; no code changes. The Prompt 1 gate
+applies: no Prompt 2 implementation until Rosario reviews the audit.
+
+**Baseline (measured, clean sequential run):** 500 passed, 0 failed,
+1 warning, 102.69 s, Python 3.12.3, coverage 95.16% over the expanded scope
+(CI command). Matches the Day 13 measurement exactly.
+
+**GitHub (read-only):** Not checked today: `gh` CLI is unauthenticated in
+this VM (`gh auth login` required). Day 13 reported 1 open issue (#4) and
+12 open Dependabot PRs plus #29 and #30. No GitHub state is claimed for
+today.
+
+**Changes:**
+- `REPOSITORY_AUDIT.md` (new): baseline, full reconciliation of all 56 Day
+  1 findings (33 closed with Day and fix SHA, 23 still open with current
+  file paths), 3 fresh findings (F-1 stale README test counts, F-2 tracked
+  `build/` with a stale server copy, F-3 STATUS.md header date), areas
+  checked and clean, 10 highest-priority improvements. One count correction
+  made during writing: the Day 1 audit holds 56 findings, not 40
+  (C 15 + L 14 + T 14 + D 12 + H 1); closed 33, open 23.
+- `ARCHITECTURE_MAP.md` (new): the two systems in one repo (primitive in
+  `src/world/` vs legacy in `src/world_engine/`/`src/world_sdk/`), module
+  table with file paths, storage schema, request flows, surfaces and entry
+  points, tests/spec/verification, tools/demo/examples, deployment wiring.
+- `TECHNICAL_DEBT.md` (new): register of the 23 open Day 1 findings plus
+  the 3 fresh findings (3 High, 10 Medium, 13 Low), each with severity,
+  location, cost of delay, and proposed fix or decision needed.
+- `IMPLEMENTATION_STATUS.md` (new): implemented vs documented-but-not-
+  implemented vs designed-not-built, per feature area, with evidence class;
+  includes the evidence status table and the Days 2 to 13 change summary.
+- `CHANGELOG.md`: Unreleased entry for the four deliverables and the gate.
+- `PROMPT_SEQUENCE_LOG.md` (goal hidden_files, not in this repo): created;
+  Day 14 section records the plan, baseline, and gate state.
+
+**Verification:**
+- Every still-open finding re-verified in the current tree on 2026-11-25
+  (file paths and line numbers cited in the audit); every closed finding
+  tied to its fix commit SHA from `git log` on the mission branch chain.
+- Notable re-verifications: C-10 (`server.py:276-306` drops both keys while
+  `core.py:696-704` accepts them); C-11 (CLI lacks the flag, core already
+  supports `idempotency_keys`); L-1 (`render.yaml:6` still `pip install -e .`);
+  L-2 (warning only, `main.py:48-56`); L-3 (`docs/architecture.md:7` still
+  "frozen prototype"); L-7 (GETs still unrated, `/state` unpaginated);
+  D-7 (`server.py:83` still version "0.2.0"); D-8 (four F1 names still only
+  in `world.handoff`); F-1 (README 409 in four places vs 500 actual); F-2
+  (`build/` tracked, stale server copy).
+- Full suite re-run after the docs (docs only, no code change): 500 passed,
+  1 warning, 73.71 s. No em dashes in the new files (grep).
+- `git status` shows only the four new docs, the CHANGELOG edit, and this
+  log entry. No code files touched.
+
+**Unresolved issues / decisions for Rosario:** unchanged from Day 13 (H-1
+history divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8 version string
+and top-level exports; L-6/F3b). Plus the Prompt 1 gate: Rosario's review
+of the four audit deliverables before Prompt 2 implementation begins.
+
+**Next (Prompt 1 gate, then Prompt 2):** Wait for Rosario's review. After
+approval, Prompt 2 (state integrity) starts from the audit's priority list:
+adversarial tests for simultaneous updates, stale versions, duplicate and
+out-of-order events, crash mid-update, tampered events, corrupted
+checkpoints, and unauthorized transitions.
+
+**Day 14 commits:**
+- `aab745a` docs: Prompt 1 audit deliverables (REPOSITORY_AUDIT, ARCHITECTURE_MAP, TECHNICAL_DEBT, IMPLEMENTATION_STATUS)
+- (docs commit for this log entry below)
+- `LOG.md` SHA line updated in the commit below (this line).
