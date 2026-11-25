@@ -7,6 +7,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Prompt 1 audit deliverables (2026-11-25, Mission Day 14):
+  `REPOSITORY_AUDIT.md`, `ARCHITECTURE_MAP.md`, `TECHNICAL_DEBT.md`,
+  `IMPLEMENTATION_STATUS.md`. They reconcile all 56 Day 1 audit findings
+  (33 closed in Days 2 to 13, 23 still open, each re-verified against the
+  current tree) and record 3 fresh findings: stale README test counts (409
+  vs 500), a tracked `build/` directory holding a stale server copy, and a
+  stale STATUS.md header date. Docs only; no code change. Gate: Rosario's
+  review of the audit before Prompt 2 implementation begins.
 - Experiment #003 (2026-11-03, preregistered): 8 tasks, 3 conditions,
   72 continuations, blind graded. Assumption retention was the one
   consistent structured-state advantage (A 0.721 vs B 0.500 vs
