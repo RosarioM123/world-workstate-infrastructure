@@ -19,6 +19,7 @@ import os
 import re
 import secrets
 import sqlite3
+import time
 from collections.abc import Callable, Iterable
 from contextlib import closing
 from datetime import UTC, datetime
@@ -266,7 +267,20 @@ class World:
         # write lock (journal_mode included): the Python default is
         # 5 s, see _BUSY_TIMEOUT_MS.
         cx.execute(f"PRAGMA busy_timeout = {_BUSY_TIMEOUT_MS}")
-        cx.execute("PRAGMA journal_mode=WAL")
+        # Switching a fresh database to WAL needs a moment of
+        # exclusive access, and SQLite can report "database is
+        # locked" for it at once, without honouring the busy timeout,
+        # when several handles open a new world at the same time
+        # (Prompt 2 adversarial test, 2026-11-26). Retry briefly:
+        # once the database is in WAL mode the pragma is a no-op.
+        for attempt in range(50):
+            try:
+                cx.execute("PRAGMA journal_mode=WAL")
+                break
+            except sqlite3.OperationalError as e:
+                if "locked" not in str(e) or attempt == 49:
+                    raise
+                time.sleep(0.1)
         cx.row_factory = sqlite3.Row
         return cx
 
