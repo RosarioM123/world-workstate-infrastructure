@@ -426,6 +426,85 @@ def test_cli_update_many_rejected_is_clean_error(store, tmp_path, capsys, monkey
     assert "Traceback" not in captured.err
 
 
+def test_cli_update_many_idempotency_keys_retry_returns_original_seqs(
+    store, tmp_path, capsys
+):
+    # C-11: update-many had no way to pass idempotency keys, so a
+    # retried batch re-appended duplicates. One repeatable
+    # --idempotency-key per state now forwards to the core, and a
+    # retry returns the original seqs without appending.
+    lines = tmp_path / "states.jsonl"
+    lines.write_text('{"a": 1}\n{"a": 2}\n')
+    args = [
+        "update-many",
+        "d",
+        "--file",
+        str(lines),
+        "--idempotency-key",
+        "k1",
+        "--idempotency-key",
+        "k2",
+    ]
+    assert cli(store, *args) == 0
+    assert json.loads(capsys.readouterr().out) == [1, 2]
+    assert cli(store, *args) == 0
+    assert json.loads(capsys.readouterr().out) == [1, 2]
+    assert len(World("d", dir=store).history()) == 2
+
+
+def test_cli_update_many_key_count_mismatch_is_clean_error(store, tmp_path, capsys):
+    # One key for two states: the core raises ValueError and appends
+    # nothing; the CLI must report it cleanly, not traceback.
+    _update(store, "d", {"a": 0})
+    lines = tmp_path / "states.jsonl"
+    lines.write_text('{"a": 1}\n{"a": 2}\n')
+    assert (
+        cli(
+            store,
+            "update-many",
+            "d",
+            "--file",
+            str(lines),
+            "--idempotency-key",
+            "only-one",
+        )
+        == 1
+    )
+    captured = capsys.readouterr()
+    assert "error: idempotency_keys length 1 != states length 2" in captured.err
+    assert "Traceback" not in captured.err
+    assert World("d", dir=store).state() == {"a": 0}
+
+
+def test_cli_resume_guarded_and_idempotent(store, capsys):
+    # C-10 (CLI half): resume used to drop expected_version and
+    # idempotency_key. A stale guard now exits 1 cleanly, and a
+    # repeated key returns the original seq without appending.
+    _update(store, "d", {"a": 1})
+    assert cli(store, "checkpoint", "d", "cp1") == 0
+    _update(store, "d", {"a": 2})
+    assert cli(store, "resume", "d", "cp1", "--expected-version", "0") == 1
+    assert "conflict:" in capsys.readouterr().err
+    assert World("d", dir=store).state() == {"a": 2}
+    assert (
+        cli(
+            store,
+            "resume",
+            "d",
+            "cp1",
+            "--expected-version",
+            "2",
+            "--idempotency-key",
+            "r1",
+        )
+        == 0
+    )
+    assert capsys.readouterr().out.strip() == "3"
+    assert cli(store, "resume", "d", "cp1", "--idempotency-key", "r1") == 0
+    assert capsys.readouterr().out.strip() == "3"
+    assert len(World("d", dir=store).history()) == 3
+
+
 def test_cli_checkpoint_bad_name_is_clean_error(store, capsys):
     _update(store, "d", {"a": 1})
     assert cli(store, "checkpoint", "d", "bad name!") == 1

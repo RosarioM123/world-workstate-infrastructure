@@ -249,6 +249,49 @@ def test_server_invariant_violation_is_422_with_evidence(store):
     assert [h["status"] for h in hist] == ["COMMITTED", "REJECTED"]
 
 
+def test_server_resume_accepts_expected_version_and_idempotency_key(store):
+    # C-10: POST /v1/resume used to drop expected_version and
+    # idempotency_key, so a guarded resume and an idempotent resume
+    # retry could not be expressed over HTTP. A stale version now
+    # returns 409 (previously it would have succeeded, or raised a
+    # 500 without the ConflictError handler), and a repeated key
+    # returns the original seq without appending.
+    c = make_client(store, allow_unauthenticated_writes=True)
+    c.post("/v1/update", json={"state": {"n": 1}})
+    assert c.post("/v1/checkpoint", json={"name": "c1"}).status_code == 200
+    c.post("/v1/update", json={"state": {"n": 5}})
+    r = c.post("/v1/resume", json={"name": "c1", "expected_version": 0})
+    assert r.status_code == 409
+    assert r.json()["error"] == "conflict"
+    assert c.get("/v1/state").json()["state"] == {"n": 5}
+    r = c.post(
+        "/v1/resume",
+        json={"name": "c1", "expected_version": 2, "idempotency_key": "r1"},
+    )
+    assert r.json() == {"seq": 3, "status": "COMMITTED"}
+    # Same key, no guard: the retry returns the original seq and
+    # appends nothing.
+    r = c.post("/v1/resume", json={"name": "c1", "idempotency_key": "r1"})
+    assert r.json() == {"seq": 3, "status": "COMMITTED"}
+    assert len(c.get("/v1/history").json()["history"]) == 3
+    # A stale guard wins over a seen key: the version check runs
+    # before dedup, so this is a 409, not a dedup hit.
+    r = c.post(
+        "/v1/resume",
+        json={"name": "c1", "expected_version": 2, "idempotency_key": "r1"},
+    )
+    assert r.status_code == 409
+    # Mistyped guard fields are client errors, like on /v1/update.
+    assert (
+        c.post("/v1/resume", json={"name": "c1", "expected_version": "x"}).status_code
+        == 400
+    )
+    assert (
+        c.post("/v1/resume", json={"name": "c1", "idempotency_key": 7}).status_code
+        == 400
+    )
+
+
 def test_server_conflict_checkpoint_resume(store):
     c = make_client(store, allow_unauthenticated_writes=True)
     c.post("/v1/update", json={"state": {"n": 1}})

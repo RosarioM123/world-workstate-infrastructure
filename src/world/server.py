@@ -2,7 +2,7 @@
 
 Wraps a :class:`~world.core.World` with an API-key gate and per-IP rate
 limiting on writes. Invariants are declared once here so every remote writer
-is judged by the same rules — the server is the uniform-enforcement point
+is judged by the same rules; the server is the uniform-enforcement point
 that in-process callables alone cannot provide.
 
 Authentication fails closed: when no API key is configured, write
@@ -287,15 +287,25 @@ def create_app(
             return _bad_request("actor must be a string")
         if not _is_str_or_null(body.get("note")):
             return _bad_request("note must be a string")
+        if not _is_int_or_null(body.get("expected_version")):
+            return _bad_request("expected_version must be an integer")
+        if not _is_str_or_null(body.get("idempotency_key")):
+            return _bad_request("idempotency_key must be a string")
         try:
             seq = work.resume(
                 body.get("name", ""),
                 actor=actor if actor is not None else body.get("actor"),
                 note=body.get("note"),
+                expected_version=body.get("expected_version"),
+                idempotency_key=body.get("idempotency_key"),
             )
         except KeyError as e:
             return JSONResponse(
                 status_code=404, content={"error": "not_found", "detail": str(e)}
+            )
+        except ConflictError as e:
+            return JSONResponse(
+                status_code=409, content={"error": "conflict", "detail": str(e)}
             )
         except InvariantViolation as e:
             return JSONResponse(

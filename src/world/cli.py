@@ -65,9 +65,13 @@ def cmd_update_many(args: argparse.Namespace) -> int:
             actor=args.actor,
             note=args.note or "",
             expected_version=args.expected_version,
+            idempotency_keys=args.idempotency_key,
         )
     except ConflictError as e:
         print(f"conflict: {e}", file=sys.stderr)
+        return 1
+    except ValueError as e:
+        print(f"error: {e}", file=sys.stderr)
         return 1
     except InvariantViolation as e:
         print(f"rejected (seq {e.seq}): {e.reason}", file=sys.stderr)
@@ -109,9 +113,18 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
 def cmd_resume(args: argparse.Namespace) -> int:
     w = _world(args)
     try:
-        seq = w.resume(args.cp_name, actor=args.actor, note=args.note)
+        seq = w.resume(
+            args.cp_name,
+            actor=args.actor,
+            note=args.note,
+            expected_version=args.expected_version,
+            idempotency_key=args.idempotency_key,
+        )
     except KeyError as e:
         print(f"error: {e}", file=sys.stderr)
+        return 1
+    except ConflictError as e:
+        print(f"conflict: {e}", file=sys.stderr)
         return 1
     except InvariantViolation as e:
         print(f"rejected (seq {e.seq}): {e.reason}", file=sys.stderr)
@@ -461,6 +474,12 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--actor", default=None)
     s.add_argument("--note", default="")
     s.add_argument("--expected-version", type=int, default=None)
+    s.add_argument(
+        "--idempotency-key",
+        action="append",
+        default=None,
+        help="idempotency key for one state, in file order; repeat per state",
+    )
     s.set_defaults(func=cmd_update_many)
 
     s = sub.add_parser("state", help="print the document as JSON")
@@ -483,6 +502,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("cp_name")
     s.add_argument("--actor", default=None)
     s.add_argument("--note", default=None)
+    s.add_argument("--expected-version", type=int, default=None)
+    s.add_argument("--idempotency-key", default=None)
     s.set_defaults(func=cmd_resume)
 
     s = sub.add_parser("history", help="print the verdict log as JSON")
