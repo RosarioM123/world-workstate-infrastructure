@@ -44,6 +44,59 @@ evidence and the version does not move
 checkpoint appends a new version; it never rewrites the past
 (`test_resume_is_append_only`).
 
+### State-integrity guarantees (Prompt 2 adversarial pass, 2026-11-26)
+
+Each guarantee below names its implementation, its test, its failure
+behavior, and its limit. Tests live in
+`tests/test_world_adversarial.py` unless another file is named.
+
+- **Concurrent duplicates commit exactly once.** Implementation: the
+  idempotency dedup check and the append run inside one
+  `BEGIN IMMEDIATE` transaction (`World._append_guarded`), so racing
+  retries serialize and every submitter after the first gets the
+  original seq back. Test:
+  `test_concurrent_duplicate_submission_commits_once` (8 threads, one
+  key, one row). Failure behavior: no double-apply and no leaked lock
+  error; this test initially failed with
+  `OperationalError: database is locked` from the WAL mode switch
+  when the racing handles opened a *fresh* world, and
+  `World._connect` now retries that pragma briefly on locked errors.
+  Limit: exactly-once still depends on the idempotency table, which
+  is not tamper-evident (see the limits section).
+- **Arrival order is chain order.** Implementation: `seq` is
+  assigned at append time inside the write transaction; no API
+  accepts a caller-chosen position, and `versions.seq` is the
+  primary key, so a backdated mid-chain insertion is refused by the
+  schema itself. Tests:
+  `test_late_arriving_write_appends_at_tip_never_rewrites`,
+  `test_mid_chain_insertion_refused_by_schema`. Failure behavior: a
+  late unguarded write lands at the tip (last-writer-wins is the
+  documented semantics); a late *guarded* write is refused with
+  `ConflictError` instead (covered in `test_world_occ.py`). Limit:
+  arrival order is not preparation order; a client that needs
+  causality must pass `expected_version`.
+- **A corrupted checkpoint is refused at serve time.** Implementation:
+  the pin recorded at checkpoint creation is compared against the
+  pinned row before serving (`World._verify_checkpoint_pin`).
+  Tests: `test_checkpoint_pointing_at_deleted_row_is_refused` (the
+  pinned tail row was deleted: `verify()` alone still passes on the
+  truncated chain, but the checkpoint catches it),
+  `test_checkpoint_with_garbled_pin_is_refused`. Failure behavior:
+  `InvariantViolation`, nothing served, `resume` appends nothing.
+  Limit: unchanged from the limits section; the pin lives in the
+  same database, and pre-F3a NULL pins are served unverified.
+- **Unauthorized transitions are judged, rejected, and recorded.**
+  Implementation: every proposal, from any actor, is judged by the
+  world's declared invariants before append; a violation is appended
+  as a REJECTED row under the attempt's own actor name and raised as
+  `InvariantViolation`. Test:
+  `test_locked_field_change_by_another_actor_is_rejected`
+  (`respect_locks` via the public `World.update` surface). Failure
+  behavior: the committed version and document do not move. Limit:
+  the primitive has no actor allowlist; "unauthorized" means
+  invariant-forbidden, and HTTP write authentication is a separate
+  server-side control (see below).
+
 ### What verify() does NOT detect (tested limits)
 
 1. **Tail truncation (rollback).** Deleting the last N rows leaves a

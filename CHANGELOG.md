@@ -130,6 +130,28 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- `World._connect` now retries the WAL mode switch briefly when it
+  reports "database is locked" (Mission Day 15 continuation,
+  Prompt 2): several handles opening a *fresh* world at once could
+  raise `OperationalError` from `PRAGMA journal_mode=WAL`, because
+  SQLite can report that lock at once instead of honouring the busy
+  timeout. The failure was exposed by a new adversarial test
+  (concurrent duplicate submission, same idempotency key, 8 racing
+  threads); the dedup itself was already atomic, and with the retry
+  the event commits exactly once and every submitter gets the
+  original seq.
+- Prompt 2 adversarial state-integrity tests
+  (`tests/test_world_adversarial.py`, 6 tests): concurrent duplicate
+  submission commits once; a late-arriving write appends at the tip
+  and a raw mid-chain insertion is refused by the schema; a
+  checkpoint pointing at a deleted row, or carrying a garbled pin,
+  is refused at serve time; a locked-field change attempted by
+  another actor is rejected and recorded as evidence. Scenarios the
+  suite already covered (concurrent OCC race, sequential
+  duplicates, tampered rows, crash mid-update, stale versions) were
+  re-verified in place and not duplicated. The guarantees, limits,
+  and failure behavior are documented in `docs/SECURITY.md`. Suite:
+  510 passed.
 - `POST /v1/resume` and `world resume` now accept `expected_version`
   and `idempotency_key`, and `world update-many` now accepts a
   repeatable `--idempotency-key` (Mission Day 15, Prompt 2, audit

@@ -8,8 +8,11 @@
 **License:** MIT. **Not deployed, not production-ready, no external
 users.**
 
-**Tests:** 504 passing, 0 failing (full suite run locally
-2026-11-26, Python 3.12.3, on the mission Day 15 branch tree).
+**Tests:** 510 passing, 0 failing (full suite run locally
+2026-11-26, Python 3.12.3, on the mission Day 15 continuation
+branch tree; Prompt 2 adversarial pass added 6 tests and one fix:
+the WAL mode switch in `World._connect` now retries on the
+fresh-world open race those tests exposed).
 **Model checker:** 1,220,255 states explored (three
 configurations), properties P1 to P6 hold; mutation test catches
 the injected P4 violation. **CI:** pytest on Python 3.11, 3.12,

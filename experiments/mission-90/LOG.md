@@ -1302,3 +1302,87 @@ for a later retry. This paragraph is recorded in the commit below.
 - `aab745a` docs: Prompt 1 audit deliverables (REPOSITORY_AUDIT, ARCHITECTURE_MAP, TECHNICAL_DEBT, IMPLEMENTATION_STATUS)
 - (docs commit for this log entry below)
 - `LOG.md` SHA line updated in the commit below (this line).
+
+## Day 15 continuation - 2026-11-26 (Prompt 2, adversarial coverage)
+
+Rosario said "yes continue doing commits today" under the blanket
+approval of 2026-11-26. Branch `mission/prompt2-adversarial` from
+local main (Day 15 tip). Baseline 504 passed.
+
+**Coverage verdicts (inspected before writing anything):**
+- Simultaneous updates on one expected version: FULLY covered
+  (`tests/test_world_concurrency.py`: 16-thread race, exactly one
+  winner; many-writers; held-lock wait-out). Not duplicated.
+- Duplicate event, sequential: FULLY covered (core
+  `test_idempotent_update`, rejected attempts ignore the key,
+  batch dedup, Day 15 resume and update-many surfaces, engine
+  ledger dedup in `test_intent_metadata.py`). GAP: the same key
+  submitted concurrently. Tested here.
+- Out-of-order arrival: PARTIAL. Guarded stale writes and DB row
+  reordering were covered; the arrival-order guarantee itself
+  (seq assigned at append, no mid-chain insertion) was not pinned
+  for the primitive. Tested here.
+- Tampered event after persistence: FULLY covered
+  (`test_redteam.py`, `test_verify_chain.py`,
+  `test_chain_properties.py` single-byte tamper property). Not
+  duplicated.
+- Corrupted checkpoint: PARTIAL. Repointing and pinned-row hash
+  edits were covered (`test_redteam.py`); a checkpoint whose
+  pinned row was deleted, and a garbled pin, were not. Tested here.
+- Unauthorized transition: PARTIAL at the primitive surface.
+  Invariant helpers are unit-tested and `test_redteam.py` covers a
+  `no_negative` violation through `World.update`; a locked-field
+  change by another actor through the public surface was not.
+  Tested here. (The primitive has no actor allowlist; HTTP write
+  auth is covered in `test_world_server_security.py`.)
+- Stale version and crash mid-update: covered Day 15 and earlier
+  (`test_world_occ.py`, `test_crash_consistency.py`). Not duplicated.
+
+**Defect found and fixed:** the concurrent-duplicate test failed
+on its first run: 1 of 8 racing submitters on a fresh world got
+`OperationalError: database is locked`, raised by
+`PRAGMA journal_mode=WAL` in `World._connect`. Several handles
+opening a new world race the WAL switch, and SQLite reports that
+lock at once instead of honouring the 30 s busy timeout. Fix:
+`_connect` retries the pragma briefly (50 x 100 ms) on locked
+errors; once a database is in WAL mode the pragma is a no-op. The
+dedup check itself was already atomic (inside BEGIN IMMEDIATE).
+After the fix: adversarial file passes 6/6 on repeated runs, and a
+15-trial standalone stress of the original reproduction shows no
+errors, every world at version 1 and verifying.
+
+**Changes:**
+- `src/world/core.py`: `_connect` WAL retry (plus `import time`).
+- `tests/test_world_adversarial.py` (new, 6 tests): concurrent
+  duplicate commits once; late write appends at tip; mid-chain
+  insertion refused; checkpoint at deleted row refused; garbled
+  pin refused; locked-field change by another actor rejected and
+  recorded.
+- `docs/SECURITY.md`: Prompt 2 guarantee section (guarantee,
+  implementation, test, failure behavior, limit for each).
+- `CHANGELOG.md`, `STATUS.md`, `README.md`: counts 504 to 510 and
+  the fix/test entries.
+- Addenda in `REPOSITORY_AUDIT.md` (section 12, fresh finding F-4
+  found and closed) and `TECHNICAL_DEBT.md`.
+
+**Verification:** baseline 504 passed; after changes 510 passed,
+0 failed, 1 warning, 72.70 s; ruff check and format clean on the
+changed Python files; mypy clean on `src/world`.
+
+**Commits:**
+- `5fe0319` fix: retry WAL switch on fresh-world open race; add Prompt 2 adversarial tests
+- (docs commit for this entry follows)
+
+**Landing on main:** local main fast-forwarded to this branch and
+pushed via the replay script under Rosario's blanket approval;
+remote tip and tree verification are recorded in
+`PROMPT_SEQUENCE_LOG.md` (the push happens after this commit, so
+its SHAs cannot be recorded in the tree it pushes).
+
+**What remains in Prompt 2:** the named adversarial scenarios are
+now covered or verified-covered. Remaining Prompt 2 scope is the
+guarantee documentation for the engine ledger side (the legacy
+`world_engine` chain has its own tamper tests but no equivalent
+guarantee table) and any deeper crash-window work Rosario wants;
+neither blocks Prompt 3. Open decisions unchanged (H-1, L-1/L-2/L-3,
+D-7/D-8, L-6/F3b).

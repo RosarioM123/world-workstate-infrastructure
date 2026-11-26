@@ -305,3 +305,23 @@ chooses; "fix" means the work is unblocked.
 - **F-2 corrected, not reproduced.** No file under `build/` is tracked
   on this branch; the stale on-disk copy was removed. Open debt items:
   21 (C 0/15 open in the core primitive).
+
+## Addendum (Mission Day 15 continuation, 2026-11-26, Prompt 2)
+
+- **F-4 found and CLOSED the same day.** `World._connect` raised
+  `OperationalError: database is locked` when several handles
+  opened a fresh world concurrently: the `PRAGMA journal_mode=WAL`
+  switch races on a new database and SQLite reports the lock at
+  once instead of honouring the busy timeout. Exposed by the new
+  Prompt 2 adversarial test for concurrent duplicate submission;
+  fixed by retrying the pragma briefly on locked errors in
+  `_connect` (`src/world/core.py`). No new debt item: the fix is
+  in, with the regression test
+  (`tests/test_world_adversarial.py`) as proof. Open debt items
+  unchanged at 21.
+- **Prompt 2 adversarial coverage is now in place** for the gaps
+  the suite did not reach (concurrent duplicates, arrival order,
+  corrupted checkpoints at serve time, locked-field transitions);
+  scenarios already covered were verified, not duplicated. The
+  remaining Prompt 2 work is documentation-grade: none of this
+  changes the open Day 1 items.

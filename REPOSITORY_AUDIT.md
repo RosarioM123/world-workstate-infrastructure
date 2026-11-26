@@ -221,3 +221,34 @@ D 9/12, H 0/1). Open: 23 Day 1 findings plus 3 fresh findings (F-1, F-2, F-3).
   claim that `git ls-files build` returned `build/lib/world/server.py`
   does not hold here. The stale on-disk build copy was removed.
   Day 1 findings closed: 35 of 56 (C 15/15).
+
+## 12. Addendum (Mission Day 15 continuation, 2026-11-26, Prompt 2)
+
+- **Adversarial state-integrity pass.** The six Prompt 2 scenarios
+  were checked against the existing suite before any test was
+  written. Already fully covered, verified in place and not
+  duplicated: simultaneous updates on one expected version
+  (`tests/test_world_concurrency.py`), sequential duplicate
+  submissions (`tests/test_world_core.py::test_idempotent_update`
+  and the batch and surface tests), tampered events
+  (`tests/test_redteam.py`, `tests/test_verify_chain.py`,
+  `tests/test_chain_properties.py`), crash mid-update
+  (`tests/test_crash_consistency.py`), and stale versions
+  (`tests/test_world_occ.py`, Day 15).
+- **New defect found and fixed (fresh, F-4).** Concurrent duplicate
+  submission on a *fresh* world (8 threads, one idempotency key)
+  raised `OperationalError: database is locked` from
+  `PRAGMA journal_mode=WAL` in `World._connect`
+  (`src/world/core.py`): several handles opening a new world at
+  once race the WAL switch, and SQLite reports that lock at once
+  instead of honouring the busy timeout. `_connect` now retries the
+  pragma briefly on locked errors. The dedup itself was already
+  atomic; with the fix the event commits exactly once.
+- **Six new tests** in `tests/test_world_adversarial.py` pin the
+  gaps: concurrent duplicates, arrival-order append and refused
+  mid-chain insertion, checkpoints pointing at a deleted row or
+  carrying a garbled pin, and a locked-field change by another
+  actor. Guarantees, limits, and failure behavior are documented
+  in `docs/SECURITY.md`. Suite 510 passed, 0 failed. Day 1
+  findings unchanged: 35 of 56 closed; F-4 is a fresh finding,
+  found and closed the same day.
