@@ -4,12 +4,12 @@
 `research/RESEARCH_OVERVIEW.md` and the evidence register in
 `research/EVIDENCE_REGISTER.md`.
 
-**Updated 2026-11-12** (Mission Day 1 audit). **Version:** 0.1.0.
+**Updated 2026-11-26** (Mission Day 15, Prompt 2). **Version:** 0.1.0.
 **License:** MIT. **Not deployed, not production-ready, no external
 users.**
 
-**Tests:** 500 passing, 0 failing (full suite run locally
-2026-11-24, Python 3.12.3, on the mission Day 13 branch tree).
+**Tests:** 504 passing, 0 failing (full suite run locally
+2026-11-26, Python 3.12.3, on the mission Day 15 branch tree).
 **Model checker:** 1,220,255 states explored (three
 configurations), properties P1 to P6 hold; mutation test catches
 the injected P4 violation. **CI:** pytest on Python 3.11, 3.12,

@@ -294,3 +294,14 @@ chooses; "fix" means the work is unblocked.
 - **Legacy `world_engine` retire-or-merge:** a roadmap item, not a defect.
 
 **Totals:** 26 open debt items (3 High, 10 Medium, 13 Low). Of these, 5 need a Rosario decision before work starts: H-1, L-1, L-2, L-3, L-6 (plus D-7/D-8 and L-11/T-11, which need approval or a recorded decision).
+
+## Addendum (Mission Day 15, 2026-11-26, Prompt 2)
+
+- **C-10 and C-11 CLOSED.** The resume route, the resume CLI command,
+  and the update-many CLI command now carry `expected_version` and
+  idempotency keys through to the core. Four new tests.
+- **F-1 and F-3 CLOSED.** README counts 409 to 504; STATUS.md header
+  date corrected.
+- **F-2 corrected, not reproduced.** No file under `build/` is tracked
+  on this branch; the stale on-disk copy was removed. Open debt items:
+  21 (C 0/15 open in the core primitive).

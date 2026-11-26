@@ -1236,6 +1236,57 @@ adversarial tests for simultaneous updates, stale versions, duplicate and
 out-of-order events, crash mid-update, tampered events, corrupted
 checkpoints, and unauthorized transitions.
 
+## Day 15 - 2026-11-26 (Prompt 2, Phase 2)
+
+**Branch:** `mission/day-15` (from Day 14 tip `13de1f2`).
+
+**Gate:** LIFTED before this run. Rosario approved the Prompt 1 audit on
+2026-11-25 and authorized Prompt 2 ("Approve the audit, start Prompt 2").
+
+**Problem:** Two open audit findings were surface gaps in the integrity
+protocol: C-10 (HTTP `POST /v1/resume` and CLI `resume` dropped
+`expected_version` and `idempotency_key`) and C-11 (CLI `update-many`
+had no `--idempotency-key` flag). The core already supported both
+parameters; only the surfaces could not express them. A stale-version
+resume over HTTP succeeded silently instead of returning 409, and the
+resume route had no `ConflictError` handler at all.
+
+**Change:** Surface-only, no core or schema change, backward compatible.
+`server.py` `post_resume` validates both fields like `post_update`,
+forwards them, and returns 409 on conflict. `cli.py` `resume` gains
+`--expected-version` / `--idempotency-key` and a clean conflict error.
+`cli.py` `update-many` gains a repeatable `--idempotency-key` and a
+clean error on key-count mismatch. A stale guard wins over a seen key
+(the version check runs before dedup). Four new tests, one per
+guarantee plus the precedence case. Docs: CHANGELOG, STATUS (504
+passing, header date fixed, F-3), README counts 409 to 504 (F-1),
+dated addenda in REPOSITORY_AUDIT.md and TECHNICAL_DEBT.md. F-2 did
+not reproduce: no file under `build/` is tracked; the stale on-disk
+build copy was removed.
+
+**Verification:** Baseline before changes 500 passed, 1 warning.
+After changes, full suite 504 passed, 1 warning, 74.97 s. Ruff check
+and format pass on the four changed files; mypy clean on `src/world`.
+Note: the first post-change full-suite run reported 166 failures with
+`sqlite3.OperationalError: database or disk is full` because /tmp
+(512M tmpfs) was 100% full with crash-test debris from the baseline
+run itself; after cleaning `/tmp/world-soak-* /tmp/crash-*
+/tmp/pytest-of-root` the same tree passed 504/504. Not a code
+regression. Also noted: the local .venv ruff is 0.16.9 while CI pins
+0.17.5, so local `ruff check` flags 2 pre-existing DTZ001 errors in
+`tests/test_sdk.py` (intentionally naive datetimes); CI is unaffected.
+
+**Unresolved issues / decisions for Rosario:** unchanged (H-1 history
+divergence; L-1/L-2/L-3 legacy service fate; D-7/D-8 version string
+and top-level exports; L-6/F3b). Prompt 2 continues next: adversarial
+coverage for simultaneous updates, duplicate/out-of-order events,
+tampered events, corrupted checkpoints, and unauthorized transitions.
+
+**Day 15 commits:**
+- `46597c5` fix: carry expected_version and idempotency keys through resume and update-many (C-10, C-11)
+- (docs commit for this log entry below)
+- `LOG.md` SHA line updated in the commit below (this line).
+
 **Day 14 commits:**
 - `aab745a` docs: Prompt 1 audit deliverables (REPOSITORY_AUDIT, ARCHITECTURE_MAP, TECHNICAL_DEBT, IMPLEMENTATION_STATUS)
 - (docs commit for this log entry below)

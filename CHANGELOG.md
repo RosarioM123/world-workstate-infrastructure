@@ -130,6 +130,23 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- `POST /v1/resume` and `world resume` now accept `expected_version`
+  and `idempotency_key`, and `world update-many` now accepts a
+  repeatable `--idempotency-key` (Mission Day 15, Prompt 2, audit
+  findings C-10 and C-11): the core already supported both
+  parameters, but the surfaces could not express them, so a guarded
+  resume or an idempotent batch retry was impossible from HTTP or
+  the CLI. The resume route validates both fields like the update
+  route (wrong types are 400) and returns 409 on a stale version
+  instead of succeeding silently; the CLI reports conflicts and
+  key-count mismatches as clean errors with exit 1. A stale guard
+  wins over a seen key (the version check runs before dedup). Four
+  new tests; suite 504 passed.
+- README test counts updated from 409 to 504 (Mission Day 15, audit
+  finding F-1); STATUS.md header date corrected to 2026-11-26
+  (finding F-3). Finding F-2 did not reproduce on this branch: no
+  file under `build/` is tracked (`build/` is already gitignored);
+  the stale on-disk build copy was removed.
 - `tools/export_ledger.py` no longer creates a ledger database on a
   fresh checkout (Mission Day 13, audit finding L-12): the old
   `init_db()` call created `world_state.db` (tables plus the seeded

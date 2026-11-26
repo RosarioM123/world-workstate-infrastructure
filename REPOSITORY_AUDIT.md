@@ -207,3 +207,17 @@ touched.
 
 **Counts:** Day 1 findings closed 33 of 56 (C 13/15, L 1/14, T 10/14,
 D 9/12, H 0/1). Open: 23 Day 1 findings plus 3 fresh findings (F-1, F-2, F-3).
+
+## 11. Addendum (Mission Day 15, 2026-11-26, Prompt 2)
+
+- **C-10 and C-11 CLOSED.** `POST /v1/resume` and `world resume` now
+  accept and forward `expected_version` and `idempotency_key`, and
+  `world update-many` accepts a repeatable `--idempotency-key`. Four
+  new tests. Suite 504 passed, 0 failed.
+- **F-1 and F-3 CLOSED.** README test counts updated 409 to 504;
+  STATUS.md header date corrected to 2026-11-26.
+- **F-2 corrected, not reproduced.** No file under `build/` is tracked
+  on this branch (`build/` is already in `.gitignore`); the audit's
+  claim that `git ls-files build` returned `build/lib/world/server.py`
+  does not hold here. The stale on-disk build copy was removed.
+  Day 1 findings closed: 35 of 56 (C 15/15).
