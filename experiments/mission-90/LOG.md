@@ -1284,8 +1284,19 @@ tampered events, corrupted checkpoints, and unauthorized transitions.
 
 **Day 15 commits:**
 - `46597c5` fix: carry expected_version and idempotency keys through resume and update-many (C-10, C-11)
-- (docs commit for this log entry below)
+- `8efe977` docs: Day 15 mission log, changelog entry, audit addenda for C-10/C-11
 - `LOG.md` SHA line updated in the commit below (this line).
+
+**Push to GitHub: FAILED (network), commits stay local.** Two attempts
+with the replay script. Attempt 1 stalled 10+ minutes in poll on an
+established proxy connection at commit 50/100 (`0dca725`) and was
+killed. Attempt 2 replayed 50/100, then crashed on commit 51/100
+(`8288dd4`) in `create_blob` with `http.client.RemoteDisconnected:
+Remote end closed connection without response`. Remote branch
+`mission/day-15` verified 404 via the API; `mission/day-14` exists
+at `2689d99` (a 03:18 replay pushed it, correcting the Day 14
+"push FAILED" note). No force-push, no fallback method. State saved
+for a later retry. This paragraph is recorded in the commit below.
 
 **Day 14 commits:**
 - `aab745a` docs: Prompt 1 audit deliverables (REPOSITORY_AUDIT, ARCHITECTURE_MAP, TECHNICAL_DEBT, IMPLEMENTATION_STATUS)
