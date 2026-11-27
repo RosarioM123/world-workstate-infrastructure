@@ -48,9 +48,31 @@ def sha_exists(repo, sha):
     return r.returncode == 0
 
 
+def is_shallow(repo):
+    """True if the checkout is a shallow clone (truncated history)."""
+    r = subprocess.run(
+        ["git", "rev-parse", "--is-shallow-repository"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        check=False,  # returncode is inspected by the caller
+    )
+    return r.returncode == 0 and r.stdout.strip() == "true"
+
+
 def changed_since(repo, source, created_at):
-    """True if the file has commits after the entity's created_at date."""
+    """True if the file has commits after the entity's created_at date.
+
+    Returns None when the answer cannot be determined. A shallow clone
+    (for example the default actions/checkout depth in CI) truncates
+    history at the boundary commit, which then appears to touch every
+    file in the tree; a "changed" verdict from that is an artifact of
+    the clone, not of the file, so shallow history counts as
+    unavailable rather than as a change.
+    """
     if not DATE_RE.match(created_at or ""):
+        return None
+    if is_shallow(repo):
         return None
     r = subprocess.run(
         ["git", "log", "--since=" + created_at, "--format=%h", "--", source],
