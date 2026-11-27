@@ -19,6 +19,14 @@ lifecycle status, supersession links, confidence, and evidence links.
 ``save_state`` validates the revision graph's referential integrity
 before proposing, and :func:`revision_chain` derives one decision's
 revision history from the committed snapshots.
+
+A successor agent that never saw the conversation continues from a
+continuation packet (:func:`continuation_packet`), a provider-neutral
+bundle carrying the eleven fields Prompt 4 names (objective,
+completed work, remaining tasks, decisions with rationale, evidence,
+unresolved questions, artifact references, dependencies, known
+errors, state version, next action), available as JSON or as
+deterministic plain text (:func:`render_packet_text`).
 """
 
 from __future__ import annotations
@@ -34,8 +42,11 @@ __all__ = [
     "Decision",
     "Evidence",
     "Task",
+    "continuation_packet",
     "load_state",
+    "packet_from_state",
     "project_state",
+    "render_packet_text",
     "revision_chain",
     "save_state",
     "validate_state",
@@ -43,6 +54,11 @@ __all__ = [
 
 #: Reserved top-level key of the world document holding the handoff state.
 HANDOFF_KEY = "handoff"
+
+#: Version of the continuation packet format. The packet is plain JSON
+#: plus a plain-text rendering; it names no model provider and uses no
+#: provider-specific formatting, so any agent can consume it.
+PACKET_FORMAT = "world-continuation/1"
 
 #: Lifecycle states of a decision (docs/state-model.md).
 DECISION_STATUSES = ("proposed", "accepted", "superseded", "reversed")
@@ -614,3 +630,279 @@ def revision_chain(world: World | str, decision_id: str) -> list[dict[str, Any]]
     if not entries:
         raise KeyError(f"no decision with id {decision_id!r} in world {w.name!r}")
     return entries
+
+
+def packet_from_state(
+    state: AgentState,
+    *,
+    state_version: int,
+    world_name: str = "",
+    rejected: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Build the provider-neutral continuation packet for a handoff state.
+
+    Pure function; the input is not mutated. The packet carries the
+    eleven fields Prompt 4 names a successor agent needs:
+    objective, completed work, remaining tasks, decisions with
+    rationale, evidence, unresolved questions, artifacts,
+    dependencies, known errors, state version, and next action,
+    plus ``assumptions``: Experiment #003 found assumption
+    confidence and fact-versus-assumption status is exactly what
+    free-text handoffs lose, so a continuation bundle that dropped
+    them would repeat that loss.
+
+    Two fields are derived views, not stored entities:
+
+    - ``artifacts`` lists references to external artifacts as recorded
+      in evidence ``source`` strings, deduplicated in first-seen order.
+      WORLD stores the reference, not the artifact; there is no typed
+      Artifact entity (Prompt 3 deferred it, see
+      docs/DATA_MODEL_PROPOSAL.md section 8).
+    - ``known_errors`` collects blocked tasks, invalidated
+      assumptions, and REJECTED proposals (``rejected`` rows from
+      ``World.history``, each with ``seq``, ``actor``, ``note``). A
+      packet built from a bare state has no verdict log, so its known
+      errors carry only the first two kinds.
+
+    ``next_action`` is the first ``next_actions`` entry when one
+    exists, else the title of the first remaining task in listed
+    order, else None. The packet is a reading view, not a state to
+    save back: it is built from the state, never written into it.
+    """
+    completed: list[dict[str, Any]] = [
+        {"kind": "task", "id": t.id, "title": t.title, "owner": t.owner}
+        for t in state.tasks
+        if t.status == "done"
+    ]
+    completed.extend(
+        {
+            "kind": "decision",
+            "id": d.id,
+            "text": d.text,
+            "rationale": d.rationale,
+        }
+        for d in state.decisions
+        if d.status == "accepted"
+    )
+    remaining = [
+        {
+            "id": t.id,
+            "title": t.title,
+            "status": t.status,
+            "owner": t.owner,
+            "parent_id": t.parent_id,
+            "depends_on": list(t.depends_on),
+        }
+        for t in state.tasks
+        if t.status in ("proposed", "in_progress", "blocked")
+    ]
+    seen_sources: dict[str, list[str]] = {}
+    for e in state.evidence:
+        if e.source:
+            seen_sources.setdefault(e.source, []).append(e.id)
+    artifacts = [
+        {"reference": source, "evidence_ids": ids}
+        for source, ids in seen_sources.items()
+    ]
+    dependencies: dict[str, Any] = {
+        "tasks": {
+            t.id: {"parent_id": t.parent_id, "depends_on": list(t.depends_on)}
+            for t in state.tasks
+            if t.id and (t.parent_id is not None or t.depends_on)
+        },
+        "decisions": {
+            d.id: {"supersedes": d.supersedes}
+            for d in state.decisions
+            if d.id and d.supersedes is not None
+        },
+    }
+    known_errors: list[dict[str, Any]] = [
+        {"kind": "blocked_task", "id": t.id, "title": t.title}
+        for t in state.tasks
+        if t.status == "blocked"
+    ]
+    known_errors.extend(
+        {"kind": "invalidated_assumption", "id": a.id, "text": a.text}
+        for a in state.assumptions
+        if a.status == "invalidated"
+    )
+    for row in rejected or []:
+        known_errors.append(
+            {
+                "kind": "rejected_proposal",
+                "seq": int(row["seq"]),
+                "actor": str(row.get("actor", "")),
+                "note": str(row.get("note", "")),
+            }
+        )
+    if state.next_actions:
+        next_action: str | None = state.next_actions[0]
+    elif remaining:
+        next_action = str(remaining[0]["title"])
+    else:
+        next_action = None
+    return {
+        "format": PACKET_FORMAT,
+        "world": world_name,
+        "state_version": int(state_version),
+        "objective": state.objective,
+        "completed_work": completed,
+        "remaining_tasks": remaining,
+        "decisions": [d.to_dict() for d in state.decisions],
+        "assumptions": [a.to_dict() for a in state.assumptions],
+        "evidence": [e.to_dict() for e in state.evidence],
+        "unresolved_questions": list(state.open_questions),
+        "artifacts": artifacts,
+        "dependencies": dependencies,
+        "known_errors": known_errors,
+        "next_action": next_action,
+    }
+
+
+def continuation_packet(
+    world: World | str,
+    *,
+    version: int | None = None,
+    projected: bool = False,
+) -> dict[str, Any]:
+    """Build the continuation packet for a world's handoff state.
+
+    Accepts a world name, so a fresh agent needs no prior handle.
+    The packet is pinned to the committed version it was built from:
+    ``version=`` loads that version (default: latest committed), and
+    ``state_version`` in the packet names it, so a successor that
+    re-reads at that version reproduces the same packet. REJECTED
+    proposals at or before that version are carried in
+    ``known_errors``. With ``projected=True`` the packet is built
+    from the ``project_state`` view (compacted finished items)
+    instead of the full state.
+
+    Raises KeyError if no handoff state was ever saved.
+    """
+    w = _coerce_world(world)
+    state = load_state(w, version=version)
+    state_version = version if version is not None else w.version
+    if projected:
+        state = project_state(state)
+    rejected = [
+        row
+        for row in w.history()
+        if row["status"] == "REJECTED" and int(row["seq"]) <= state_version
+    ]
+    return packet_from_state(
+        state,
+        state_version=state_version,
+        world_name=w.name,
+        rejected=rejected,
+    )
+
+
+def render_packet_text(packet: dict[str, Any]) -> str:
+    """Render a continuation packet as deterministic plain text.
+
+    Fixed section order, one line per item, no timestamps and no
+    provider-specific formatting, so the same packet always renders
+    to the same text and any agent can read it. This is the bundle
+    the Prompt 4 harness hands a successor agent; the JSON packet is
+    the same content in structured form.
+    """
+    lines = [
+        f"WORLD continuation packet ({packet['format']})",
+        f"World: {packet['world']} (state version {packet['state_version']})",
+        f"Objective: {packet['objective']}",
+        "Completed work:",
+    ]
+    if not packet["completed_work"]:
+        lines.append("  (none)")
+    for item in packet["completed_work"]:
+        if item["kind"] == "task":
+            lines.append(
+                f"  - [task {item['id']}, done, owner {item['owner']}] "
+                f"{item['title']}"
+            )
+        else:
+            lines.append(
+                f"  - [decision {item['id']}, accepted] {item['text']} "
+                f"-- why: {item['rationale']}"
+            )
+    lines.append("Remaining tasks:")
+    if not packet["remaining_tasks"]:
+        lines.append("  (none)")
+    for t in packet["remaining_tasks"]:
+        deps = (
+            f" (depends on: {', '.join(t['depends_on'])})" if t["depends_on"] else ""
+        )
+        lines.append(
+            f"  - [{t['id']}, {t['status']}, owner {t['owner']}] "
+            f"{t['title']}{deps}"
+        )
+    lines.append("Decisions:")
+    if not packet["decisions"]:
+        lines.append("  (none)")
+    for d in packet["decisions"]:
+        ev = (
+            f" (evidence: {', '.join(d['evidence_ids'])})"
+            if d["evidence_ids"]
+            else ""
+        )
+        lines.append(
+            f"  - [{d['id']}, {d['status']}] {d['text']} -- why: "
+            f"{d['rationale']}{ev}"
+        )
+    lines.append("Evidence:")
+    if not packet["evidence"]:
+        lines.append("  (none)")
+    for e in packet["evidence"]:
+        lines.append(
+            f"  - [{e['id']}, {e['kind']}] {e['claim']} (source: {e['source']})"
+        )
+    lines.append("Assumptions:")
+    if not packet["assumptions"]:
+        lines.append("  (none)")
+    for a in packet["assumptions"]:
+        validated = (
+            f" (validated by: {a['validated_by']})" if a.get("validated_by") else ""
+        )
+        lines.append(
+            f"  - [{a['id']}, confidence {a['confidence']}, {a['status']}] "
+            f"{a['text']}{validated}"
+        )
+    lines.append("Unresolved questions:")
+    if not packet["unresolved_questions"]:
+        lines.append("  (none)")
+    for q in packet["unresolved_questions"]:
+        lines.append(f"  - {q}")
+    lines.append(
+        "Artifacts (references only; WORLD stores references, not the files):"
+    )
+    if not packet["artifacts"]:
+        lines.append("  (none)")
+    for a in packet["artifacts"]:
+        lines.append(
+            f"  - {a['reference']} (evidence: {', '.join(a['evidence_ids'])})"
+        )
+    lines.append("Dependencies:")
+    if not packet["dependencies"]["tasks"] and not packet["dependencies"]["decisions"]:
+        lines.append("  (none)")
+    for tid, link in packet["dependencies"]["tasks"].items():
+        if link["parent_id"] is not None:
+            lines.append(f"  - task {tid} is a subtask of {link['parent_id']}")
+        for dep in link["depends_on"]:
+            lines.append(f"  - task {tid} depends on {dep}")
+    for did, link in packet["dependencies"]["decisions"].items():
+        lines.append(f"  - decision {did} supersedes {link['supersedes']}")
+    lines.append("Known errors:")
+    if not packet["known_errors"]:
+        lines.append("  (none)")
+    for err in packet["known_errors"]:
+        if err["kind"] == "blocked_task":
+            lines.append(f"  - [blocked task {err['id']}] {err['title']}")
+        elif err["kind"] == "invalidated_assumption":
+            lines.append(f"  - [invalidated assumption {err['id']}] {err['text']}")
+        else:
+            lines.append(
+                f"  - [rejected proposal seq {err['seq']} by {err['actor']}] "
+                f"{err['note']}"
+            )
+    lines.append(f"Next action: {packet['next_action'] or 'none recorded'}")
+    return "\n".join(lines) + "\n"
