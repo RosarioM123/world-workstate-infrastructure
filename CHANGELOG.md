@@ -7,6 +7,20 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Prompt 3 data model: the handoff `Task` entity (2026-11-26,
+  Mission Day 15). `AgentState` gains a `tasks` section: `Task`
+  carries `id`, lifecycle `status` (proposed, in_progress, blocked,
+  done, dropped), `owner`, `parent_id` (subtasks), and `depends_on`
+  (task dependencies), validated by `save_state` with the same
+  referential-integrity rules as decision links (unique ids,
+  resolvable parents and dependencies, no cycles). `project_state`
+  compacts finished tasks. Additive and backward compatible: stored
+  handoffs without a `tasks` key load with an empty task list, and
+  no core storage changed. Evaluation, essential-versus-deferred
+  decision, schema, migration plan, and the proposed-only items
+  (Question entity upgrade, Artifact entity, project metadata,
+  evidence `kind` enum) are in `docs/DATA_MODEL_PROPOSAL.md`;
+  acceptance tests in `tests/test_handoff_tasks.py` (13 tests).
 - Prompt 1 audit deliverables (2026-11-25, Mission Day 14):
   `REPOSITORY_AUDIT.md`, `ARCHITECTURE_MAP.md`, `TECHNICAL_DEBT.md`,
   `IMPLEMENTATION_STATUS.md`. They reconcile all 56 Day 1 audit findings

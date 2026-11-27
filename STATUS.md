@@ -4,13 +4,15 @@
 `research/RESEARCH_OVERVIEW.md` and the evidence register in
 `research/EVIDENCE_REGISTER.md`.
 
-**Updated 2026-11-26** (Mission Day 15, Prompt 2). **Version:** 0.1.0.
+**Updated 2026-11-26** (Mission Day 15, Prompt 3). **Version:** 0.1.0.
 **License:** MIT. **Not deployed, not production-ready, no external
 users.**
 
-**Tests:** 511 passing, 0 failing (full suite run locally
-2026-11-26, Python 3.12.3, on the mission Day 15 continuation
-branch tree; Prompt 2 adversarial pass added 6 tests and one fix:
+**Tests:** 524 passing, 0 failing (full suite run locally
+2026-11-26, Python 3.12.3, on the Prompt 3 branch tree; the
+Prompt 3 data model pass added 13 tests for the new handoff
+`Task` entity, and the same-day CI fix added hermetic staleness
+tests. Prompt 2's adversarial pass had added 6 tests and one fix:
 the WAL mode switch in `World._connect` now retries on the
 fresh-world open race those tests exposed).
 **Model checker:** 1,220,255 states explored (three

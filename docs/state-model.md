@@ -4,10 +4,11 @@ The canonical schema for work state. This is the heart of the WORLD thesis:
 if this ontology doesn't hold up across projects, there is no shared
 abstraction (see `docs/thesis-challenge.md`, objection 8).
 
-Status, split by entity (updated 2026-11-05, Prompt 6): **implemented**
-as handoff types in `src/world/handoff.py`: Decision, Assumption, and
-Evidence (see the implementation note below). **Draft only**: Project,
-Task, Artifact, Action, StateChange, Question, and Handoff as stored
+Status, split by entity (updated 2026-11-05, Prompt 6; Task updated
+2026-11-26, Prompt 3 sequence): **implemented** as handoff types in
+`src/world/handoff.py`: Decision, Assumption, Evidence, and Task
+(see the implementation notes below). **Draft only**: Project,
+Artifact, Action, StateChange, Question, and Handoff as stored
 types. Experiment #003 (2026-11-03) has now run and bore directly on
 the implemented fields (its M3 result turned on assumption confidence
 and status), so the original framing, that the model becomes real
@@ -28,10 +29,20 @@ the Assumption entity (`id`, `confidence`, `status`, `validated_by`),
 and Evidence `id` and `kind`. `save_state` validates the revision
 graph's referential integrity, and `revision_chain` derives a
 decision's revision history from committed snapshots. The remaining
-entities (Project, Task, Artifact, Action, StateChange as stored
+entities (Project, Artifact, Action, StateChange as stored
 types) are still draft only: core storage remains one opaque JSON
 document per version, and Experiment #003's evidence for the fields
 above is recorded in `experiments/prompt3/AUDIT.md`.
+
+Implementation status (2026-11-26, Prompt 3 sequence): the Task
+entity below is now implemented in `src/world/handoff.py` as a
+subset of the draft fields: `id`, `title`, `status` (proposed |
+in_progress | blocked | done | dropped), `owner`, `parent_id`
+(subtasks), and `depends_on` (task ids). There is no `project_id`:
+one world is one project. `save_state` validates task referential
+integrity (unique ids, resolvable and acyclic parent and dependency
+graphs). The evaluation and the deferred-entity decisions are in
+`docs/DATA_MODEL_PROPOSAL.md`.
 
 ## Design principles
 

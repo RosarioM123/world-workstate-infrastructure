@@ -1447,3 +1447,78 @@ push, per the Day 15 convention)
 **Landing on main:** local main fast-forwarded and pushed via the
 replay script under Rosario's blanket approval, at her explicit
 instruction to pull the log and fix the failing test.
+
+## Day 15 Prompt 3 - 2026-11-26 (data model)
+
+**Branch:** `mission/prompt3-data-model` (from local main `0ade8fe`).
+
+**Problem:** Prompt 3 asks whether the data model can represent
+complex evolving work. Evaluation of the shipped code (not the
+design doc) found the handoff layer strong on decisions, rationale,
+assumptions, evidence, revisions, and status, but with no Task
+entity at all: work items existed only as `next_actions` free-text
+strings, so subtasks, dependencies, and per-entity ownership were
+unrepresentable, weakening queryable current state, safe
+transitions, and cross-agent continuation. Full evaluation of all
+17 Prompt 3 items, with file citations, is in
+`docs/DATA_MODEL_PROPOSAL.md`.
+
+**Decision:** implement only the essential, backward-compatible
+subset: the Task entity. Deferred with reasons in the proposal:
+project metadata, the Artifact entity, the Question entity upgrade
+(a stored-format change to an existing field), per-entity
+provenance duplication, decision/evidence confidence, and evidence
+`kind` enum enforcement (a breaking change for stored states).
+Permissions stay an ADR 0006 design question, not a data-model
+addition; `Task.owner` is self-asserted data, not a permission.
+
+**Changes:**
+- `docs/DATA_MODEL_PROPOSAL.md` (new): evaluation, essential vs
+  deferred, proposed schema, migration plan (none needed; additive
+  key, both read directions pinned by tests), backward-compat
+  risks R-1 to R-5, acceptance criteria, and the proposed-only
+  items for Rosario's review.
+- `tests/test_handoff_tasks.py` (new, 13 tests, written first):
+  round trip, pre-Task stored format still loads, fresh-handle
+  load, invalid status, duplicate ids, parent resolve/self/cycle,
+  dependency resolve/self/cycle, diamond graph round trip,
+  `project_state` compaction.
+- `src/world/handoff.py`: `Task` dataclass and `TASK_STATUSES`,
+  `AgentState.tasks`, task rules in `validate_state`, task
+  compaction in `project_state`, exports. `src/world/__init__.py`
+  exports `Task`.
+- `docs/state-model.md`: Task status updated from draft to
+  implemented (subset; no `project_id`, one world is one project).
+- CHANGELOG, STATUS, README: Prompt 3 entry and counts to 524.
+
+**Verification:** baseline was messy for environmental reasons,
+recorded honestly: the first full run showed 1 failed and 2 errors
+in the adversarial file while the suite's own crash/soak debris
+filled the 512M /tmp tmpfs; the adversarial file passes standalone
+and a clean rerun passed. One further full run reported 510 passed
+while a parallel session's commits were landing in the same tree
+mid-run (collection raced its file writes); the same tree then
+collected 524 and passed 524. Final: 524 passed, 0 failed.
+Ruff check and format clean on changed code; mypy clean on
+`src/world`.
+
+**Concurrency note:** the main chat's CI fix session worked in
+this same tree during this run and committed here (`6ebd156`,
+`e3c43ac`, `21b0b66`: staleness shallow-clone fix and hermetic
+tests, counts to 511). Those commits sit between this entry's
+proposal/test commits and the implementation commit in the branch
+history. They are the CI fix session's work, not Prompt 3's, and
+they land on main with this branch.
+
+**Commits:**
+- `8e4b7db` docs: Prompt 3 data model proposal
+- `337a85d` test: Prompt 3 acceptance tests for the handoff Task entity
+- `80691e2` feat: add Task entity to handoff state (Prompt 3 essential subset)
+- (docs commit for this entry follows)
+
+**What remains:** Prompt 3's proposed-only items (proposal
+section 8) wait for Rosario's review. Prompt 4 (cross-model
+handoff) is next in the sequence. Open decisions unchanged
+(H-1, L-1/L-2/L-3, D-7/D-8, L-6/F3b), plus the proposal's own
+questions: the Question upgrade, the evidence `kind` enum, and
+whether `Assumption` joins the top-level exports.
