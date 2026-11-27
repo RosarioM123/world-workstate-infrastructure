@@ -130,6 +130,17 @@ Versions follow [Semantic Versioning](https://semver.org/).
   longer grows with chain length.
 
 ### Fixed
+- `tools/staleness.py` no longer reports a false "changed" verdict in
+  a shallow clone (2026-11-26, CI fix): `changed_since` treated the
+  truncated history of the default CI checkout (actions/checkout,
+  depth 1) as real history, so the boundary commit appeared to touch
+  every file and `test_staleness_ok_and_stale` failed on GitHub
+  (Python 3.13 at 52b180c, Python 3.11 at 75f75c2) while passing
+  locally. `changed_since` now returns None (history unavailable)
+  when `git rev-parse --is-shallow-repository` is true. The test is
+  hermetic now: it builds a throwaway repo with dated commits and
+  asserts ok, sha-ok, uncheckable, and changed verdicts against it,
+  plus a shallow-clone regression test. Suite: 511 passed.
 - `World._connect` now retries the WAL mode switch briefly when it
   reports "database is locked" (Mission Day 15 continuation,
   Prompt 2): several handles opening a *fresh* world at once could

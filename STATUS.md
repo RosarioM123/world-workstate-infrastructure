@@ -8,7 +8,7 @@
 **License:** MIT. **Not deployed, not production-ready, no external
 users.**
 
-**Tests:** 510 passing, 0 failing (full suite run locally
+**Tests:** 511 passing, 0 failing (full suite run locally
 2026-11-26, Python 3.12.3, on the mission Day 15 continuation
 branch tree; Prompt 2 adversarial pass added 6 tests and one fix:
 the WAL mode switch in `World._connect` now retries on the

@@ -1386,3 +1386,64 @@ guarantee documentation for the engine ledger side (the legacy
 guarantee table) and any deeper crash-window work Rosario wants;
 neither blocks Prompt 3. Open decisions unchanged (H-1, L-1/L-2/L-3,
 D-7/D-8, L-6/F3b).
+
+## CI fix (2026-11-26, evening): staleness false "changed" in shallow clones
+
+**Symptom:** GitHub CI on main failed twice after the Day 15 /
+Prompt 2 pushes: run 45900521279 at remote 52b180c (test job,
+Python 3.13) and run 45904861428 at remote 75f75c2 (test job,
+Python 3.11); the remaining matrix jobs were cancelled by
+fail-fast. Lint, frontend, and the C# verifier passed both times.
+
+**Identification:** the per-job logs (downloaded through the API;
+the earlier forbidden attempt had used the run-log path) name the
+same single failure in both runs:
+`tests/test_tools_demo_shims.py::test_staleness_ok_and_stale`,
+`{'D1': 'changed'} != {'D1': 'ok'}` (1 failed, 503 passed at
+52b180c; 1 failed, 509 passed at 75f75c2). Not a flake and not a
+timing issue: the same test, the same assertion, both runs.
+
+**Root cause:** the test ran `tools/staleness.py` against the real
+repo and expected `docs/architecture.md` (last commit 2026-11-12)
+to be unchanged since 2026-11-24. That holds in a full clone.
+CI uses actions/checkout with the default fetch-depth of 1: in a
+shallow clone the boundary commit appears to touch every file in
+the tree, so `git log --since=2026-11-24 -- docs/architecture.md`
+returns HEAD and the tool reports "changed". Reproduced locally
+in a depth-1 clone of this repo (same assertion failure), and the
+full clone returns no commits for that query.
+
+**Fix (two parts, no assertions weakened):**
+- `tools/staleness.py`: `changed_since` returns None (history
+  unavailable, the tool's existing indeterminate path) when
+  `git rev-parse --is-shallow-repository` is true, via a new
+  `is_shallow` helper. A truncated history is not evidence of a
+  change, in CI or for any user running the tool in a shallow
+  clone.
+- `tests/test_tools_demo_shims.py`: `test_staleness_ok_and_stale`
+  is hermetic. It builds a throwaway repo with dated commits
+  (architecture.md committed 2026-11-20 and untouched;
+  evolving.md committed 2026-11-20 and changed 2026-11-25) and
+  asserts ok, sha-ok, uncheckable, and a genuine changed verdict,
+  so the changed path is now covered deliberately instead of
+  accidentally. New regression test
+  `test_staleness_shallow_clone_history_unavailable` pins the
+  shallow behavior. Counts updated 510 to 511 in README.md and
+  STATUS.md.
+
+**Verification:** the fixed tree passes in a depth-1 clone
+(15/15 shim tests, the exact CI condition that failed before).
+Full suite on the default /tmp, run twice: 511 passed, 0 failed
+both times (101.35 s and 74.32 s); shim file 15 passed on five
+further runs. Ruff check and format clean, mypy clean on
+`tools/staleness.py`.
+
+**Commits:** (hashes recorded in PROMPT_SEQUENCE_LOG.md after the
+push, per the Day 15 convention)
+- fix: staleness reports history unavailable in shallow clones
+- test: hermetic staleness tests with dated repo and shallow regression
+- docs: CI fix mission log, changelog entry, counts to 511
+
+**Landing on main:** local main fast-forwarded and pushed via the
+replay script under Rosario's blanket approval, at her explicit
+instruction to pull the log and fix the failing test.
