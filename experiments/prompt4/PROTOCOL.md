@@ -29,7 +29,7 @@ journal (transcript)? Prompt 4 in
   - C = prose journal (transcript analogue): dated prose entries
     covering the same facts, no ids, no field structure.
 - One scripted Agent B per condition, run as a fresh subprocess
-  (`agent_b.py`) that reads ONLY the bundle file. It never opens the
+  (`handoff_agent_b.py`) that reads ONLY the bundle file. It never opens the
   world file and never imports `world`. It answers a fixed 10-item
   questionnaire and names the task it would do next. The reader is
   rule-based (fixed regexes and section rules); it measures what the
@@ -70,7 +70,7 @@ suppliers".
   next_actions ["Draft the cost-curve section on the refreshed
   numbers"].
 
-## Metrics (exact scoring rules, implemented in harness.py)
+## Metrics (exact scoring rules, implemented in handoff_harness.py)
 
 Questionnaire items score 1 (full), 0.5 (partial), or 0 (miss).
 Continuation success is the mean of the 10 items.
@@ -138,9 +138,9 @@ the run is: a model Agent A does the scenario work through the
 shipped code path (or the scripted Agent A output is reused as the
 world), then a different-model Agent B reads only the bundle file
 for its condition (JSON packet, summary text, or journal text) and
-writes the same answers JSON schema (`agent_b.py --help` documents
+writes the same answers JSON schema (`handoff_agent_b.py --help` documents
 it; a model agent needs only to produce that file). The same
-scoring in `harness.py` applies unchanged. Until then, every number
+scoring in `handoff_harness.py` applies unchanged. Until then, every number
 below is a scripted-run number.
 
 ## Results

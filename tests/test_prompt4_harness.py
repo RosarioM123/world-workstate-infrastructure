@@ -35,12 +35,12 @@ def _load(name, path):
 
 @pytest.fixture(scope="module")
 def harness():
-    return _load("prompt4_harness", PROMPT4 / "harness.py")
+    return _load("prompt4_harness", PROMPT4 / "handoff_harness.py")
 
 
 @pytest.fixture(scope="module")
 def agent_b():
-    return _load("prompt4_agent_b", PROMPT4 / "agent_b.py")
+    return _load("prompt4_agent_b", PROMPT4 / "handoff_agent_b.py")
 
 
 def _packet_answers(harness, agent_b):

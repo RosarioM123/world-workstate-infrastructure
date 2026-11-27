@@ -4,7 +4,7 @@ Agent A builds one fixed scenario through the shipped `World` code
 path (a spend update, one invariant rejection, two handoff saves).
 Three bundles are derived from the same v2 state (information
 parity: the summary and the journal carry the same facts as the
-packet, in prose; what differs is structure). A fresh `agent_b.py`
+packet, in prose; what differs is structure). A fresh `handoff_agent_b.py`
 subprocess reads ONLY its bundle file and answers the fixed
 10-item questionnaire; the answers are scored against the ground
 truth in `GROUND_TRUTH`.
@@ -15,7 +15,7 @@ preregistration, the exact scoring rules, and the pending
 real-model step. No model results are claimed here.
 
 Run from the repo root:
-    python experiments/prompt4/harness.py
+    python experiments/prompt4/handoff_harness.py
         [--out experiments/prompt4/results/run-2026-11-27.json]
 """
 
@@ -30,7 +30,7 @@ import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-AGENT_B = HERE / "agent_b.py"
+AGENT_B = HERE / "handoff_agent_b.py"
 ROOT = HERE.parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -139,7 +139,7 @@ Next: draft the cost-curve section on the refreshed numbers.
 
 def state_v1() -> AgentState:
     return AgentState(
-        objective=GROUND_TRUTH["objective"],
+        objective=str(GROUND_TRUTH["objective"]),
         decisions=[
             Decision(
                 text="Use the March teardown dataset as the primary cost source",
@@ -514,7 +514,7 @@ def score_answers(answers: dict, truth: dict = GROUND_TRUTH) -> dict:
 def run_condition(
     bundle_path: Path, fmt: str, out_dir: Path
 ) -> tuple[dict, float, int]:
-    """Run agent_b.py in a fresh subprocess on one bundle.
+    """Run handoff_agent_b.py in a fresh subprocess on one bundle.
 
     Returns (answers, wall seconds, bundle word count)."""
     bundle_text = bundle_path.read_text()
@@ -538,7 +538,7 @@ def run_condition(
     )
     elapsed = time.perf_counter() - start
     if proc.returncode != 0:
-        raise RuntimeError(f"agent_b ({fmt}) failed: {proc.stderr.strip()}")
+        raise RuntimeError(f"handoff_agent_b ({fmt}) failed: {proc.stderr.strip()}")
     return json.loads(answers_path.read_text()), elapsed, len(bundle_text.split())
 
 
