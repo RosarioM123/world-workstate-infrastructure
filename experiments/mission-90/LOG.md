@@ -1522,3 +1522,70 @@ handoff) is next in the sequence. Open decisions unchanged
 (H-1, L-1/L-2/L-3, D-7/D-8, L-6/F3b), plus the proposal's own
 questions: the Question upgrade, the evidence `kind` enum, and
 whether `Assumption` joins the top-level exports.
+
+## Day 16 - 2026-11-27 (Prompt 4, Phase 3)
+
+**Branch:** `mission/day-16` (from local main `b83c1b7`).
+
+**Problem:** Prompt 4 requires Agent B (a different model, no
+conversation history) to continue Agent A's work from WORLD alone:
+objective, completed work, remaining tasks, decisions and rationale,
+evidence, unresolved questions, artifacts, dependencies, known
+errors, state version, next action. No provider-independent
+continuation interface existed: `load_state` returns the typed
+`AgentState`, but nothing renders the canonical bundle a
+model-agnostic agent consumes, and nothing measures whether a
+successor recovers it. The demo is a hand-run illustration, not a
+measured harness. No model-provider credentials exist in this VM,
+so a genuine two-model run cannot happen today and is not faked.
+
+**Decision:** build the interface and the measurement instrument,
+run the scripted measurement, and leave the real-model step
+explicitly pending. (1) `continuation_packet` in
+`src/world/handoff.py`: the eleven Prompt 4 fields plus assumptions
+(Experiment #003 showed free-text handoffs lose assumption
+confidence and status), pinned to the committed version, with
+REJECTED proposals in known errors and artifact references
+deduplicated from evidence sources. No new storage, no schema
+change, no Prompt 3 proposed-only item implemented. A packet stays
+a pure function of its pinned version: rejections after that
+version appear only in a packet built at a later version (pinned
+by test). (2) Preregistered protocol in
+`experiments/prompt4/PROTOCOL.md`, written before any harness run.
+(3) Deterministic scripted harness: Agent A works a fixed scenario
+through the shipped `World` path; Agent B runs in a fresh
+subprocess reading only its bundle file, under three conditions
+(WORLD packet, plain summary, prose journal), and answers a fixed
+10-item questionnaire scored by the harness. (4) Acceptance tests
+for the packet (14) and the harness scoring rules (7).
+
+**Measured scripted run 2026-11-27** (`experiments/prompt4/results/run-2026-11-27.json`):
+continuation success packet 1.00, journal 0.65, summary 0.30; lost
+evidence 0/2/0; duplicate work and wrong assumptions 0 in all
+conditions; bundle words 451/56/164. Negative findings recorded in
+the protocol: the journal ties the packet on evidence, remaining
+tasks, and known errors; the packet costs 8.0x the summary's words;
+duplicate-work and wrong-assumption metrics are uninformative under
+fixed readers and only become meaningful with a real model.
+
+**Verification:** baseline 524 passed before changes; final full
+suite 545 passed, 0 failed, 1 warning. Ruff check and format clean
+on changed code; mypy clean on `src/world`. The packet tests were
+written after the packet code in the same run (not test-first, as
+Prompt 3 was); the harness tests pin the scoring rules and the
+measured ordering. One test failure during development was a wrong
+expectation, not a code defect: rejected rows carry the reason
+appended to the note (`... | REJECTED: ...`).
+
+**Commits:** (hashes recorded in PROMPT_SEQUENCE_LOG.md after the
+push, per the Day 15 convention)
+- feat: provider-neutral continuation packet for cross-model handoff (Prompt 4)
+- test: Prompt 4 scripted handoff harness and preregistered protocol
+- (docs commit for this entry follows)
+
+**What remains:** the real two-model run (needs credentials for two
+genuinely different models; interface documented in the protocol);
+the projected packet as a cheaper bundle (unmeasured, not assumed);
+Prompt 5 (provenance and verification) is next in the sequence.
+Prompt 3's proposed-only items still wait for Rosario's review.
+Open decisions unchanged (H-1, L-1/L-2/L-3, D-7/D-8, L-6/F3b).

@@ -1,4 +1,4 @@
-"""WORLD v0.1 — a minimal, verifiable work-state primitive.
+"""WORLD v0.1: a minimal, verifiable work-state primitive.
 
 A :class:`~world.core.World` is a named, durable unit of work: an opaque JSON
 document whose every change is judged by optional invariants, with every

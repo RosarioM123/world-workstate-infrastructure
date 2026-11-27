@@ -7,6 +7,36 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Prompt 4 cross-model handoff: provider-neutral continuation packet
+  (2026-11-27, Mission Day 16). `world.continuation_packet` builds
+  the eleven fields Prompt 4 names a successor agent needs
+  (objective, completed work, remaining tasks, decisions with
+  rationale, evidence, unresolved questions, artifact references,
+  dependencies, known errors, state version, next action) plus
+  assumptions, pinned to the committed version it was built from,
+  with REJECTED proposals carried in known errors and artifact
+  references deduplicated from evidence sources (WORLD stores the
+  reference, not the artifact; no Artifact entity exists). The
+  packet is plain JSON plus a deterministic plain-text rendering
+  (`world.render_packet_text`), names no model provider, and is a
+  reading view, not a state to save back. 14 acceptance tests in
+  `tests/test_handoff_continuation.py`.
+- Prompt 4 scripted handoff harness (`experiments/prompt4/`, preregistered
+  protocol in `PROTOCOL.md`): scripted Agent A works a fixed
+  battery-supplier scenario through the shipped `World` path, then
+  scripted Agent B runs in a fresh subprocess reading only its bundle
+  file, under three conditions (WORLD packet, plain summary, prose
+  journal), and answers a fixed 10-item questionnaire scored by the
+  harness. Measured scripted run 2026-11-27: continuation success
+  packet 1.00, journal 0.65, summary 0.30; lost evidence 0/2/0;
+  duplicate work and wrong assumptions 0 in all conditions; bundle
+  sizes 451/56/164 words. The journal ties the packet on evidence,
+  remaining tasks, and known errors; the packet's edge is
+  supersession links, assumption metadata, and version pinning. These
+  are scripted-reader numbers (fixed rule-based readers), NOT model
+  results: no model-provider credentials exist in this VM, so the
+  real two-model run is pending and nothing about model behavior is
+  claimed. 7 harness tests pin the scoring rules.
 - Prompt 3 data model: the handoff `Task` entity (2026-11-26,
   Mission Day 15). `AgentState` gains a `tasks` section: `Task`
   carries `id`, lifecycle `status` (proposed, in_progress, blocked,

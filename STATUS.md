@@ -4,17 +4,14 @@
 `research/RESEARCH_OVERVIEW.md` and the evidence register in
 `research/EVIDENCE_REGISTER.md`.
 
-**Updated 2026-11-26** (Mission Day 15, Prompt 3). **Version:** 0.1.0.
+**Updated 2026-11-27** (Mission Day 16, Prompt 4). **Version:** 0.1.0.
 **License:** MIT. **Not deployed, not production-ready, no external
 users.**
 
-**Tests:** 524 passing, 0 failing (full suite run locally
-2026-11-26, Python 3.12.3, on the Prompt 3 branch tree; the
-Prompt 3 data model pass added 13 tests for the new handoff
-`Task` entity, and the same-day CI fix added hermetic staleness
-tests. Prompt 2's adversarial pass had added 6 tests and one fix:
-the WAL mode switch in `World._connect` now retries on the
-fresh-world open race those tests exposed).
+**Tests:** 545 passing, 0 failing (full suite run locally
+2026-11-27, Python 3.12.3, on the Prompt 4 branch tree; the
+Prompt 4 pass added 14 tests for the continuation packet and 7 for
+the scripted handoff harness).
 **Model checker:** 1,220,255 states explored (three
 configurations), properties P1 to P6 hold; mutation test catches
 the injected P4 violation. **CI:** pytest on Python 3.11, 3.12,
@@ -89,6 +86,16 @@ Core dependency-free (stdlib only).
   shipped code path (R1, R2, C1, n=3 per cell). Preservation at
   or near the #003 structured level; no revision regression
   from projection. PRELIMINARY.
+- **Prompt 4 scripted handoff (2026-11-27):** preregistered
+  protocol, one fixed scenario, scripted Agent A through the
+  shipped `World` path, scripted Agent B in a fresh subprocess
+  reading only its bundle. Continuation success: packet 1.00,
+  journal 0.65, summary 0.30; bundle words 451/164/56. The journal
+  ties the packet on evidence, remaining tasks, and known errors.
+  SCRIPTED RUN ONLY: no model-provider credentials exist in this
+  VM, so no two-model run happened and nothing about model behavior
+  is claimed. Full record: `experiments/prompt4/PROTOCOL.md` and
+  `experiments/prompt4/results/run-2026-11-27.json`.
 
 ---
 

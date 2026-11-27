@@ -21,7 +21,6 @@ from world import (
     Task,
     World,
     continuation_packet,
-    load_state,
     packet_from_state,
     render_packet_text,
     save_state,
@@ -130,7 +129,9 @@ def test_packet_carries_all_prompt4_fields(tmp_path, monkeypatch):
         "next_action",
     ):
         assert key in packet, f"packet is missing {key!r}"
-    assert packet["next_action"] == "Draft the cost-curve section on the refreshed numbers"
+    assert (
+        packet["next_action"] == "Draft the cost-curve section on the refreshed numbers"
+    )
 
 
 def test_packet_completed_work_splits_done_tasks_and_accepted_decisions(
@@ -277,7 +278,11 @@ def test_packet_pinned_version_excludes_later_rejections(tmp_path, monkeypatch):
     save_state(work, _rich_state(), actor="agent-a")
     packet_v1 = continuation_packet(work, version=1)
     assert packet_v1["known_errors"] == [
-        {"kind": "blocked_task", "id": "t-interview", "title": "Interview two cell makers"},
+        {
+            "kind": "blocked_task",
+            "id": "t-interview",
+            "title": "Interview two cell makers",
+        },
         {
             "kind": "invalidated_assumption",
             "id": "A2",

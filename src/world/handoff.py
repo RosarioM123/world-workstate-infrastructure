@@ -817,8 +817,7 @@ def render_packet_text(packet: dict[str, Any]) -> str:
     for item in packet["completed_work"]:
         if item["kind"] == "task":
             lines.append(
-                f"  - [task {item['id']}, done, owner {item['owner']}] "
-                f"{item['title']}"
+                f"  - [task {item['id']}, done, owner {item['owner']}] {item['title']}"
             )
         else:
             lines.append(
@@ -829,25 +828,17 @@ def render_packet_text(packet: dict[str, Any]) -> str:
     if not packet["remaining_tasks"]:
         lines.append("  (none)")
     for t in packet["remaining_tasks"]:
-        deps = (
-            f" (depends on: {', '.join(t['depends_on'])})" if t["depends_on"] else ""
-        )
+        deps = f" (depends on: {', '.join(t['depends_on'])})" if t["depends_on"] else ""
         lines.append(
-            f"  - [{t['id']}, {t['status']}, owner {t['owner']}] "
-            f"{t['title']}{deps}"
+            f"  - [{t['id']}, {t['status']}, owner {t['owner']}] {t['title']}{deps}"
         )
     lines.append("Decisions:")
     if not packet["decisions"]:
         lines.append("  (none)")
     for d in packet["decisions"]:
-        ev = (
-            f" (evidence: {', '.join(d['evidence_ids'])})"
-            if d["evidence_ids"]
-            else ""
-        )
+        ev = f" (evidence: {', '.join(d['evidence_ids'])})" if d["evidence_ids"] else ""
         lines.append(
-            f"  - [{d['id']}, {d['status']}] {d['text']} -- why: "
-            f"{d['rationale']}{ev}"
+            f"  - [{d['id']}, {d['status']}] {d['text']} -- why: {d['rationale']}{ev}"
         )
     lines.append("Evidence:")
     if not packet["evidence"]:
@@ -872,15 +863,11 @@ def render_packet_text(packet: dict[str, Any]) -> str:
         lines.append("  (none)")
     for q in packet["unresolved_questions"]:
         lines.append(f"  - {q}")
-    lines.append(
-        "Artifacts (references only; WORLD stores references, not the files):"
-    )
+    lines.append("Artifacts (references only; WORLD stores references, not the files):")
     if not packet["artifacts"]:
         lines.append("  (none)")
     for a in packet["artifacts"]:
-        lines.append(
-            f"  - {a['reference']} (evidence: {', '.join(a['evidence_ids'])})"
-        )
+        lines.append(f"  - {a['reference']} (evidence: {', '.join(a['evidence_ids'])})")
     lines.append("Dependencies:")
     if not packet["dependencies"]["tasks"] and not packet["dependencies"]["decisions"]:
         lines.append("  (none)")
