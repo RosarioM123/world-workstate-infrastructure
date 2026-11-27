@@ -1,0 +1,16 @@
+Objective: write a sourcing memo on solid-state battery cell suppliers.
+Decided: use the March teardown dataset as the primary cost source.
+Decided: scope the memo to cell makers, not pack assemblers.
+Assumed: pilot-line yields reach 80 percent by Q2 2027.
+Assumed: licensing terms for the leading patent holder stay non-exclusive.
+Evidence: March teardown: leading cell at 118 USD per kWh (Supplier data room, March teardown dataset).
+Done: collect the teardown datasets.
+In progress: draft the cost-curve section.
+Next: draft the cost-curve section, interview two cell makers.
+Tried to book the full teardown series for 9000 USD but the 5000 USD spend cap refused it.
+Evidence: January refresh: leading cell at 104 USD per kWh, cathode error corrected (Supplier data room, January teardown refresh).
+The March dataset is no longer the primary cost source.
+Decided: use the January teardown refresh as the primary cost source.
+The licensing assumption no longer holds.
+Blocked: interview two cell makers.
+Next: draft the cost-curve section on the refreshed numbers.

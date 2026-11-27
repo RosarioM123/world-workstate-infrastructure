@@ -1,0 +1,74 @@
+{
+  "run": "prompt4-scripted",
+  "date": "2026-11-27",
+  "scenario": "battery-supplier-memo",
+  "state_version": 4,
+  "conditions": {
+    "packet": {
+      "items": {
+        "objective": 1.0,
+        "authoritative_decisions": 1.0,
+        "supersession": 1.0,
+        "assumptions": 1.0,
+        "evidence": 1.0,
+        "remaining_tasks": 1.0,
+        "completed_work": 1.0,
+        "next_action": 1.0,
+        "known_errors": 1.0,
+        "state_version": 1.0
+      },
+      "continuation_success": 1.0,
+      "lost_decisions": 0,
+      "lost_evidence": 0,
+      "duplicate_work": 0,
+      "wrong_assumptions": 0,
+      "recovery_time_s": 0.052,
+      "bundle_words": 451,
+      "human_intervention": "n/a (scripted)"
+    },
+    "summary": {
+      "items": {
+        "objective": 1.0,
+        "authoritative_decisions": 0.5,
+        "supersession": 0.0,
+        "assumptions": 0.5,
+        "evidence": 0.0,
+        "remaining_tasks": 0.0,
+        "completed_work": 0.0,
+        "next_action": 1.0,
+        "known_errors": 0.0,
+        "state_version": 0.0
+      },
+      "continuation_success": 0.3,
+      "lost_decisions": 0,
+      "lost_evidence": 2,
+      "duplicate_work": 0,
+      "wrong_assumptions": 0,
+      "recovery_time_s": 0.057,
+      "bundle_words": 56,
+      "human_intervention": "n/a (scripted)"
+    },
+    "journal": {
+      "items": {
+        "objective": 1.0,
+        "authoritative_decisions": 0.5,
+        "supersession": 0.0,
+        "assumptions": 0.5,
+        "evidence": 1.0,
+        "remaining_tasks": 1.0,
+        "completed_work": 0.5,
+        "next_action": 1.0,
+        "known_errors": 1.0,
+        "state_version": 0.0
+      },
+      "continuation_success": 0.65,
+      "lost_decisions": 0,
+      "lost_evidence": 0,
+      "duplicate_work": 0,
+      "wrong_assumptions": 0,
+      "recovery_time_s": 0.11,
+      "bundle_words": 164,
+      "human_intervention": "n/a (scripted)"
+    }
+  }
+}

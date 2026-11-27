@@ -1,0 +1,37 @@
+{
+  "objective": "Write a sourcing memo on solid-state battery cell suppliers",
+  "decisions": [
+    {
+      "id": "",
+      "text": "Scope the memo to cell makers, not pack assemblers",
+      "status": "unknown"
+    },
+    {
+      "id": "",
+      "text": "Use the January teardown refresh as the primary cost source",
+      "status": "unknown"
+    }
+  ],
+  "supersedes": [],
+  "assumptions": [
+    {
+      "id": "",
+      "text": "Pilot-line yields reach 80 percent by Q2 2027",
+      "confidence": null,
+      "status": "unknown"
+    },
+    {
+      "id": "",
+      "text": "Licensing terms for the leading patent holder stay non-exclusive",
+      "confidence": null,
+      "status": "unknown"
+    }
+  ],
+  "evidence": [],
+  "remaining_tasks": [],
+  "completed_work": [],
+  "next_action": "Draft the cost-curve section on the refreshed numbers",
+  "next_task_choice": null,
+  "known_errors": [],
+  "state_version": null
+}

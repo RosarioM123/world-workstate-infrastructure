@@ -1,0 +1,1 @@
+Write a sourcing memo on solid-state battery cell suppliers. Scope the memo to cell makers, not pack assemblers. Use the January teardown refresh as the primary cost source. Assumed: Pilot-line yields reach 80 percent by Q2 2027. Assumed: Licensing terms for the leading patent holder stay non-exclusive. Next: Draft the cost-curve section on the refreshed numbers.

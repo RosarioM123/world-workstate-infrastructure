@@ -1,0 +1,85 @@
+{
+  "objective": "write a sourcing memo on solid-state battery cell suppliers",
+  "decisions": [
+    {
+      "id": "",
+      "text": "use the March teardown dataset as the primary cost source",
+      "status": "unknown"
+    },
+    {
+      "id": "",
+      "text": "scope the memo to cell makers, not pack assemblers",
+      "status": "unknown"
+    },
+    {
+      "id": "",
+      "text": "use the January teardown refresh as the primary cost source",
+      "status": "unknown"
+    }
+  ],
+  "supersedes": [],
+  "assumptions": [
+    {
+      "id": "",
+      "text": "pilot-line yields reach 80 percent by Q2 2027",
+      "confidence": null,
+      "status": "unknown"
+    },
+    {
+      "id": "",
+      "text": "licensing terms for the leading patent holder stay non-exclusive",
+      "confidence": null,
+      "status": "unknown"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "",
+      "claim": "March teardown: leading cell at 118 USD per kWh",
+      "source": "Supplier data room, March teardown dataset"
+    },
+    {
+      "id": "",
+      "claim": "January refresh: leading cell at 104 USD per kWh, cathode error corrected",
+      "source": "Supplier data room, January teardown refresh"
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": "",
+      "title": "draft the cost-curve section",
+      "status": "in_progress"
+    },
+    {
+      "id": "",
+      "title": "interview two cell makers",
+      "status": "blocked"
+    }
+  ],
+  "completed_work": [
+    {
+      "kind": "task",
+      "id": "",
+      "title": "collect the teardown datasets"
+    }
+  ],
+  "next_action": "draft the cost-curve section on the refreshed numbers",
+  "next_task_choice": "draft the cost-curve section",
+  "known_errors": [
+    {
+      "kind": "note",
+      "text": "Tried to book the full teardown series for 9000 USD but the 5000 USD spend cap refused it."
+    },
+    {
+      "kind": "note",
+      "text": "The licensing assumption no longer holds."
+    },
+    {
+      "kind": "note",
+      "text": "Blocked: interview two cell makers.",
+      "id": "",
+      "title": "interview two cell makers"
+    }
+  ],
+  "state_version": null
+}

@@ -1,0 +1,167 @@
+{
+  "format": "world-continuation/1",
+  "world": "prompt4-handoff",
+  "state_version": 4,
+  "objective": "Write a sourcing memo on solid-state battery cell suppliers",
+  "completed_work": [
+    {
+      "kind": "task",
+      "id": "t-collect",
+      "title": "Collect the teardown datasets",
+      "owner": "agent-a"
+    },
+    {
+      "kind": "decision",
+      "id": "D2",
+      "text": "Scope the memo to cell makers, not pack assemblers",
+      "rationale": "Pack economics follow cell prices with a lag"
+    },
+    {
+      "kind": "decision",
+      "id": "D3",
+      "text": "Use the January teardown refresh as the primary cost source",
+      "rationale": "The refresh corrects the March cathode pricing error"
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": "t-draft",
+      "title": "Draft the cost-curve section",
+      "status": "in_progress",
+      "owner": "agent-b",
+      "parent_id": null,
+      "depends_on": [
+        "t-collect"
+      ]
+    },
+    {
+      "id": "t-interview",
+      "title": "Interview two cell makers",
+      "status": "blocked",
+      "owner": "agent-b",
+      "parent_id": null,
+      "depends_on": [
+        "t-draft"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "text": "Use the March teardown dataset as the primary cost source",
+      "rationale": "It is the only dataset with cell-level cost splits",
+      "id": "D1",
+      "status": "superseded",
+      "supersedes": null,
+      "evidence_ids": [
+        "E1"
+      ]
+    },
+    {
+      "text": "Scope the memo to cell makers, not pack assemblers",
+      "rationale": "Pack economics follow cell prices with a lag",
+      "id": "D2",
+      "status": "accepted",
+      "supersedes": null,
+      "evidence_ids": [
+        "E1"
+      ]
+    },
+    {
+      "text": "Use the January teardown refresh as the primary cost source",
+      "rationale": "The refresh corrects the March cathode pricing error",
+      "id": "D3",
+      "status": "accepted",
+      "supersedes": "D1",
+      "evidence_ids": [
+        "E2"
+      ]
+    }
+  ],
+  "assumptions": [
+    {
+      "text": "Pilot-line yields reach 80 percent by Q2 2027",
+      "id": "A1",
+      "confidence": "medium",
+      "status": "active",
+      "validated_by": null
+    },
+    {
+      "text": "Licensing terms for the leading patent holder stay non-exclusive",
+      "id": "A2",
+      "confidence": "low",
+      "status": "invalidated",
+      "validated_by": "E2"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "March teardown: leading cell at 118 USD per kWh",
+      "source": "Supplier data room, March teardown dataset",
+      "id": "E1",
+      "kind": "measurement"
+    },
+    {
+      "claim": "January refresh: leading cell at 104 USD per kWh, cathode error corrected",
+      "source": "Supplier data room, January teardown refresh",
+      "id": "E2",
+      "kind": "measurement"
+    }
+  ],
+  "unresolved_questions": [
+    "Will the leading supplier license its anode process?"
+  ],
+  "artifacts": [
+    {
+      "reference": "Supplier data room, March teardown dataset",
+      "evidence_ids": [
+        "E1"
+      ]
+    },
+    {
+      "reference": "Supplier data room, January teardown refresh",
+      "evidence_ids": [
+        "E2"
+      ]
+    }
+  ],
+  "dependencies": {
+    "tasks": {
+      "t-draft": {
+        "parent_id": null,
+        "depends_on": [
+          "t-collect"
+        ]
+      },
+      "t-interview": {
+        "parent_id": null,
+        "depends_on": [
+          "t-draft"
+        ]
+      }
+    },
+    "decisions": {
+      "D3": {
+        "supersedes": "D1"
+      }
+    }
+  },
+  "known_errors": [
+    {
+      "kind": "blocked_task",
+      "id": "t-interview",
+      "title": "Interview two cell makers"
+    },
+    {
+      "kind": "invalidated_assumption",
+      "id": "A2",
+      "text": "Licensing terms for the leading patent holder stay non-exclusive"
+    },
+    {
+      "kind": "rejected_proposal",
+      "seq": 3,
+      "actor": "agent-a",
+      "note": "book the full teardown | REJECTED: spend_cap: committed_usd 9000 exceeds cap 5000"
+    }
+  ],
+  "next_action": "Draft the cost-curve section on the refreshed numbers"
+}

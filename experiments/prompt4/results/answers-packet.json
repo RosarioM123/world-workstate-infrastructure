@@ -1,0 +1,102 @@
+{
+  "objective": "Write a sourcing memo on solid-state battery cell suppliers",
+  "decisions": [
+    {
+      "id": "D1",
+      "text": "Use the March teardown dataset as the primary cost source",
+      "status": "superseded"
+    },
+    {
+      "id": "D2",
+      "text": "Scope the memo to cell makers, not pack assemblers",
+      "status": "accepted"
+    },
+    {
+      "id": "D3",
+      "text": "Use the January teardown refresh as the primary cost source",
+      "status": "accepted"
+    }
+  ],
+  "supersedes": [
+    {
+      "superseded_id": "D1",
+      "successor_id": "D3"
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "A1",
+      "text": "Pilot-line yields reach 80 percent by Q2 2027",
+      "confidence": "medium",
+      "status": "active"
+    },
+    {
+      "id": "A2",
+      "text": "Licensing terms for the leading patent holder stay non-exclusive",
+      "confidence": "low",
+      "status": "invalidated"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E1",
+      "claim": "March teardown: leading cell at 118 USD per kWh",
+      "source": "Supplier data room, March teardown dataset"
+    },
+    {
+      "id": "E2",
+      "claim": "January refresh: leading cell at 104 USD per kWh, cathode error corrected",
+      "source": "Supplier data room, January teardown refresh"
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": "t-draft",
+      "title": "Draft the cost-curve section",
+      "status": "in_progress"
+    },
+    {
+      "id": "t-interview",
+      "title": "Interview two cell makers",
+      "status": "blocked"
+    }
+  ],
+  "completed_work": [
+    {
+      "kind": "task",
+      "id": "t-collect",
+      "title": "Collect the teardown datasets"
+    },
+    {
+      "kind": "decision",
+      "id": "D2",
+      "title": "Scope the memo to cell makers, not pack assemblers"
+    },
+    {
+      "kind": "decision",
+      "id": "D3",
+      "title": "Use the January teardown refresh as the primary cost source"
+    }
+  ],
+  "next_action": "Draft the cost-curve section on the refreshed numbers",
+  "next_task_choice": "t-draft",
+  "known_errors": [
+    {
+      "kind": "blocked_task",
+      "id": "t-interview",
+      "title": "Interview two cell makers"
+    },
+    {
+      "kind": "invalidated_assumption",
+      "id": "A2",
+      "text": "Licensing terms for the leading patent holder stay non-exclusive"
+    },
+    {
+      "kind": "rejected_proposal",
+      "seq": 3,
+      "actor": "agent-a",
+      "note": "book the full teardown | REJECTED: spend_cap: committed_usd 9000 exceeds cap 5000"
+    }
+  ],
+  "state_version": 4
+}
