@@ -181,10 +181,10 @@ def test_subtask_and_dependency_graph_roundtrip(tmp_path, monkeypatch):
         objective="diamond",
         tasks=[
             Task(title="base", id="t-base", status="done"),
-            Task(title="left", id="t-left", parent_id="t-base",
-                 depends_on=["t-base"]),
-            Task(title="right", id="t-right", parent_id="t-base",
-                 depends_on=["t-base"]),
+            Task(title="left", id="t-left", parent_id="t-base", depends_on=["t-base"]),
+            Task(
+                title="right", id="t-right", parent_id="t-base", depends_on=["t-base"]
+            ),
             Task(title="join", id="t-join", depends_on=["t-left", "t-right"]),
         ],
     )
@@ -199,8 +199,13 @@ def test_project_state_compacts_finished_tasks(tmp_path, monkeypatch):
         objective="projection",
         tasks=[
             Task(title=long_title, id="t-done", status="done", owner="agent-a"),
-            Task(title="Still running task", id="t-live", status="blocked",
-                 owner="agent-b", depends_on=["t-done"]),
+            Task(
+                title="Still running task",
+                id="t-live",
+                status="blocked",
+                owner="agent-b",
+                depends_on=["t-done"],
+            ),
         ],
     )
     projected = project_state(state)

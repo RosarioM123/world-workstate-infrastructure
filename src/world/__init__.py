@@ -7,7 +7,7 @@ verdict (COMMITTED or REJECTED) appended to a hash-chained log.
 
 from . import ed25519, fieldcrypto
 from .core import ConflictError, InvariantViolation, RedactedError, World
-from .handoff import AgentState, Decision, Evidence, load_state, save_state
+from .handoff import AgentState, Decision, Evidence, Task, load_state, save_state
 
 __version__ = "0.1.0"
 
@@ -18,6 +18,7 @@ __all__ = [
     "Evidence",
     "InvariantViolation",
     "RedactedError",
+    "Task",
     "World",
     "__version__",
     "ed25519",

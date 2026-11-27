@@ -5,11 +5,11 @@ Two operations, stdlib only, no LLM provider dependency:
     save_state(world, state, ...) -> int   # returns the committed version
     load_state(world, ...) -> AgentState
 
-The work state is a structured document with six sections: objective,
-decisions, assumptions, evidence, open questions, next actions. It is
-stored under the reserved ``"handoff"`` key of the world's JSON
-document. A fresh agent needs nothing but the world name to recover
-the canonical state:
+The work state is a structured document with seven sections:
+objective, decisions, assumptions, evidence, tasks, open questions,
+next actions. It is stored under the reserved ``"handoff"`` key of
+the world's JSON document. A fresh agent needs nothing but the world
+name to recover the canonical state:
 
     state = load_state("research-acme")   # objective, decisions, ...
 
@@ -33,6 +33,7 @@ __all__ = [
     "Assumption",
     "Decision",
     "Evidence",
+    "Task",
     "load_state",
     "project_state",
     "revision_chain",
@@ -49,6 +50,8 @@ DECISION_STATUSES = ("proposed", "accepted", "superseded", "reversed")
 ASSUMPTION_CONFIDENCES = ("low", "medium", "high")
 #: Lifecycle states of an assumption (docs/state-model.md).
 ASSUMPTION_STATUSES = ("active", "validated", "invalidated", "stale")
+#: Lifecycle states of a task (docs/DATA_MODEL_PROPOSAL.md).
+TASK_STATUSES = ("proposed", "in_progress", "blocked", "done", "dropped")
 
 
 @dataclass
@@ -172,11 +175,56 @@ class Assumption:
 
 
 @dataclass
+class Task:
+    """A unit of work to be done, with lifecycle and ownership.
+
+    The typed form of what ``next_actions`` records as free text
+    (docs/DATA_MODEL_PROPOSAL.md). ``id`` is a stable, author-assigned
+    identifier; ``status`` is the lifecycle state (default
+    ``"proposed"``); ``owner`` names the human or agent responsible
+    (self-asserted, like the version log's ``actor``; it is data, not
+    a permission). ``parent_id`` links a subtask to its parent task,
+    and ``depends_on`` lists task ids that must finish first.
+    """
+
+    title: str
+    id: str = ""
+    status: str = "proposed"
+    owner: str = ""
+    parent_id: str | None = None
+    depends_on: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if self.status not in TASK_STATUSES:
+            raise ValueError(
+                f"invalid task status {self.status!r}: "
+                f"use one of {', '.join(TASK_STATUSES)}"
+            )
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Task:
+        if not isinstance(data, dict):
+            raise TypeError(f"task must be a dict, got {type(data).__name__}")
+        parent_id = data.get("parent_id")
+        return cls(
+            title=str(data["title"]),
+            id=str(data.get("id", "")),
+            status=str(data.get("status", "proposed")),
+            owner=str(data.get("owner", "")),
+            parent_id=None if parent_id is None else str(parent_id),
+            depends_on=[str(t) for t in data.get("depends_on", [])],
+        )
+
+
+@dataclass
 class AgentState:
     """Everything a successor agent needs to continue the work.
 
-    All six sections are required for a faithful handoff; the round-trip
-    test fails if any of them is lost or altered.
+    All seven sections are required for a faithful handoff; the
+    round-trip test fails if any of them is lost or altered.
     """
 
     objective: str
@@ -185,6 +233,7 @@ class AgentState:
     open_questions: list[str] = field(default_factory=list)
     next_actions: list[str] = field(default_factory=list)
     assumptions: list[Assumption] = field(default_factory=list)
+    tasks: list[Task] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -204,6 +253,7 @@ class AgentState:
             open_questions=[str(q) for q in data.get("open_questions", [])],
             next_actions=[str(a) for a in data.get("next_actions", [])],
             assumptions=[Assumption.from_dict(a) for a in data.get("assumptions", [])],
+            tasks=[Task.from_dict(t) for t in data.get("tasks", [])],
         )
 
 
@@ -223,7 +273,11 @@ def validate_state(state: AgentState) -> None:
       task R2, where the remote-format decision supersedes the
       reversed in-person decision);
     - every ``evidence_ids`` entry resolves to an evidence id;
-    - an assumption's ``validated_by`` resolves to an evidence id.
+    - an assumption's ``validated_by`` resolves to an evidence id;
+    - non-empty task ids are unique; a task's ``parent_id`` resolves
+      to a task in the same state, is not the task itself, and parent
+      chains have no cycles; every ``depends_on`` entry resolves, is
+      not the task itself, and the dependency graph has no cycles.
     """
     decision_ids: set[str] = set()
     for d in state.decisions:
@@ -288,6 +342,54 @@ def validate_state(state: AgentState) -> None:
                 f"assumption {a.id or a.text!r} validated_by unknown "
                 f"evidence id {a.validated_by!r}"
             )
+
+    task_ids: set[str] = set()
+    for t in state.tasks:
+        if t.id:
+            if t.id in task_ids:
+                raise ValueError(f"duplicate task id {t.id!r}")
+            task_ids.add(t.id)
+    by_task_id = {t.id: t for t in state.tasks if t.id}
+    for t in state.tasks:
+        if t.parent_id is not None:
+            if t.id and t.parent_id == t.id:
+                raise ValueError(f"task {t.id!r} cannot be its own parent")
+            if t.parent_id not in task_ids:
+                raise ValueError(
+                    f"task {t.id or t.title!r} has unknown parent "
+                    f"task id {t.parent_id!r}"
+                )
+        for dep in t.depends_on:
+            if t.id and dep == t.id:
+                raise ValueError(f"task {t.id!r} cannot depend on itself")
+            if dep not in task_ids:
+                raise ValueError(
+                    f"task {t.id or t.title!r} depends on unknown task id {dep!r}"
+                )
+    # Parent cycles would make the subtask tree undefined.
+    for t in state.tasks:
+        t_seen: set[str] = set()
+        t_cur = t.parent_id
+        while t_cur is not None:
+            if t_cur in t_seen:
+                raise ValueError(f"task parent cycle through task id {t_cur!r}")
+            t_seen.add(t_cur)
+            t_nxt = by_task_id.get(t_cur)
+            t_cur = t_nxt.parent_id if t_nxt is not None else None
+    # Dependency cycles would leave every task in the cycle blocked.
+    for t in state.tasks:
+        d_seen: set[str] = set()
+        d_stack = list(t.depends_on)
+        while d_stack:
+            d_cur = d_stack.pop()
+            if t.id and d_cur == t.id:
+                raise ValueError(f"task dependency cycle through task id {d_cur!r}")
+            if d_cur in d_seen:
+                continue
+            d_seen.add(d_cur)
+            d_nxt = by_task_id.get(d_cur)
+            if d_nxt is not None:
+                d_stack.extend(d_nxt.depends_on)
 
 
 def _coerce_world(world: World | str) -> World:
@@ -376,6 +478,10 @@ def project_state(state: AgentState) -> AgentState:
       in ``evidence_ids``, when an included full assumption names it
       in ``validated_by``, or when it has no id (anonymous evidence
       cannot be reference-counted, so it is never silently dropped);
+    - tasks marked ``"done"`` or ``"dropped"`` are compacted the
+      same way (one-line title; ``id``, ``status``, ``owner``,
+      ``parent_id``, and ``depends_on`` are kept); all other tasks
+      are kept in full;
     - ``objective``, ``open_questions``, and ``next_actions`` pass
       through unchanged.
 
@@ -419,6 +525,21 @@ def project_state(state: AgentState) -> AgentState:
             if a.validated_by:
                 referenced.add(a.validated_by)
     evidence = [deepcopy(e) for e in state.evidence if not e.id or e.id in referenced]
+    tasks: list[Task] = []
+    for t in state.tasks:
+        if t.status in ("done", "dropped"):
+            tasks.append(
+                Task(
+                    title=_one_line(t.title),
+                    id=t.id,
+                    status=t.status,
+                    owner=t.owner,
+                    parent_id=t.parent_id,
+                    depends_on=list(t.depends_on),
+                )
+            )
+        else:
+            tasks.append(deepcopy(t))
     return AgentState(
         objective=state.objective,
         decisions=decisions,
@@ -426,6 +547,7 @@ def project_state(state: AgentState) -> AgentState:
         open_questions=list(state.open_questions),
         next_actions=list(state.next_actions),
         assumptions=assumptions,
+        tasks=tasks,
     )
 
 
