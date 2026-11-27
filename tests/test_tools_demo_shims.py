@@ -160,11 +160,52 @@ def test_guardrail_audit_pass_and_flag(tmp_path, monkeypatch, capsys):
     assert "FLAG" in capsys.readouterr().out
 
 
+def _git(repo, *args, date=None):
+    env = dict(os.environ)
+    if date is not None:
+        env["GIT_AUTHOR_DATE"] = date
+        env["GIT_COMMITTER_DATE"] = date
+    subprocess.run(
+        ["git", "-C", str(repo), *args],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=env,
+    )
+
+
+def _dated_repo(tmp_path):
+    """A throwaway git repo with controlled commit dates.
+
+    docs/architecture.md is committed on 2026-11-20 and never touched
+    again; docs/evolving.md is committed the same day and changed on
+    2026-11-25. An entity recorded on 2026-11-24 therefore sees the
+    first file as unchanged and the second as changed, no matter what
+    checkout this test itself runs in. (The previous version ran
+    against the real repo and broke in CI, where the default shallow
+    checkout makes the boundary commit appear to touch every file.)
+    """
+    repo = tmp_path / "repo"
+    (repo / "docs").mkdir(parents=True)
+    _git(repo, "init", "-q")
+    _git(repo, "config", "user.email", "test@example.com")
+    _git(repo, "config", "user.name", "Test")
+    (repo / "docs" / "architecture.md").write_text("v1\n", encoding="utf-8")
+    (repo / "docs" / "evolving.md").write_text("v1\n", encoding="utf-8")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-q", "-m", "initial", date="2026-11-20T12:00:00+00:00")
+    (repo / "docs" / "evolving.md").write_text("v2\n", encoding="utf-8")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-q", "-m", "update", date="2026-11-25T12:00:00+00:00")
+    return repo
+
+
 def test_staleness_ok_and_stale(tmp_path, monkeypatch, capsys):
     staleness = _load("tools_staleness", TOOLS / "staleness.py")
+    repo = _dated_repo(tmp_path)
     head = subprocess.run(
         ["git", "rev-parse", "--short", "HEAD"],
-        cwd=ROOT,
+        cwd=repo,
         capture_output=True,
         text=True,
         check=True,
@@ -181,6 +222,11 @@ def test_staleness_ok_and_stale(tmp_path, monkeypatch, capsys):
                     },
                     {"id": "D2", "source": head, "created_at": ""},
                     {"id": "D3", "source": "prose, no reference", "created_at": ""},
+                    {
+                        "id": "D4",
+                        "source": "docs/evolving.md",
+                        "created_at": "2026-11-24",
+                    },
                 ]
             }
         ),
@@ -189,7 +235,7 @@ def test_staleness_ok_and_stale(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["staleness.py", "--bundle", str(bundle), "--repo", str(ROOT), "--json"],
+        ["staleness.py", "--bundle", str(bundle), "--repo", str(repo), "--json"],
     )
     with pytest.raises(SystemExit) as exc:
         staleness.main()
@@ -199,6 +245,7 @@ def test_staleness_ok_and_stale(tmp_path, monkeypatch, capsys):
         "D1": "ok",
         "D2": "ok",
         "D3": "uncheckable",
+        "D4": "changed",
     }
 
     stale_bundle = tmp_path / "stale.json"
@@ -219,12 +266,53 @@ def test_staleness_ok_and_stale(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["staleness.py", "--bundle", str(stale_bundle), "--repo", str(ROOT)],
+        ["staleness.py", "--bundle", str(stale_bundle), "--repo", str(repo)],
     )
     with pytest.raises(SystemExit) as exc:
         staleness.main()
     assert exc.value.code == 1
     assert "STALE" in capsys.readouterr().out
+
+
+def test_staleness_shallow_clone_history_unavailable(tmp_path, monkeypatch, capsys):
+    """In a shallow clone the change history is truncated, so a file
+    that did change after it was recorded must come back as history
+    unavailable (verdict ok), never as a false "changed"."""
+    staleness = _load("tools_staleness_shallow", TOOLS / "staleness.py")
+    repo = _dated_repo(tmp_path)
+    shallow = tmp_path / "shallow"
+    subprocess.run(
+        ["git", "clone", "-q", "--depth", "1", f"file://{repo}", str(shallow)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    bundle = tmp_path / "world-state.json"
+    bundle.write_text(
+        json.dumps(
+            {
+                "decisions": [
+                    {
+                        "id": "D4",
+                        "source": "docs/evolving.md",
+                        "created_at": "2026-11-24",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["staleness.py", "--bundle", str(bundle), "--repo", str(shallow), "--json"],
+    )
+    with pytest.raises(SystemExit) as exc:
+        staleness.main()
+    assert exc.value.code == 0
+    results = json.loads(capsys.readouterr().out)
+    assert {r["id"]: r["verdict"] for r in results} == {"D4": "ok"}
+    assert results[0]["detail"] == "path exists; change history unavailable"
 
 
 def test_write_cost_record_and_report(tmp_path, monkeypatch, capsys):
