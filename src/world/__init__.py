@@ -18,6 +18,16 @@ from .handoff import (
     render_packet_text,
     save_state,
 )
+from .provenance import (
+    classify_evidence,
+    decisions_for_evidence,
+    decisions_for_source,
+    evidence_for_assumption,
+    explain_decision,
+    reconstruct_provenance,
+    state_diff,
+    unsupported_conclusions,
+)
 
 __version__ = "0.1.0"
 
@@ -31,11 +41,19 @@ __all__ = [
     "Task",
     "World",
     "__version__",
+    "classify_evidence",
     "continuation_packet",
+    "decisions_for_evidence",
+    "decisions_for_source",
     "ed25519",
+    "evidence_for_assumption",
+    "explain_decision",
     "fieldcrypto",
     "load_state",
     "packet_from_state",
+    "reconstruct_provenance",
     "render_packet_text",
     "save_state",
+    "state_diff",
+    "unsupported_conclusions",
 ]
