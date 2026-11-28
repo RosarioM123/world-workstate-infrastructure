@@ -7,6 +7,31 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Prompt 5 provenance and verification queries (2026-11-28,
+  Mission Day 17). `src/world/provenance.py` answers the five
+  Prompt 5 queries as derived views over the committed snapshots
+  and the verdict log, with no schema change and no stored
+  per-entity provenance fields (Prompt 3 proposal section 8.5
+  stays proposed-only): `explain_decision` (why a decision is in
+  the project, who introduced it and when, backing evidence,
+  supersession chain, support status), `evidence_for_assumption`
+  (validating evidence and the version that recorded it),
+  `state_diff` (added, removed, and changed entities between two
+  committed versions), `decisions_for_evidence` and
+  `decisions_for_source` (reverse index from evidence and source
+  to decisions), `unsupported_conclusions` (live decisions with
+  no evidence, missing evidence, or evidence behind a now
+  invalidated assumption), `classify_evidence` (documented
+  heuristic over the free-text kind string into source fact,
+  model interpretation, or unclassified; it classifies, it does
+  not enforce the kind enum, which is still Rosario's open
+  decision), and `reconstruct_provenance` (per entity id, the
+  introducing version, actor, timestamp, and note, plus every
+  later version where its content changed). Human approval is
+  reported as unknown, never inferred: WORLD records no approval
+  marker and actor is self-asserted. 15 acceptance tests in
+  `tests/test_provenance.py`, including reconstruction after
+  multiple transitions and at a pinned older version.
 - Prompt 4 cross-model handoff: provider-neutral continuation packet
   (2026-11-27, Mission Day 16). `world.continuation_packet` builds
   the eleven fields Prompt 4 names a successor agent needs

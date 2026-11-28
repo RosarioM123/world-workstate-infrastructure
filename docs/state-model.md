@@ -145,6 +145,17 @@ changes }, `format_version`.
 `source` (what informed it: evidence ids, prior entity versions),
 `supersedes` (prior version id, if any). No entity exists without these.
 
+Status note (2026-11-28, Prompt 5): the shipped code does NOT
+store these fields on entities. Provenance is derived instead:
+`src/world/provenance.py` reconstructs per-entity introduction
+(version, actor, timestamp, note) and change history from the
+committed snapshots and the verdict log, which already carry actor
+and timestamp for every change. Storing the fields on entities
+would duplicate that record and risk divergence between the two;
+it stays proposed-only (docs/DATA_MODEL_PROPOSAL.md section 8.5)
+for Rosario's review. Human approval is not recorded anywhere:
+`explain_decision` reports it as unknown, never inferred.
+
 ## Open questions about the model itself
 
 - Is `Action` too fine-grained to store, or is it exactly the audit trail

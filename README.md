@@ -49,8 +49,8 @@ sub-claims, and falsifiability conditions: `research/HYPOTHESIS.md`.
 ![Python 3.11 | 3.12 | 3.13](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)
 
 **Status:** v0.1.0 primitive. Working prototype, not deployed,
-not production-ready, no external users. 545 tests in the suite
-(count as of 2026-11-26; pytest on Python 3.11 to 3.13, ruff and
+not production-ready, no external users. 560 tests in the suite
+(count as of 2026-11-28; pytest on Python 3.11 to 3.13, ruff and
 mypy in a separate lint job on Python 3.12). Research
 documentation: `research/RESEARCH_OVERVIEW.md`. Reproduction:
 `REPRODUCE.md`. Two-process demonstration: `demo/`.
@@ -102,7 +102,14 @@ database, so two processes sharing a name always agree.
   validation at save time, a computed `revision_chain` view of
   one decision's history, and a `project_state` reading view
   that compacts superseded items without ever presenting them
-  as current.
+  as current. The provenance layer (`src/world/provenance.py`)
+  derives per-entity provenance and the five provenance queries
+  (why a decision is in the project, what evidence supports an
+  assumption, what changed between two versions, which decisions
+  depend on a source, which live conclusions are no longer
+  supported) from the committed snapshots and the verdict log,
+  with no schema change; human approval is reported as unknown,
+  never inferred.
 
 Full diagram, component inventory, data flow, and trust
 boundaries: `docs/architecture.md` (editable source:
@@ -122,7 +129,7 @@ mapping each claim to its source artifact, is
   holding throughout, with a mutation test proving the checker
   can fail. **VERIFIED** (`spec/model_check.py`,
   `docs/spec/protocol-verification.md`).
-- The suite is 545 tests passing (2026-11-27), covering the
+- The suite is 560 tests passing (2026-11-28), covering the
   protocol, invariant judging, tamper fuzzing (500 of 500 seeded
   mutations detected, DOCUMENTED), Hypothesis stateful testing
   against a reference model (DOCUMENTED), crash injection, and an
@@ -441,7 +448,7 @@ just documentation:
 
 Boundary, stated plainly: tamper-evident, not immutable, and the
 database cannot name the rule set that judged a historical
-version (see Current limitations). The 545-test suite exercises
+version (see Current limitations). The 560-test suite exercises
 each guarantee above, and the commit protocol behind them is
 model-checked separately (`docs/spec/protocol-verification.md`).
 
@@ -563,7 +570,7 @@ none.
 
 ```bash
 pip install -e ".[test]"
-python -m pytest tests/ -q                       # full suite (545 tests on the current tree)
+python -m pytest tests/ -q                       # full suite (560 tests on the current tree)
 python3 spec/model_check.py                      # model checker + mutation test
 python tools/bench_world.py                      # primitive benchmarks
 python tools/bench_contention.py                 # contention profile
@@ -607,7 +614,7 @@ Pointers: `src/world_engine/` (kernel), `src/world_sdk/`,
                       signing, field crypto, transcript producer
 /src/world_engine     legacy demo kernel (see above)
 /src/world_sdk        legacy offline client SDK (docs/SDK.md)
-/tests                545 tests: primitive, kernel, SDK, API, security
+/tests                560 tests: primitive, kernel, SDK, API, security
 /spec                 protocol model checker, TLA+ transcription,
                       linearizability and deterministic-simulation checkers
 /research             research overview, hypothesis, limitations, related

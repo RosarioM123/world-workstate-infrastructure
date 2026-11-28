@@ -1589,3 +1589,61 @@ the projected packet as a cheaper bundle (unmeasured, not assumed);
 Prompt 5 (provenance and verification) is next in the sequence.
 Prompt 3's proposed-only items still wait for Rosario's review.
 Open decisions unchanged (H-1, L-1/L-2/L-3, D-7/D-8, L-6/F3b).
+
+## Day 17 - 2026-11-28 (Prompt 5, Phase 3)
+
+**Problem:** Prompt 5 requires provenance and verification queries
+the shipped code could not answer from the handoff layer: why is
+this decision in the project, what evidence supports this
+assumption, what changed since the previous version, which
+decisions depend on this source or evidence item, which conclusions
+are no longer supported, and how to distinguish source facts,
+model interpretations, and human-approved decisions. Version rows
+already carry actor, timestamp, note, and status, and
+`revision_chain` derives one decision's history, but no query
+answered the five Prompt 5 questions and nothing reconstructed
+per-entity provenance across multiple transitions.
+
+**Decision:** build the queries as a derived layer, no schema
+change, no stored per-entity provenance fields (Prompt 3 proposal
+section 8.5 stays proposed-only). `src/world/provenance.py`:
+`reconstruct_provenance` (per entity id, introducing version,
+actor, timestamp, note, plus every later version where its content
+changed), `explain_decision`, `evidence_for_assumption`,
+`state_diff`, `decisions_for_evidence`, `decisions_for_source`,
+`unsupported_conclusions` (no evidence, missing evidence, or
+evidence behind a now-invalidated assumption), and
+`classify_evidence` (documented heuristic over the free-text kind
+string; classifies, does not enforce the kind enum, which stays
+Rosario's open decision in proposal section 8.4). Human approval
+is reported as unknown, never inferred: WORLD records no approval
+marker and actor is self-asserted. Top-level exports for the eight
+query functions. Acceptance tests written first (15), then the
+module; the tests pin reconstruction after multiple transitions
+and at a pinned older version.
+
+**Correction during the run:** the branch was first based on
+`d990c52` by a misread of `git log`; the first full-suite run
+showed 7 errors in the Prompt 4 harness tests because that tree
+still points the harness tests at the pre-rename filenames. The
+real tip of `mission/day-16` is `c5eb506` (harness rename plus
+mypy fix), which had sat unlanded on remote main. The branch was
+moved to `c5eb506` before any commit, work stashed and restored
+intact, and the two CI-fix commits land on main with today's push.
+The Prompt 4 harness tests pass on that tree.
+
+**Verification:** baseline 545 passed before changes; final full
+suite 560 passed, 0 failed, 1 warning. Ruff check and format clean
+on changed code; mypy clean on `src/world`. No em dashes in new or
+changed lines (pre-existing em dashes in docs/state-model.md
+lines untouched by this change remain).
+
+**Commits:** (hashes recorded in PROMPT_SEQUENCE_LOG.md after the
+push, per the Day 15 convention)
+- feat: provenance and verification queries over committed handoff state (Prompt 5)
+- docs: Day 17 mission log, changelog, status, counts to 560, state-model note
+
+**What remains:** the real two-model run from Prompt 4 (needs
+credentials); Prompt 6 (investment research pilot) is next in the
+sequence. Prompt 3's proposed-only items still wait for Rosario's
+review. Open decisions unchanged (H-1, L-1/L-2/L-3, D-7/D-8, L-6/F3b).

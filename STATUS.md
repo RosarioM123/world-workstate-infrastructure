@@ -4,14 +4,13 @@
 `research/RESEARCH_OVERVIEW.md` and the evidence register in
 `research/EVIDENCE_REGISTER.md`.
 
-**Updated 2026-11-27** (Mission Day 16, Prompt 4). **Version:** 0.1.0.
+**Updated 2026-11-28** (Mission Day 17, Prompt 5). **Version:** 0.1.0.
 **License:** MIT. **Not deployed, not production-ready, no external
 users.**
 
-**Tests:** 545 passing, 0 failing (full suite run locally
-2026-11-27, Python 3.12.3, on the Prompt 4 branch tree; the
-Prompt 4 pass added 14 tests for the continuation packet and 7 for
-the scripted handoff harness).
+**Tests:** 560 passing, 0 failing (full suite run locally
+2026-11-28, Python 3.12.3, on the Prompt 5 branch tree; the
+Prompt 5 pass added 15 tests for the provenance queries).
 **Model checker:** 1,220,255 states explored (three
 configurations), properties P1 to P6 hold; mutation test catches
 the injected P4 violation. **CI:** pytest on Python 3.11, 3.12,
@@ -86,6 +85,16 @@ Core dependency-free (stdlib only).
   shipped code path (R1, R2, C1, n=3 per cell). Preservation at
   or near the #003 structured level; no revision regression
   from projection. PRELIMINARY.
+- **Prompt 5 provenance queries (2026-11-28):** `src/world/provenance.py`
+  derives per-entity provenance and the five Prompt 5 queries from
+  committed snapshots and the verdict log, with no schema change:
+  why a decision is in the project, what evidence supports an
+  assumption, what changed between two versions, which decisions
+  depend on a source or evidence item, and which live conclusions
+  are no longer supported. Human approval is reported as unknown,
+  never inferred; evidence classification is a documented heuristic
+  over the free-text kind string. Full record: `tests/test_provenance.py`
+  (15 tests) and `docs/state-model.md` (provenance status note).
 - **Prompt 4 scripted handoff (2026-11-27):** preregistered
   protocol, one fixed scenario, scripted Agent A through the
   shipped `World` path, scripted Agent B in a fresh subprocess
